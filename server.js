@@ -359,4 +359,8 @@ app.listen(PORT, () => {
     console.log(`🚀 伺服器已在埠號 ${PORT} 啟動`);
 });
 
+// 允許你的 GitHub Pages 網址連線
+app.use(cors({
+    origin: 'https://23566446.github.io/Yash-Yash/' 
+}));
 
