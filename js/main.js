@@ -1,4 +1,4 @@
-const API_URL = 'https://yash-yash.onrender.com';
+const API_URL = 'http://localhost:3000'; // 部署後請記得更改此網址
 
 // 1. 檢查 Session
 const userData = localStorage.getItem('yashyash_user');
@@ -41,22 +41,39 @@ async function loadProposals() {
         board.innerHTML = visibleProposals.map(p => {
             const hasVoted = p.votes.includes(currentUser.nickname);
             const isReached = p.votes.length >= p.min;
+            // 權限判定：是否為發起人或超級管理員
             const isOwner = p.creator === currentUser.nickname || currentUser.account === 'admin';
 
-        return `
+            return `
                 <div class="proposal-card wabi-card">
-                    <div class="card-header">
-                        <strong>${p.creator} 發起的旅行</strong>
-                        <span class="status-tag" style="background: ${isReached ? '#8a9a5b' : '#eee'};">
-                            ${isReached ? '✅ 已達標' : '⏳ 投票中'}
-                        </span>
+                    <div class="card-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div>
+                            <strong>${p.creator} 發起的旅行</strong>
+                            <div class="status-tag" style="background: ${isReached ? '#8a9a5b' : '#eee'}; color: ${isReached ? 'white' : '#666'}; padding:2px 8px; font-size:0.7rem; border-radius:4px; margin-top:5px; display:inline-block;">
+                                ${isReached ? '✅ 已達標，持續招募中' : '⏳ 投票中'}
+                            </div>
+                        </div>
+                        
+                        <!-- 修正重點：在這裡加入編輯與刪除按鈕 -->
+                        ${isOwner ? `
+                            <div class="owner-actions">
+                                <button onclick="editProposal('${p._id}', '${p.start}', '${p.end}', ${p.min})" class="btn-small" style="padding:2px 8px;">編輯</button>
+                                <button onclick="deleteProposal('${p._id}')" class="btn-small" style="padding:2px 8px; color:red; border-color:red;">刪除</button>
+                            </div>
+                        ` : ''}
                     </div>
-                    <p>📅 ${p.start} ~ ${p.end}</p>
-                    <div class="progress-bar">
-                        目前：${p.votes.length} / ${p.min} 人
+
+                    <p class="date-info" style="margin: 15px 0;">📅 ${p.start} ~ ${p.end}</p>
+                    
+                    <div class="progress-bar" style="font-size:0.9rem; margin-bottom:15px;">
+                        目前人數：<strong>${p.votes.length}</strong> / 門檻：${p.min} 人
                     </div>
-                    <button onclick="vote('${p._id}')" class="${hasVoted ? 'btn-disabled' : 'btn-vote'}" ${hasVoted ? 'disabled' : ''}>
-                        ${hasVoted ? '已參加' : '我要參加'}
+                    
+                    <button onclick="vote('${p._id}')" 
+                        class="${hasVoted ? 'btn-disabled' : 'btn-vote'}" 
+                        ${hasVoted ? 'disabled' : ''} 
+                        style="width:100%;">
+                        ${hasVoted ? '已參加' : '我也要參加 (+1)'}
                     </button>
                 </div>
             `;
@@ -94,12 +111,11 @@ async function vote(proposalId) {
 // 6. 編輯提案 (日期與人數)
 async function editProposal(id, oldStart, oldEnd, oldMin) {
     const newStart = prompt("請輸入新開始日期 (YYYY-MM-DD):", oldStart);
-    if (newStart === null) return; // 取消
+    if (newStart === null) return; 
     
     const newEnd = prompt("請輸入新結束日期 (YYYY-MM-DD):", oldEnd);
     if (newEnd === null) return;
 
-    // 防呆：日期不能為空
     if (!newStart.trim() || !newEnd.trim()) {
         alert("🚨 日期不得為空！");
         return;
@@ -179,5 +195,4 @@ async function loadMyTrips() {
 
 function goToTripDetails(tripId) {
     window.location.href = `trip-details.html?id=${tripId}`;
-
 }
