@@ -197,3 +197,4 @@ function goToTripDetails(tripId) {
     window.location.href = `trip-details.html?id=${tripId}`;
 }
 
+
