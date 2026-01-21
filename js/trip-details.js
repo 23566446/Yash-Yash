@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3000';
+const API_URL = 'https://yash-yash.onrender.com';
 const urlParams = new URLSearchParams(window.location.search);
 const tripId = urlParams.get('id');
 
@@ -182,4 +182,5 @@ async function editTripDates() {
     } catch (err) {
         alert("網路連線失敗");
     }
+
 }
