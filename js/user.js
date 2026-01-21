@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3000';
+const API_URL = 'https://yash-yash.onrender.com';
 
 // 確保每次進入頁面都從 localStorage 取得最新資料
 const userData = localStorage.getItem('yashyash_user');
@@ -170,4 +170,5 @@ async function deleteUser(id) {
 function logout() {
     localStorage.removeItem('yashyash_user');
     window.location.href = 'login.html';
+
 }
