@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YashYash | Travel Harmony</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,400&family=Inter:wght@300;400&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- App Container -->
+    <div id="app">
+        
+        <!-- Login / Register Screen -->
+        <section id="view-auth" class="view">
+            <!-- 在 view-auth 區塊內 -->
+            <div id="login-form">
+                <input type="text" id="acc" placeholder="帳號 (Account)">
+                <input type="password" id="pw" placeholder="密碼 (Password)">
+                <div id="register-only" class="hidden">
+                    <input type="text" id="nick" placeholder="暱稱 (Nickname)">
+                    <select id="gen">
+                        <option value="male">男</option>
+                        <option value="female">女</option>
+                        <option value="other">其他</option>
+                    </select>
+                </div>
+                <button id="auth-btn" onclick="handleAuth()" class="btn-primary">進入專案</button>
+                <button onclick="toggleMode()" class="btn-text" id="toggle-text">切換到註冊</button>
+            </div>
+        </section>
+
+        <!-- Main Screen -->
+        <section id="view-main" class="view hidden">
+            <header class="app-header">
+                <span id="user-display" onclick="showView('view-dashboard')">Nickname</span>
+                <h2 class="section-title">Announcements</h2>
+            </header>
+
+            <div id="announcement-board" class="board">
+                <!-- Proposals go here -->
+                <p class="empty-text">No announcements yet.</p>
+            </div>
+
+            <h2 class="section-title">Your Trips</h2>
+            <div id="trip-list" class="board">
+                <!-- Confirmed trips go here -->
+                <p class="empty-text">No trips scheduled yet.</p>
+            </div>
+
+            <button class="fab" onclick="showView('view-create-trip')">+</button>
+        </section>
+
+        <!-- Trip Creation Screen -->
+        <section id="view-create-trip" class="view hidden">
+            <div class="wabi-card">
+                <h3>Propose a Trip</h3>
+                <label>Date Range</label>
+                <input type="date" id="start-date">
+                <input type="date" id="end-date">
+                <label>Minimum Participants</label>
+                <input type="number" id="min-ppl" value="2">
+                <div class="actions">
+                    <button onclick="showView('view-main')" class="btn-secondary">Cancel</button>
+                    <button onclick="createProposal()" class="btn-primary">Propose</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Trip Details / Chat / Ledger (Simplified for demo) -->
+        <section id="view-trip-details" class="view hidden">
+            <button onclick="showView('view-main')" class="btn-back">← Back</button>
+            <div id="trip-content"></div>
+        </section>
+
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

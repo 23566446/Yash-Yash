@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>YashYash | 發起提案</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="wabi-card">
+            <h3>發起新的旅行提案</h3>
+            <div class="form-group">
+                <label>開始日期</label>
+                <input type="date" id="start-date">
+                <label>結束日期</label>
+                <input type="date" id="end-date">
+                <label>最低成行人數</label>
+                <input type="number" id="min-ppl" value="2" min="1">
+                
+                <div class="actions" style="margin-top: 20px;">
+                    <button onclick="location.href='index.html'" class="btn-text">取消</button>
+                    <button onclick="submitProposal()" class="btn-primary">發布提案</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function submitProposal() {
+            const user = JSON.parse(localStorage.getItem('yashyash_user'));
+            const payload = {
+                creator: user.nickname,
+                start: document.getElementById('start-date').value,
+                end: document.getElementById('end-date').value,
+                min: document.getElementById('min-ppl').value,
+                votes: [user.nickname] // 發起人自動投一票
+            };
+
+            const response = await fetch('http://localhost:3000/api/proposals', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if(response.ok) {
+                alert("提案已發布！");
+                location.href = 'index.html';
+            }
+        }
+    </script>
+</body>
+</html>
