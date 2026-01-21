@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3000';
+const API_URL = 'https://yash-yash.onrender.com';
 
 // --- 註冊功能 ---
 async function register() {
@@ -58,4 +58,5 @@ async function login() {
     } catch (err) {
         alert("伺服器連線失敗");
     }
+
 }
