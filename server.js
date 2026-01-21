@@ -4,18 +4,11 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-
-// --- [修正點 1] CORS 必須放在最上面，且設定要正確 ---
-app.use(cors({
-    origin: ['https://23566446.github.io', 'http://127.0.0.1:5500'], // 允許 GitHub 和本地測試
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type']
-}));
-
 app.use(express.json());
+app.use(cors());
 
-// --- [修正點 2] 不要寫死密碼，改用環境變數 ---
-const MONGO_URI = process.env.MONGO_URI; 
+// --- 1. 資料庫連線 ---
+const MONGO_URI = "mongodb+srv://admin:Hank0528@yashyash.cygzlw7.mongodb.net/YashYash?retryWrites=true&w=majority"; 
 
 mongoose.connect(MONGO_URI)
     .then(() => console.log("✅ 成功連上 MongoDB!"))
@@ -150,6 +143,23 @@ app.post('/api/proposals/vote', async (req, res) => {
         res.json({ message: "投票成功", status: prop.status });
     } else {
         res.status(400).json({ message: "已投過票" });
+    }
+});
+
+// [刪除提案]
+app.delete('/api/proposals/:id', async (req, res) => {
+    try {
+        const proposalId = req.params.id;
+        const result = await Proposal.findByIdAndDelete(proposalId);
+        
+        if (!result) {
+            return res.status(404).json({ message: "找不到該提案" });
+        }
+        
+        res.json({ message: "提案已成功刪除" });
+    } catch (error) {
+        console.error("刪除提案失敗:", error);
+        res.status(500).json({ message: "伺服器錯誤，無法刪除" });
     }
 });
 
@@ -370,6 +380,3 @@ app.listen(PORT, () => {
 app.use(cors({
     origin: 'https://23566446.github.io/Yash-Yash/' 
 }));
-
-
-
