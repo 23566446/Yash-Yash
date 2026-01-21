@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3000'; // 部署後請記得更改此網址
+const API_URL = 'https://yash-yash.onrender.com'; // 部署後請記得更改此網址
 
 // 1. 檢查 Session
 const userData = localStorage.getItem('yashyash_user');
@@ -196,3 +196,4 @@ async function loadMyTrips() {
 function goToTripDetails(tripId) {
     window.location.href = `trip-details.html?id=${tripId}`;
 }
+
