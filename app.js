@@ -5,7 +5,7 @@ let state = {
     trips: []      
 };
 
-const API_URL = 'http://localhost:3000';
+const API_URL = 'https://yash-yash.onrender.com';
 
 // --- View Navigation ---
 function showView(viewId) {
@@ -157,4 +157,5 @@ window.onload = () => {
     if ('serviceWorker' in navigator) {
         console.log("PWA Ready");
     }
+
 };
