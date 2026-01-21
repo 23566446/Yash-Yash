@@ -4,8 +4,15 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
+
+// --- 修正點：CORS 必須放在所有路由之前 ---
+app.use(cors({
+    origin: ['https://23566446.github.io', 'http://127.0.0.1:5500', 'http://localhost:5500'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type']
+}));
+
 app.use(express.json());
-app.use(cors());
 
 // --- 1. 資料庫連線 ---
 const MONGO_URI = process.env.MONGO_URI; 
@@ -102,12 +109,23 @@ app.get('/api/proposals', async (req, res) => {
     } catch (error) { res.status(500).send("讀取失敗"); }
 });
 
+// [發布新行程提案]
 app.post('/api/proposals', async (req, res) => {
     try {
+        const { start, end, creator, min } = req.body;
+
+        // --- 後端防呆：檢查必填欄位 ---
+        if (!start || !end || !creator) {
+            return res.status(400).json({ message: "日期與發起人為必填項" });
+        }
+
         const newProp = new Proposal(req.body);
         await newProp.save();
         res.status(201).json(newProp);
-    } catch (error) { res.status(500).send("發布失敗"); }
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "伺服器發布失敗" });
+    }
 });
 
 // [修改提案] - 增加日期檢查與防呆
@@ -381,8 +399,4 @@ app.listen(PORT, () => {
     console.log(`🚀 伺服器已在埠號 ${PORT} 啟動`);
 });
 
-// 允許你的 GitHub Pages 網址連線
-app.use(cors({
-    origin: 'https://23566446.github.io/Yash-Yash/' 
-}));
 
