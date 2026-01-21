@@ -4,23 +4,18 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
+
+// --- [修正點 1] CORS 必須放在最上面，且設定要正確 ---
+app.use(cors({
+    origin: ['https://23566446.github.io', 'http://127.0.0.1:5500'], // 允許 GitHub 和本地測試
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type']
+}));
+
 app.use(express.json());
-app.use(cors());
 
-// --- 1. 資料庫連線 ---
-// 引入 dotenv (確保這行在最上方)
-require('dotenv').config();
-
-const express = require('express');
-// ... 其他引入 ...
-
-// 修改這部分：優先讀取環境變數，如果沒有才找 .env 檔案
+// --- [修正點 2] 不要寫死密碼，改用環境變數 ---
 const MONGO_URI = process.env.MONGO_URI; 
-
-if (!MONGO_URI) {
-    console.error("❌ 錯誤：找不到 MONGO_URI 環境變數！");
-    process.exit(1); // 停止伺服器
-}
 
 mongoose.connect(MONGO_URI)
     .then(() => console.log("✅ 成功連上 MongoDB!"))
@@ -375,5 +370,6 @@ app.listen(PORT, () => {
 app.use(cors({
     origin: 'https://23566446.github.io/Yash-Yash/' 
 }));
+
 
 
