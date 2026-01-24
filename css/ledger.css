@@ -1,118 +1,143 @@
-/* --- Ledger 專屬風格 --- */
-
+/* --- Ledger 專屬變數 --- */
 :root {
     --moss-dark: #6b7a47;
     --paper-white: #fdfcf9;
     --shadow-soft: 0 8px 30px rgba(0,0,0,0.05);
 }
 
+/* --- 容器優化 --- */
 body {
     background-color: var(--bg-color);
-    padding-bottom: 80px; /* 為底部按鈕留空間 */
+    padding-bottom: 100px;
 }
 
 .ledger-container {
-    max-width: 500px; /* 手機寬度限制 */
+    max-width: 600px;
     margin: 0 auto;
-    padding: 15px;
+    padding: 15px 12px;
 }
 
-/* 結算總覽卡片 */
+/* --- 結算總覽卡片 --- */
 .summary-card {
-    background: var(--accent-color);
+    background: linear-gradient(135deg, var(--accent-color), #7a8a4b);
     color: white;
-    padding: 25px;
-    border-radius: var(--border-radius);
-    box-shadow: 0 10px 20px rgba(138, 154, 91, 0.2);
-    margin-bottom: 30px;
+    padding: 25px 20px;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(138, 154, 91, 0.25);
+    margin-bottom: 25px;
     border: none;
 }
 
 .summary-card h3 {
     margin-top: 0;
-    font-size: 1.4rem;
-    border-bottom: 1px solid rgba(255,255,255,0.2);
+    margin-bottom: 15px;
+    font-size: 1.3rem;
+    border-bottom: 1px solid rgba(255,255,255,0.25);
     padding-bottom: 10px;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+#balance-list {
+    font-size: 0.9rem;
 }
 
 #balance-list div {
-    padding: 8px 0;
+    padding: 10px 0;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
+    border-bottom: 1px solid rgba(255,255,255,0.15);
 }
 
 #balance-list div:last-child {
     border-bottom: none;
-    font-weight: 600;
-    font-size: 1.1rem;
-    margin-top: 5px;
+    font-weight: 700;
+    font-size: 1.15rem;
+    margin-top: 8px;
+    padding-top: 12px;
+    border-top: 2px solid rgba(255,255,255,0.3);
 }
 
-/* 支出紀錄卡片 */
+/* --- 支出卡片 --- */
 .expense-card {
     background: white;
-    border-radius: var(--border-radius);
-    padding: 20px;
-    margin-bottom: 15px;
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 12px;
     border: 1px solid #e0ddd7;
-    transition: transform 0.2s;
+    transition: all 0.2s;
     position: relative;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
 }
 
 .expense-card:active {
-    transform: scale(0.98);
+    transform: scale(0.99);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
 
 .expense-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
+    gap: 10px;
 }
 
 .category-tag {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     background: var(--bg-color);
     color: var(--moss-dark);
-    padding: 4px 12px;
+    padding: 5px 12px;
     border-radius: 20px;
     font-weight: 600;
     border: 1px solid var(--clay);
+    white-space: nowrap;
 }
 
 .amount-display {
     font-family: 'Inter', sans-serif;
-    font-size: 1.4rem;
+    font-size: 1.5rem;
     font-weight: 700;
     color: var(--text-color);
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
 }
 
 .currency-code {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: var(--clay);
-    margin-left: 4px;
+    font-weight: 500;
 }
 
 .expense-footer {
-    margin-top: 15px;
+    margin-top: 12px;
     padding-top: 12px;
-    border-top: 1px dashed #eee;
-    font-size: 0.85rem;
+    border-top: 1px dashed #e0e0e0;
+    font-size: 0.8rem;
     color: #666;
     display: flex;
     justify-content: space-between;
+    gap: 10px;
 }
 
-/* 刪除按鈕 */
+.expense-footer div {
+    flex: 1;
+    min-width: 0;
+}
+
+.expense-footer strong {
+    color: var(--text-color);
+}
+
+/* --- 刪除按鈕 --- */
 .btn-delete-exp {
     position: absolute;
-    top: 15px;
-    right: 15px;
-    width: 30px;
-    height: 30px;
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -122,47 +147,274 @@ body {
     font-size: 1.2rem;
     border: none;
     cursor: pointer;
+    transition: all 0.2s;
+    min-width: 32px;
+    min-height: 32px;
 }
 
-/* 新增支出 Modal 優化 */
+.btn-delete-exp:active {
+    background: var(--danger);
+    color: white;
+    transform: scale(0.9);
+}
+
+/* --- Modal 彈出層 --- */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 2000;
+    padding: 0;
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+}
+
+.modal.hidden {
+    display: none !important;
+}
+
+/* 手機版：從下方滑入 */
 .modal-content {
-    border-radius: 20px 20px 5px 5px / 5px 5px 20px 20px;
-    padding: 30px;
-    border: none;
-    box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
+    background: white;
+    padding: 25px 20px;
+    border-radius: 20px 20px 0 0;
+    width: 100%;
+    max-width: 500px;
+    max-height: 85vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    box-shadow: 0 -5px 30px rgba(0,0,0,0.2);
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* 平板/電腦版：置中顯示 */
+@media (min-width: 600px) {
+    .modal {
+        align-items: center;
+    }
+    
+    .modal-content {
+        border-radius: 20px;
+        width: 90%;
+        max-width: 450px;
+        max-height: 90vh;
+        animation: fadeIn 0.3s ease-out;
+    }
+    
+    @keyframes fadeIn {
+        from {
+            transform: scale(0.9);
+            opacity: 0;
+        }
+        to {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
 }
 
 .modal-content h3 {
     text-align: center;
-    margin-bottom: 25px;
+    margin-top: 0;
+    margin-bottom: 20px;
     color: var(--moss-dark);
+    font-size: 1.3rem;
+}
+
+/* --- 分攤人員選擇 --- */
+.split-list-container {
+    margin: 20px 0;
+}
+
+.split-list-container p {
+    font-size: 0.85rem;
+    margin: 0 0 10px;
+    color: #666;
 }
 
 .split-list {
-    background: #f9f9f7;
-    padding: 15px;
+    background: var(--bg-color);
+    padding: 12px;
     border-radius: 12px;
-    margin: 10px 0 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
 .split-item {
-    transition: 0.2s;
+    transition: all 0.2s;
     background: white;
+    font-size: 0.85rem;
+    border: 1.5px solid #ddd;
+    padding: 8px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    white-space: nowrap;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+}
+
+.split-item:active {
+    transform: scale(0.95);
 }
 
 .split-item.active {
     background: var(--accent-color);
-    box-shadow: 0 4px 10px rgba(138, 154, 91, 0.3);
+    color: white;
+    border-color: var(--accent-color);
+    box-shadow: 0 4px 12px rgba(138, 154, 91, 0.3);
+    font-weight: 500;
 }
 
-/* 浮動按鈕 FAB */
+/* --- 表單輸入優化 --- */
+.modal-content input,
+.modal-content select {
+    font-size: 16px !important;
+    padding: 14px;
+    border: 1.5px solid #e0ddd7;
+    border-radius: 10px;
+    margin: 8px 0;
+    width: 100%;
+    background: white;
+    min-height: 48px;
+}
+
+.modal-content label {
+    font-size: 0.8rem;
+    color: #888;
+    display: block;
+    margin-top: 12px;
+    margin-bottom: 4px;
+}
+
+/* --- 按鈕組 --- */
+.modal-content > div:last-child {
+    display: flex;
+    gap: 10px;
+    margin-top: 25px;
+}
+
+.btn-text {
+    flex: 1;
+    text-decoration: none;
+    color: #999;
+    background: #f5f5f5;
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    cursor: pointer;
+    font-size: 1rem;
+    min-height: 48px;
+    transition: all 0.2s;
+}
+
+.btn-text:active {
+    background: #e0e0e0;
+}
+
+.btn-primary {
+    flex: 2;
+    min-height: 48px;
+}
+
+/* --- 空狀態 --- */
+.empty-text {
+    text-align: center;
+    padding: 60px 20px;
+    color: #999;
+    font-style: italic;
+}
+
+/* --- 浮動新增按鈕 --- */
 .fab-ledger {
     position: fixed;
     bottom: 30px;
     right: 30px;
-    width: 65px;
-    height: 65px;
-    font-size: 30px;
+    width: 60px;
+    height: 60px;
+    font-size: 28px;
     background: var(--text-color);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    cursor: pointer;
     z-index: 999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+}
+
+.fab-ledger:active {
+    transform: scale(0.95);
+}
+
+/* --- 小螢幕優化 --- */
+@media (max-width: 375px) {
+    .ledger-container {
+        padding: 12px 10px;
+    }
+    
+    .summary-card {
+        padding: 20px 16px;
+    }
+    
+    .summary-card h3 {
+        font-size: 1.2rem;
+    }
+    
+    .expense-card {
+        padding: 15px;
+    }
+    
+    .amount-display {
+        font-size: 1.3rem;
+    }
+    
+    .modal-content {
+        padding: 20px 16px;
+    }
+}
+
+/* --- 觸控優化 --- */
+.expense-card,
+.split-item,
+.btn-delete-exp {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+/* --- 安全區域適配 --- */
+@supports (padding: max(0px)) {
+    body {
+        padding-bottom: max(100px, calc(100px + env(safe-area-inset-bottom)));
+    }
+    
+    .fab-ledger {
+        bottom: max(30px, calc(30px + env(safe-area-inset-bottom)));
+        right: max(30px, env(safe-area-inset-right));
+    }
+    
+    .modal-content {
+        padding-bottom: max(25px, calc(25px + env(safe-area-inset-bottom)));
+    }
 }
