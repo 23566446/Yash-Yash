@@ -2,14 +2,14 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>YashYash | 許可證管理</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <header class="app-header">
         <button onclick="location.href='user.html'" class="btn-small">← 返回後台</button>
-        <h2>許可證金鑰管理</h2>
+        <h2 style="margin:0;">許可證金鑰管理</h2>
         <div style="width:50px;"></div>
     </header>
 
@@ -17,9 +17,9 @@
         <!-- 生成區塊 -->
         <section class="wabi-card">
             <h3>生成新許可證</h3>
-            <div style="display: flex; gap: 10px; align-items: center;">
-                <input type="number" id="license-limit" value="1" min="1" style="margin:0;">
-                <button onclick="createLicense()" class="btn-primary" style="white-space:nowrap;">生成金鑰</button>
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <input type="number" id="license-limit" value="1" min="1" style="margin:0; flex: 1; min-width: 100px;">
+                <button onclick="createLicense()" class="btn-primary" style="white-space:nowrap; flex: 0 0 auto;">生成金鑰</button>
             </div>
             <p style="font-size:0.8rem; color:#888; margin-top:10px;">設定此金鑰可被多少人次用於註冊。</p>
         </section>
@@ -28,42 +28,71 @@
         <section class="wabi-card">
             <h3>目前所有金鑰</h3>
             <div id="license-list">
-                <!-- 由 JS 渲染 -->
+                <p class="empty-text">載入中...</p>
             </div>
         </section>
     </main>
 
     <script>
-        const API_URL = 'http://localhost:3000';
+        // 修正：確保 API_URL 與後端一致
+        const API_URL = 'https://yash-yash.onrender.com';
 
-        window.onload = loadLicenses;
+        window.onload = function() {
+            console.log("頁面載入，開始讀取許可證...");
+            loadLicenses();
+        };
 
         async function loadLicenses() {
+            const list = document.getElementById('license-list');
+            list.innerHTML = '<p class="empty-text">載入中...</p>';
+            
             try {
+                console.log("正在請求:", `${API_URL}/api/admin/licenses`);
                 const res = await fetch(`${API_URL}/api/admin/licenses`);
+                
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                }
+                
                 const data = await res.json();
-                const list = document.getElementById('license-list');
+                console.log("取得資料:", data);
+                
+                if (!data || data.length === 0) {
+                    list.innerHTML = '<p class="empty-text">目前沒有任何許可證金鑰</p>';
+                    return;
+                }
                 
                 list.innerHTML = data.map(l => `
                     <div class="user-item-row" style="padding:15px 0; border-bottom:1px dashed #ddd;">
-                        <div>
-                            <strong style="color:var(--accent-color); font-family:monospace; font-size:1.1rem;">${l.key}</strong>
-                            <div style="font-size:0.8rem; color:#666;">
+                        <div style="flex: 1; min-width: 0;">
+                            <strong style="color:var(--accent-color); font-family:monospace; font-size:1.1rem; word-break: break-all;">${l.key}</strong>
+                            <div style="font-size:0.8rem; color:#666; margin-top: 5px;">
                                 使用情況: ${l.used} / ${l.limit} 
-                                ${l.used >= l.limit ? '<span style="color:red; font-weight:bold;">(已失效)</span>' : ''}
+                                ${l.used >= l.limit ? '<span style="color:red; font-weight:bold;">(已失效)</span>' : '<span style="color:green; font-weight:bold;">(有效)</span>'}
+                            </div>
+                            <div style="font-size:0.7rem; color:#999; margin-top: 3px;">
+                                建立時間: ${new Date(l.createdAt).toLocaleString('zh-TW')}
                             </div>
                         </div>
-                        <!-- 修正：確保呼叫的是 deleteLicense 且傳入 l._id -->
-                        <button onclick="deleteLicense('${l._id}')" class="btn-small" style="color:red; border-color:#ffcccc;">刪除</button>
+                        <button onclick="deleteLicense('${l._id}')" class="btn-small" style="color:red; border-color:#ffcccc; flex: 0 0 auto;">刪除</button>
                     </div>
                 `).join('');
-            } catch (e) { console.error("載入金鑰失敗"); }
+                
+            } catch (e) {
+                console.error("載入金鑰失敗:", e);
+                list.innerHTML = `
+                    <p class="empty-text" style="color: var(--danger);">
+                        ❌ 載入失敗：${e.message}<br>
+                        <small>請確認後端伺服器是否正常運作</small>
+                    </p>
+                `;
+            }
         }
 
-        // 修正後的刪除函數
         async function deleteLicense(id) {
-            // 保留您的提示訊息需求
-            if(!confirm("⚠️ 確定要作廢並刪除此許可證金鑰嗎？\n刪除後，尚未使用的名額將無法再進行註冊。")) return;
+            if(!confirm("⚠️ 確定要作廢並刪除此許可證金鑰嗎？\n刪除後，尚未使用的名額將無法再進行註冊。")) {
+                return;
+            }
 
             try {
                 const res = await fetch(`${API_URL}/api/admin/licenses/${id}`, { 
@@ -73,24 +102,23 @@
 
                 if (res.ok) {
                     alert("✅ 許可證已成功移除");
-                    loadLicenses(); // 重新載入列表
+                    loadLicenses();
                 } else {
                     const err = await res.json();
                     alert("❌ 刪除失敗：" + err.message);
                 }
             } catch (e) {
                 console.error(e);
-                alert("網路連線失敗，請檢查後端是否啟動");
+                alert("❌ 網路連線失敗，請檢查後端是否啟動");
             }
         }
 
-        // 生成金鑰的函數也補上提示
         async function createLicense() {
             const limitInput = document.getElementById('license-limit');
-            const limitValue = limitInput.value;
+            const limitValue = parseInt(limitInput.value);
 
             if (!limitValue || limitValue < 1) {
-                return alert("請輸入有效的使用次數！");
+                return alert("請輸入有效的使用次數（至少為 1）！");
             }
 
             try {
@@ -101,12 +129,18 @@
                 });
                 
                 if (res.ok) {
-                    alert("✨ 新許可證金鑰已生成！");
+                    const newLicense = await res.json();
+                    alert(`✨ 新許可證金鑰已生成！\n\n金鑰：${newLicense.key}\n次數：${newLicense.limit}`);
                     loadLicenses();
+                    limitInput.value = 1; // 重置輸入框
                 } else {
-                    alert("生成失敗，請稍後再試");
+                    const err = await res.json();
+                    alert("❌ 生成失敗：" + err.message);
                 }
-            } catch (e) { alert("伺服器連線失敗"); }
+            } catch (e) {
+                console.error(e);
+                alert("❌ 伺服器連線失敗，請檢查網路");
+            }
         }
     </script>
 </body>
