@@ -1,194 +1,293 @@
-.album-container { padding: 10px; max-width: 1000px; margin: 0 auto; }
-
-.photo-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr); /* 手機 3 欄 */
-    gap: 4px;
+/* --- 相簿容器 --- */
+.album-container {
+    padding: 15px 10px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding-bottom: 60px;
 }
 
-@media (min-width: 1024px) {
-    .photo-grid { grid-template-columns: repeat(5, 1fr); gap: 10px; }
-}
-
-.photo-item {
-    aspect-ratio: 1 / 1;
-    overflow: hidden;
-    background: #eee;
-    border-radius: 4px;
-}
-
-.photo-item img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.3s;
-}
-
-.photo-item:hover img {
-    transform: scale(1.05);
-}
-
-/* Modal 放大顯示 */
-.modal-content-photo {
-    max-width: 90%;
-    max-height: 80vh;
-    background: white;
-    border-radius: 8px;
-    overflow: hidden;
-    position: relative;
-}
-
-#full-photo {
-    width: 100%;
-    max-height: 70vh;
-    object-fit: contain;
-    background: #000;
-}
-
-.photo-info {
-    padding: 15px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.btn-danger-small {
-    background: #fdf2f2;
-    color: var(--danger);
-    border: 1px solid #f8d7da;
-    padding: 5px 10px;
-    border-radius: 4px;
-    font-size: 0.8rem;
-}
-
-/* 平板以上改為四欄 */
-@media (min-width: 600px) {
-    .photo-grid {
-        grid-template-columns: repeat(4, 1fr);
-        gap: 10px;
-    }
-}
-
+/* --- 日期標題區塊 --- */
 .day-section {
     margin-bottom: 40px;
 }
 
-.day-title {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 2.5rem;
-    color: var(--clay);
-    margin-bottom: 15px;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 5px;
-}
-
-.photo-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    min-height: 50px; /* 確保沒照片也能拖入 */
-}
-
-/* 拖曳時的影子 */
-.sortable-ghost {
-    opacity: 0.3;
-    transform: scale(0.9);
-}
-
-.photo-item {
-    cursor: grab;
-}
-
-.photo-item:active {
-    cursor: grabbing;
-}
-
-/* 日期標題區塊 */
 .day-header-wrapper {
     display: flex;
     justify-content: space-between;
     align-items: center;
     background: var(--bg-color);
-    padding: 15px 5px;
+    padding: 15px 10px;
     position: sticky;
-    top: 0;
-    z-index: 10;
+    top: 60px;
+    z-index: 100;
+    border-bottom: 1px solid #e0ddd7;
+    margin-bottom: 10px;
 }
 
 .day-title {
     font-family: 'Cormorant Garamond', serif;
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     color: var(--text-color);
     margin: 0;
+    flex: 1;
 }
 
 .day-date {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: #888;
-    margin-left: 10px;
+    margin-left: 8px;
 }
 
 .btn-upload-day {
     background: var(--accent-color);
     color: white;
     border: none;
-    padding: 5px 12px;
+    padding: 8px 16px;
     border-radius: 20px;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     cursor: pointer;
+    min-height: 40px;
+    white-space: nowrap;
+    transition: all 0.2s;
 }
 
-/* 全螢幕預覽 Lightbox */
-/* --- Lightbox 修正版 --- */
+.btn-upload-day:active {
+    transform: scale(0.95);
+    opacity: 0.9;
+}
+
+/* --- 照片網格 (手機優化) --- */
+.photo-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    min-height: 120px;
+    padding: 5px;
+}
+
+/* 平板 */
+@media (min-width: 600px) {
+    .photo-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+    }
+    
+    .day-title {
+        font-size: 1.8rem;
+    }
+}
+
+/* 電腦 */
+@media (min-width: 1024px) {
+    .photo-grid {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 10px;
+    }
+    
+    .album-container {
+        padding: 20px;
+    }
+}
+
+/* --- 照片項目 --- */
+.photo-item {
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    background: #eee;
+    border-radius: 6px;
+    cursor: grab;
+    position: relative;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.photo-item:active {
+    cursor: grabbing;
+}
+
+.photo-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.photo-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* --- 拖曳效果 --- */
+.sortable-ghost {
+    opacity: 0.4;
+    transform: scale(0.95);
+}
+
+.sortable-drag {
+    opacity: 0.8;
+    transform: rotate(3deg);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
+
+/* --- Lightbox 全螢幕預覽 --- */
 .lightbox {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.9);
-    z-index: 2000;
-    display: none; /* 預設完全不顯示 */
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 3000;
+    display: none;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    padding: 20px;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
 }
 
-/* 當沒有 hidden 類別時，才顯示 flex */
 .lightbox:not(.hidden) {
     display: flex;
 }
 
 #lightbox-img {
-    max-width: 90%;
-    max-height: 70vh;
+    max-width: 95%;
+    max-height: 75vh;
     object-fit: contain;
-    border-radius: 4px;
-    background-color: #000;
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .lightbox-info {
-    margin-top: 20px;
+    margin-top: 25px;
     color: white;
     text-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 15px;
+    max-width: 90%;
 }
 
-/* 確保刪除按鈕不會擋在正中間 */
+.lightbox-info span {
+    font-size: 0.95rem;
+    opacity: 0.9;
+}
+
+/* --- 刪除按鈕 --- */
 .btn-danger-small {
     background: var(--danger);
     color: white;
     border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
+    padding: 10px 24px;
+    border-radius: 8px;
     cursor: pointer;
+    font-size: 0.9rem;
+    min-height: 44px;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.btn-danger-small:active {
+    transform: scale(0.95);
+    opacity: 0.9;
+}
+
+/* --- 空狀態提示 --- */
+.photo-grid:empty::after {
+    content: '點擊上方按鈕上傳照片';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #999;
+    font-style: italic;
     font-size: 0.9rem;
 }
 
-/* 強制隱藏工具類別 */
-.hidden {
-    display: none !important;
+/* --- 載入狀態 --- */
+.photo-item.loading {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* --- 批量選擇模式 (未來擴充用) --- */
+.photo-item.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: var(--accent-color);
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+/* --- 觸控優化 --- */
+.photo-item, .btn-upload-day, .btn-danger-small {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+/* --- 防止長按選單 (iOS) --- */
+.photo-item img {
+    -webkit-touch-callout: none;
+}
+
+/* --- 小螢幕優化 --- */
+@media (max-width: 375px) {
+    .photo-grid {
+        gap: 4px;
+    }
+    
+    .day-title {
+        font-size: 1.3rem;
+    }
+    
+    .btn-upload-day {
+        font-size: 0.75rem;
+        padding: 6px 12px;
+    }
+    
+    .album-container {
+        padding: 10px 5px;
+    }
+}
+
+/* --- 橫向模式優化 --- */
+@media (orientation: landscape) and (max-height: 500px) {
+    #lightbox-img {
+        max-height: 80vh;
+    }
+    
+    .lightbox-info {
+        margin-top: 15px;
+    }
+}
+
+/* --- 安全區域適配 (iOS) --- */
+@supports (padding: max(0px)) {
+    .album-container {
+        padding-bottom: max(60px, calc(60px + env(safe-area-inset-bottom)));
+    }
+    
+    .day-header-wrapper {
+        top: max(60px, calc(60px + env(safe-area-inset-top)));
+    }
 }
