@@ -1,0 +1,500 @@
+/* --- 1. 全域變數與基礎設定 --- */
+:root {
+    --bg-color: #f5f2ed;
+    --text-color: #363636;
+    --accent-color: #8a9a5b; /* Moss Green */
+    --clay: #d2b48c;
+    --card-bg: #ffffff;
+    --danger: #a65252;
+    --border-radius: 12px 2px 12px 5px / 5px 12px 2px 15px;
+    --transition: 0.3s ease;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: 'Inter', -apple-system, sans-serif;
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 讓一般頁面（登入、註冊、後台）內容居中的容器 */
+.container {
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+h1, h2, h3, .brand {
+    font-family: 'Cormorant Garamond', serif;
+}
+
+.brand { font-size: 3rem; margin: 0 0 10px 0; }
+.hidden { display: none !important; }
+
+/* --- 2. 組件樣式 (Cards, Inputs, Buttons) --- */
+.wabi-card {
+    background: var(--card-bg);
+    padding: 25px;
+    border: 1px solid #e0ddd7;
+    border-radius: var(--border-radius);
+    box-shadow: 5px 5px 15px rgba(0,0,0,0.02);
+    margin-bottom: 20px;
+}
+
+input, select {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    background: transparent;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 1rem;
+}
+
+button {
+    cursor: pointer;
+    padding: 12px 24px;
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+    font-family: inherit;
+    font-weight: 500;
+    border: 1px solid transparent;
+}
+
+.btn-primary {
+    background: var(--text-color);
+    color: var(--bg-color);
+}
+.btn-primary:hover { opacity: 0.8; }
+
+.btn-text {
+    background: transparent;
+    border: none;
+    color: var(--accent-color);
+    text-decoration: underline;
+}
+
+.btn-small {
+    padding: 5px 12px;
+    font-size: 0.8rem;
+    background: #fff;
+    border: 1px solid var(--clay);
+}
+
+.btn-small.hidden {
+    display: none;
+}
+
+/* 讓 Header 的 actions 區塊靠右對齊 */
+.app-header .actions {
+    display: flex;
+    align-items: center;
+}
+
+/* 也可以在 style.css 定義通用危險按鈕樣式 */
+.btn-danger-outline {
+    color: #a65252;
+    border: 1px solid #a65252;
+    background: transparent;
+}
+
+.btn-danger-outline:hover {
+    background: #a65252;
+    color: white;
+}
+
+.fab {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    color: white;
+    font-size: 28px;
+    border: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    z-index: 100;
+}
+
+/* --- 3. 頁面標頭 (Header) --- */
+/* 1. 縮小 Header 的左右內距 */
+.app-header {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 65px;
+    padding: 0 10px;
+    background: rgba(245, 242, 237, 0.95);
+    backdrop-filter: blur(10px);
+    z-index: 1000;
+}
+
+/* 2. 確保選單按鈕沒有額外的邊距，並微調觸控範圍 */
+.menu-btn {
+    font-size: 1.5rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-color);
+    
+    /* 移除所有邊距 */
+    margin: 0; 
+    /* 增加一點點內距讓手指好點擊，但不會推開按鈕位置 */
+    padding: 5px; 
+    
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+/* 如果標題還是看起來沒置中，是因為左右寬度不對等，可以給右邊一個同樣寬度的佔位 div */
+.header-right {
+    width: 34px; /* 寬度設為跟按鈕（包含 padding）差不多 */
+}
+/* 絕對居中標題 */
+.brand-center {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    margin: 0;
+    font-size: 1.4rem;
+    white-space: nowrap;
+    z-index: 5;
+}
+/* 確保左側按鈕不會被擠壓 */
+.header-left, .header-right {
+    min-width: 45px;
+    display: flex;
+    align-items: center;
+    z-index: 10;
+}
+
+
+/* --- 4. 行程詳細頁面專用佈局 (trip-details.html) --- */
+.trip-layout {
+    display: flex;
+    flex-direction: row;
+    height: calc(100vh - 70px); /* 扣除 Header 高度 */
+    overflow: hidden;
+}
+
+/* 搜尋框新樣式：改為放在側邊欄頂部 */
+.itinerary-sidebar {
+    display: flex;
+    flex-direction: column;
+    width: 400px;
+    background: #fdfcf9;
+}
+
+.search-box-container {
+    padding: 15px;
+    background: #ffffff00;
+    border-bottom: 1px solid #e0ddd7;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+#pac-input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid var(--clay);
+    border-radius: 8px;
+    background: #fff; /* 確保不透明 */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    outline: none;
+}
+
+
+.map-view {
+    flex: 1;
+    height: 100%;
+    position: relative;
+}
+
+#map {
+    width: 100%;
+    height: 100%;
+}
+
+/* 移除原本漂浮在地圖上的 search-container 樣式 */
+.map-search-container { display: none; }
+
+/* --- 5. 列表類樣式 --- */
+/* 小卡滑動手機優化 */
+.board {
+    padding: 15px 0 25px;
+    padding-left: 20px; /* 手機端取消 calc 居中，改用靠左開始 */
+    justify-content: flex-start;
+    -webkit-overflow-scrolling: touch;
+}
+
+.proposal-card {
+    border-left: 5px solid var(--clay);
+}
+
+.user-item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px dashed #ddd;
+}
+
+/* --- 行程卡片摺疊與美化 --- */
+.day-card {
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 0 !important; /* 讓 Header 滿版 */
+    border: 1px solid #e0ddd7;
+}
+
+.day-header {
+    padding: 20px;
+    background: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.day-header h4 { margin: 0; }
+
+.day-content {
+    max-height: 0; /* 預設摺疊 */
+    opacity: 0;
+    padding: 0 20px;
+    transition: all 0.4s ease;
+    background: #fafaf8;
+    border-top: 0px solid #eee;
+}
+
+/* 當天數被選中 (Active) 時的樣式 */
+.day-card.active-day {
+    border: 2px solid var(--accent-color);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+}
+
+.day-card.active-day .day-content {
+    max-height: 1000px; /* 展開高度 */
+    opacity: 1;
+    padding: 20px;
+    border-top: 1px solid #eee;
+}
+
+/* 地點小卡美化 */
+.location-item {
+    background: #fff;
+    border: 1px solid #efeeeb;
+    margin-bottom: 10px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: grab; /* 拖拽手勢 */
+    position: relative;
+    border-radius: 8px;
+}
+
+.location-item:active { cursor: grabbing; }
+
+.drag-handle {
+    color: var(--clay);
+    cursor: grab;
+    font-size: 1.2rem;
+}
+
+.loc-info { flex: 1; }
+
+.btn-delete-loc {
+    background: transparent;
+    border: none;
+    color: #ccc;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-delete-loc:hover { color: var(--danger); }
+
+/* 拖拽時的影子效果 */
+.sortable-ghost {
+    opacity: 0.4;
+    background: var(--bg-color);
+}
+
+/* --- 6. 行程公告欄與我的旅行 (水平滑動版) --- */
+
+/* 標題居中 */
+.section-title {
+    text-align: center;
+    margin: 40px 0 20px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.8rem;
+    color: var(--text-color);
+}
+
+.board {
+    display: flex;
+    flex-wrap: nowrap;      /* 強制不換行 */
+    overflow-x: auto;       /* 開啟水平滾動 */
+    padding: 20px 0;        /* 增加上下間距防止陰影被切掉 */
+    gap: 20px;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch; /* 讓手機滑動更流暢 */
+    
+    /* 核心：初始置中邏輯 */
+    justify-content: flex-start; /* 預設靠左滑動 */
+    width: 100vw;               /* 佔滿全螢幕寬度 */
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%); /* 配合 left 讓寬度爆出父容器限制 */
+    padding-left: calc(50vw - 250px);  /* 初始左間距：一半螢幕減掉容器一半寬 */
+    padding-right: 40px;
+}
+
+/* 隱藏滾動條 (可選，讓畫面更 Wabi-sabi) */
+.board::-webkit-scrollbar {
+    height: 4px;
+}
+.board::-webkit-scrollbar-thumb {
+    background: var(--clay);
+    border-radius: 10px;
+}
+.board::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* 小卡固定寬度，確保不會被擠壓 */
+.proposal-card, .trip-card {
+    flex: 0 0 280px; /* 手機端卡片稍窄一點點 */
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+}
+
+/* 讓整頁容器更乾淨 */
+.main-content {
+    overflow-x: hidden; /* 防止整頁出現水平拉條 */
+    width: 100%;
+}
+
+/* 大頭照圓框 */
+.avatar-container {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 20px;
+    position: relative;
+    cursor: pointer;
+}
+
+.avatar-circle {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%; /* 圓形關鍵 */
+    object-fit: cover;
+    border: 3px solid var(--clay);
+    background-color: #eee;
+    display: block;
+}
+
+/* 導覽列的小頭像 */
+.nav-avatar {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 10px;
+    border: 1px solid var(--clay);
+    vertical-align: middle;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+}
+
+/* --- 側邊選單 Sidebar --- */
+.side-menu {
+    position: fixed;
+    top: 0; left: -280px; /* 初始隱藏 */
+    width: 280px; height: 100%;
+    background: var(--bg-color);
+    box-shadow: 10px 0 30px rgba(0,0,0,0.05);
+    z-index: 2000;
+    transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 30px 20px;
+}
+
+.side-menu.active { left: 0; }
+
+.menu-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
+.close-btn { font-size: 2rem; background: none; border: none; color: var(--clay); cursor: pointer; }
+
+.menu-list { list-style: none; padding: 0; }
+.menu-list li {
+    padding: 15px 10px;
+    font-size: 1.1rem;
+    border-bottom: 1px solid rgba(0,0,0,0.03);
+    cursor: pointer;
+    transition: 0.3s;
+}
+.menu-list li:hover { color: var(--accent-color); padding-left: 20px; }
+.menu-divider { height: 1px; background: #eee; margin: 20px 0; }
+
+/* 遮罩層 */
+.menu-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.3);
+    z-index: 1999;
+    display: none;
+}
+.menu-overlay.active { display: block; }
+
+/* 歸檔小卡特殊視覺 (變灰色調) */
+.past-board .trip-card {
+    filter: grayscale(0.8);
+    opacity: 0.8;
+    border-left: 5px solid #ccc;
+}
+.past-board .trip-card:hover { filter: grayscale(0); opacity: 1; }
+
+/* --- 跑馬燈樣式 --- */
+/* 跑馬燈手機優化 */
+.marquee-container {
+    background: #2c2c2c;
+    color: #e0ddd7;
+    height: 30px;
+    overflow: hidden;
+    position: relative;
+}
+.marquee-content {
+    animation: marquee-scroll 25s linear infinite;
+}
+
+@keyframes marquee-scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+}
+
+/* --- Sidebar 頂部用戶資訊 --- */
+.user-profile-side {
+    padding: 10px;
+}
+
+.nav-avatar {
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--clay);
+}

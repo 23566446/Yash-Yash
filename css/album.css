@@ -1,0 +1,175 @@
+.album-container {
+    padding: 10px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.photo-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 手機三欄 */
+    gap: 5px;
+}
+
+.photo-item {
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    cursor: pointer;
+    background: #eee;
+    border-radius: 4px;
+    position: relative;
+}
+
+.photo-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s;
+}
+
+.photo-item:hover img {
+    transform: scale(1.05);
+}
+
+/* Modal 放大顯示 */
+.modal-content-photo {
+    max-width: 90%;
+    max-height: 80vh;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+}
+
+#full-photo {
+    width: 100%;
+    max-height: 70vh;
+    object-fit: contain;
+    background: #000;
+}
+
+.photo-info {
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.btn-danger-small {
+    background: #fdf2f2;
+    color: var(--danger);
+    border: 1px solid #f8d7da;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+
+/* 平板以上改為四欄 */
+@media (min-width: 600px) {
+    .photo-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+    }
+}
+
+.day-section {
+    margin-bottom: 40px;
+}
+
+.day-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2.5rem;
+    color: var(--clay);
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+}
+
+.photo-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    min-height: 50px; /* 確保沒照片也能拖入 */
+}
+
+/* 拖曳時的影子 */
+.sortable-ghost {
+    opacity: 0.3;
+    transform: scale(0.9);
+}
+
+.photo-item {
+    cursor: grab;
+}
+
+.photo-item:active {
+    cursor: grabbing;
+}
+
+/* 日期標題區塊 */
+.day-header-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 15px;
+    border-bottom: 2px solid var(--clay);
+    padding-bottom: 8px;
+}
+
+.day-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.8rem;
+    color: var(--text-color);
+    margin: 0;
+}
+
+.day-date {
+    font-size: 0.9rem;
+    color: #888;
+    margin-left: 10px;
+}
+
+.btn-upload-day {
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+/* 全螢幕預覽 Lightbox */
+.lightbox {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.9); /* 深色全屏 */
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#lightbox-img {
+    max-width: 95%;
+    max-height: 80vh;
+    object-fit: contain;
+    box-shadow: 0 0 30px rgba(0,0,0,0.5);
+}
+
+.lightbox-info {
+    margin-top: 20px;
+    color: white;
+    text-align: center;
+    width: 100%;
+}
+
+.btn-danger-small {
+    background: #ff4d4d;
+    color: white;
+    border: none;
+    padding: 5px 15px;
+    border-radius: 4px;
+    margin-left: 20px;
+}
