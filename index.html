@@ -46,14 +46,16 @@
 </nav>
 
 <main class="main-content">
-    <!-- 原有的公告欄 -->
-    <section class="container"><h2 class="section-title">行程公告欄</h2></section>
-    <div id="announcement-board" class="board"></div>
+    <h2 class="section-title">行程公告欄</h2>
+    <!-- 移除 container，讓 board 自己處理 padding，這樣卡片才能左右滑動 -->
+    <div id="announcement-board" class="board">
+        <p class="empty-text">載入中...</p>
+    </div>
 
-    <!-- 即將到來的旅行 (Active) -->
-    <section class="container"><h2 class="section-title">即將到來的旅行</h2></section>
-    <div id="trip-list" class="board"></div>
-
+    <h2 class="section-title">即將到來的旅行</h2>
+    <div id="trip-list" class="board">
+        <p class="empty-text">尚無行程。</p>
+    </div>
 </main>
 
     <!-- 點擊跳轉到建立行程頁面 -->
@@ -63,3 +65,4 @@
 </body>
 
 </html>
+
