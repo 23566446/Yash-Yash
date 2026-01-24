@@ -1,4 +1,3 @@
-/* --- 1. 全域手機優化基礎 --- */
 :root {
     --bg-color: #f5f2ed;
     --text-color: #363636;
@@ -7,13 +6,9 @@
     --card-bg: #ffffff;
     --danger: #a65252;
     --border-radius: 12px 2px 12px 5px / 5px 12px 2px 15px;
-    --transition: 0.3s ease;
 }
 
-* { 
-    box-sizing: border-box; 
-    -webkit-tap-highlight-color: transparent; /* 移除手機點擊藍色陰影 */
-}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 body {
     background-color: var(--bg-color);
@@ -23,71 +18,61 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    overflow-x: hidden; /* 防止左右晃動 */
 }
 
-/* --- 2. Header 與標題完美置中 --- */
+/* --- Header 穩定版 --- */
 .app-header {
     position: sticky;
     top: 0;
     height: 60px;
-    padding: 0 10px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     background: rgba(245, 242, 237, 0.95);
     backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 15px;
+    z-index: 1100;
     border-bottom: 1px solid rgba(0,0,0,0.05);
-    z-index: 1000;
+}
+
+.brand-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.4rem;
+    margin: 0;
+    white-space: nowrap;
 }
 
 .header-left, .header-right {
     min-width: 45px;
     display: flex;
     align-items: center;
-    z-index: 10;
 }
 
-.brand-center {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    margin: 0;
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 1.4rem;
-    white-space: nowrap;
-    z-index: 5;
-}
-
-.menu-btn {
-    font-size: 1.8rem;
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--text-color);
-    padding: 5px;
-}
-
-/* --- 3. 跑馬燈手機適配 --- */
+/* --- 跑馬燈 --- */
 .marquee-container {
     background: #2c2c2c;
     color: #e0ddd7;
-    height: 30px;
+    height: 32px;
     display: flex;
     align-items: center;
     overflow: hidden;
 }
-
 .marquee-content {
     white-space: nowrap;
-    animation: marquee-scroll 20s linear infinite;
-    font-size: 0.85rem;
+    animation: marquee-scroll 30s linear infinite;
+    padding-left: 100%;
+}
+@keyframes marquee-scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-200%); }
 }
 
-/* --- 4. 行程小卡：解決截圖偏移問題 --- */
+/* --- 首頁小卡佈局 (RWD) --- */
 .section-title {
-    padding: 0 20px;
+    text-align: center;
     margin: 30px 0 10px;
     font-family: 'Cormorant Garamond', serif;
     font-size: 1.6rem;
@@ -95,54 +80,90 @@ body {
 
 .board {
     display: flex;
-    flex-wrap: nowrap;
+    gap: 20px;
+    padding: 20px;
     overflow-x: auto;
-    padding: 10px 20px 30px; /* 增加底部內距讓陰影完整 */
-    gap: 15px;
-    scroll-snap-type: x mandatory; /* 讓滑動自動停在卡片中間 */
+    scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
 }
 
-.board::-webkit-scrollbar { display: none; }
-
 .proposal-card, .trip-card {
-    flex: 0 0 85vw; /* 手機卡片佔寬 85% */
-    max-width: 340px;
+    flex: 0 0 280px; /* 固定寬度 */
     background: white;
     padding: 20px;
     border-radius: var(--border-radius);
     border: 1px solid #e0ddd7;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
     scroll-snap-align: center;
-    display: flex;
-    flex-direction: column;
 }
 
-/* --- 5. 側邊選單：手機全螢幕優化 --- */
+@media (min-width: 1024px) {
+    .board {
+        justify-content: center;
+        flex-wrap: wrap;
+        overflow-x: visible;
+    }
+}
+
+/* --- 行程詳情頁面佈局 --- */
+.trip-layout {
+    display: flex;
+    height: calc(100vh - 92px);
+    overflow: hidden;
+}
+
+@media (max-width: 768px) {
+    .trip-layout { flex-direction: column; }
+    .itinerary-sidebar { width: 100% !important; height: 45% !important; }
+    .map-view { width: 100% !important; height: 55% !important; }
+}
+
+@media (min-width: 769px) {
+    .itinerary-sidebar { width: 400px; border-right: 1px solid #ddd; }
+    .map-view { flex: 1; }
+}
+
+/* --- 通用 UI 組件 --- */
+.btn-primary {
+    background: var(--text-color);
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 16px;
+}
+
+input, select {
+    font-size: 16px !important; /* 防止 iOS 縮放 */
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    width: 100%;
+}
+
+.fab {
+    position: fixed;
+    bottom: 25px; right: 25px;
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    color: white;
+    font-size: 24px;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    display: flex; align-items: center; justify-content: center;
+}
+
+/* --- Sidebar --- */
 .side-menu {
     position: fixed;
     top: 0; left: -100%;
-    width: 85%;
-    max-width: 320px;
-    height: 100%;
+    width: 280px; height: 100%;
     background: var(--bg-color);
     z-index: 2000;
-    transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    padding: 40px 25px;
-    box-shadow: 15px 0 50px rgba(0,0,0,0.1);
+    transition: 0.3s ease;
+    padding: 40px 20px;
+    box-shadow: 10px 0 40px rgba(0,0,0,0.1);
 }
 .side-menu.active { left: 0; }
-
-/* --- 6. 行程詳情頁面：手機垂直佈局修正 --- */
-@media (max-width: 768px) {
-    .trip-layout {
-        flex-direction: column; /* 手機版：地圖在下，清單在上 */
-    }
-    .itinerary-sidebar {
-        width: 100% !important;
-        height: 50vh; /* 平分螢幕 */
-    }
-    .map-view {
-        height: 50vh;
-    }
-}

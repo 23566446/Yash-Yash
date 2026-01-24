@@ -1,22 +1,20 @@
-.album-container {
-    padding: 10px;
-    max-width: 800px;
-    margin: 0 auto;
-}
+.album-container { padding: 10px; max-width: 1000px; margin: 0 auto; }
 
 .photo-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr); /* 手機三欄 */
-    gap: 5px;
+    grid-template-columns: repeat(3, 1fr); /* 手機 3 欄 */
+    gap: 4px;
+}
+
+@media (min-width: 1024px) {
+    .photo-grid { grid-template-columns: repeat(5, 1fr); gap: 10px; }
 }
 
 .photo-item {
     aspect-ratio: 1 / 1;
     overflow: hidden;
-    cursor: pointer;
     background: #eee;
     border-radius: 4px;
-    position: relative;
 }
 
 .photo-item img {
@@ -109,10 +107,12 @@
 .day-header-wrapper {
     display: flex;
     justify-content: space-between;
-    align-items: flex-end;
-    margin-bottom: 15px;
-    border-bottom: 2px solid var(--clay);
-    padding-bottom: 8px;
+    align-items: center;
+    background: var(--bg-color);
+    padding: 15px 5px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 .day-title {
@@ -139,37 +139,56 @@
 }
 
 /* 全螢幕預覽 Lightbox */
+/* --- Lightbox 修正版 --- */
 .lightbox {
     position: fixed;
-    top: 0; left: 0;
-    width: 100vw; height: 100vh;
-    background: rgba(0,0,0,0.9); /* 深色全屏 */
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.9);
     z-index: 2000;
-    display: flex;
+    display: none; /* 預設完全不顯示 */
     flex-direction: column;
     align-items: center;
     justify-content: center;
 }
 
+/* 當沒有 hidden 類別時，才顯示 flex */
+.lightbox:not(.hidden) {
+    display: flex;
+}
+
 #lightbox-img {
-    max-width: 95%;
-    max-height: 80vh;
+    max-width: 90%;
+    max-height: 70vh;
     object-fit: contain;
-    box-shadow: 0 0 30px rgba(0,0,0,0.5);
+    border-radius: 4px;
+    background-color: #000;
 }
 
 .lightbox-info {
     margin-top: 20px;
     color: white;
     text-align: center;
-    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
 }
 
+/* 確保刪除按鈕不會擋在正中間 */
 .btn-danger-small {
-    background: #ff4d4d;
+    background: var(--danger);
     color: white;
     border: none;
-    padding: 5px 15px;
-    border-radius: 4px;
-    margin-left: 20px;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+/* 強制隱藏工具類別 */
+.hidden {
+    display: none !important;
 }

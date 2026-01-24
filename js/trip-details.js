@@ -217,93 +217,46 @@ async function confirmAdd(name, addr, lat, lng) {
 }
 
 // --- 3. 修正：強化穩定性的 renderMarkers ---
-function renderMarkers() {
-    if (!map || !currentTripData) {
-        console.error("❌ 渲染失敗：map 或 currentTripData 未準備好");
-        return;
-    }
+// ... 初始化 API_URL 與 變數 ...
 
-    // 1. 清除舊標記與線段
+function renderMarkers() {
+    if (!map || !currentTripData) return;
     markers.forEach(m => m.setMap(null));
     markers = [];
-    if (polyline) { polyline.setMap(null); polyline = null; }
+    if (polyline) { polyline.setMap(null); }
 
     const activeDayPath = [];
-    const bounds = new google.maps.LatLngBounds(); // 用於自動縮放地圖
-    let hasAnyMarker = false;
-
-    console.log("🔍 開始掃描行程天數...", currentTripData.days.length);
+    const bounds = new google.maps.LatLngBounds();
 
     currentTripData.days.forEach((day, dIdx) => {
-        const isActiveDay = (dIdx === activeDayIndex);
-        
+        const isActive = (dIdx === activeDayIndex);
         day.locations.forEach((loc, locIdx) => {
-            // 確保座標是正確的數字數字類型
-            const lat = parseFloat(loc.lat);
-            const lng = parseFloat(loc.lng);
+            const pos = { lat: parseFloat(loc.lat), lng: parseFloat(loc.lng) };
+            if (isNaN(pos.lat)) return;
 
-            if (isNaN(lat) || isNaN(lng)) {
-                console.error(`❌ 地點「${loc.name}」的座標無效:`, loc.lat, loc.lng);
-                return;
-            }
-
-            const pos = { lat, lng };
-            hasAnyMarker = true;
-
-            // 建立標記
             const marker = new google.maps.Marker({
                 position: pos,
                 map: map,
-                title: loc.name,
-                label: isActiveDay ? {
-                    text: (locIdx + 1).toString(),
-                    color: "white",
-                    fontWeight: "bold"
-                } : null,
-                opacity: isActiveDay ? 1.0 : 0.4,
-                zIndex: isActiveDay ? 100 : 10 // 讓當前天數的地點疊在上面
+                label: isActive ? { text: (locIdx + 1).toString(), color: "white" } : null,
+                opacity: isActive ? 1.0 : 0.4
             });
-
             markers.push(marker);
-            
-            if (isActiveDay) {
+            if (isActive) {
                 activeDayPath.push(pos);
-                bounds.extend(pos); // 將座標加入縮放範圍
+                bounds.extend(pos);
             }
         });
     });
 
-    // 2. 畫線邏輯
     if (activeDayPath.length > 1) {
-        console.log(`🛣️ 正在為 Day ${activeDayIndex + 1} 畫線，點數:`, activeDayPath.length);
         polyline = new google.maps.Polyline({
-            path: activeDayPath,
-            geodesic: true,
-            strokeColor: "#8a9a5b",
-            strokeOpacity: 0.8,
-            strokeWeight: 4,
-            icons: [{
-                icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW },
-                offset: '100%',
-                repeat: '80px'
-            }],
-            map: map // 直接設定 map
+            path: activeDayPath, geodesic: true,
+            strokeColor: "#8a9a5b", strokeWeight: 3, map: map
         });
     }
 
-    // 3. 自動縮放地圖以看見所有點
-    if (hasAnyMarker && !bounds.isEmpty()) {
-        console.log("📌 自動調整視角以包含所有標記");
-        map.fitBounds(bounds);
-        
-        // 如果點太近，避免過度放大
-        const listener = google.maps.event.addListener(map, "idle", function() {
-            if (map.getZoom() > 17) map.setZoom(17);
-            google.maps.event.removeListener(listener);
-        });
-    } else {
-        console.warn("⚠️ 本天行程沒有有效地點，無法畫線或調整視角");
-    }
+    // 手機版自動縮放，確保能看到所有標記
+    if (!bounds.isEmpty()) { map.fitBounds(bounds); }
 }
 
 // ... (其餘 deleteTrip, addLocationToDB 等函數保持不變) ...

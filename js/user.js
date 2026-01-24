@@ -11,41 +11,62 @@ function initPage() {
     document.getElementById('display-account').innerText = currentUser.account;
     document.getElementById('edit-nick').value = currentUser.nickname;
     document.getElementById('edit-gen').value = currentUser.gender || 'male';
-    if (currentUser.avatar) document.getElementById('avatar-preview').src = currentUser.avatar;
+    if (currentUser.avatar) { document.getElementById('avatar-preview').src = currentUser.avatar; }
 
     checkNotifications();
 
-    const isSuper = (currentUser.account === 'admin' || currentUser.role === 'admin');
+    const isSuperAdmin = (currentUser.account === 'admin' || currentUser.role === 'admin');
     const isManager = (currentUser.role === 'manager');
 
-    if (isSuper || isManager) {
+    // Admin 與 Manager 都能看到管理清單
+    if (isSuperAdmin || isManager) {
         document.getElementById('super-user-section').classList.remove('hidden');
-        loadAllUsers(isSuper);
-        loadMarqueeSetting();
+        loadAllUsers(isSuperAdmin); 
     }
 
-    const libtn = document.querySelector("button[onclick*='license-manager.html']");
-    if (libtn) libtn.style.display = isSuper ? 'block' : 'none';
+    // 只有真正的 Super Admin 才能管理金鑰
+    const licenseBtn = document.querySelector("button[onclick*='license-manager.html']");
+    if (licenseBtn) {
+        licenseBtn.style.display = isSuperAdmin ? 'block' : 'none';
+    }
 }
 
-async function loadAllUsers(isSuper) {
-    const res = await fetch(`${API_URL}/api/admin/users`);
-    const users = await res.json();
-    const list = document.getElementById('all-users-list');
-    list.innerHTML = users.map(u => {
-        if (u.account === currentUser.account) return "";
-        if (!isSuper && (u.role === 'admin' || u.account === 'admin')) return "";
-        return `
-            <div class="user-item-row" style="border-left:3px solid ${u.role==='manager'?'#8a9a5b':'#eee'};">
-                <div class="user-info-text"><strong>${u.nickname} <small>(${u.role})</small></strong><span>${u.account}</span></div>
-                <div class="user-actions">
-                    <button onclick="adminResetPassword('${u._id}', '${u.nickname}')" class="btn-small">改密</button>
-                    ${isSuper ? `<button onclick="changeRole('${u._id}', '${u.role==='manager'?'user':'manager'}')" class="btn-small">權限</button>
-                    <button onclick="deleteUser('${u._id}')" class="btn-small" style="color:red;">移除</button>` : ''}
+async function loadAllUsers(isSuperAdmin) {
+    try {
+        const response = await fetch(`${API_URL}/api/admin/users`);
+        const users = await response.json();
+        const listContainer = document.getElementById('all-users-list');
+        
+        listContainer.innerHTML = users.map(u => {
+            // 1. 隱藏自己
+            if (u.account === currentUser.account) return ""; 
+
+            // 2. 核心修正：如果目標是 admin (超級管理員)，且目前登入者不是超級管理員，則隱藏該筆資料
+            const isTargetAdmin = (u.account === 'admin' || u.role === 'admin');
+            if (isTargetAdmin && !isSuperAdmin) return "";
+
+            return `
+                <div class="user-item-row" style="border-left: 3px solid ${u.role === 'manager' ? '#8a9a5b' : (u.role === 'admin' ? '#d2b48c' : '#eee')};">
+                    <div class="user-info-text">
+                        <strong>${u.nickname} <small style="color:#888;">(${u.role})</small></strong>
+                        <span>帳號: ${u.account}</span>
+                    </div>
+                    <div class="user-actions">
+                        <!-- 所有管理者都可以協助改密碼 -->
+                        <button onclick="adminResetPassword('${u._id}', '${u.nickname}')" class="btn-small">改密碼</button>
+                        
+                        <!-- 只有真正的 Admin 可以升降權限與刪除 -->
+                        ${isSuperAdmin ? `
+                            <button onclick="changeRole('${u._id}', '${u.role === 'manager' ? 'user' : 'manager'}')" class="btn-small">
+                                ${u.role === 'manager' ? '降為一般' : '設為管理員'}
+                            </button>
+                            <button onclick="deleteUser('${u._id}')" class="btn-small" style="color:red; border-color:red;">移除</button>
+                        ` : ''}
+                    </div>
                 </div>
-            </div>
-        `;
-    }).join('');
+            `;
+        }).join('');
+    } catch (err) { console.error("載入使用者列表失敗:", err); }
 }
 
 async function changeRole(id, newRole) {
@@ -144,11 +165,17 @@ async function loadMarqueeSetting() {
 // 管理員更新跑馬燈
 async function updateMarquee() {
     const text = document.getElementById('marquee-input').value;
-    await fetch(`${API_URL}/api/settings/marquee`, {
-        method: 'PUT', headers: {'Content-Type':'application/json'},
+    if(!text) return alert("請輸入公告內容");
+
+    const res = await fetch(`${API_URL}/api/settings/marquee`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text })
     });
-    alert("公告已更新，首頁將會即時顯示！");
+
+    if (res.ok) {
+        alert("公告已更新，首頁將會即時顯示！");
+    }
 }
 
 function previewAvatar(event) {

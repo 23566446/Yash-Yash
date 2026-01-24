@@ -151,13 +151,18 @@ function viewPhoto(id, src, uploader) {
     const lbText = document.getElementById('lightbox-text');
     const delBtn = document.getElementById('btn-delete-photo');
 
-    lbImg.src = src;
-    lbText.innerText = `分享者: ${uploader}`;
+    if (!lb || !lbImg) return;
+
+    lbImg.src = src; // 填入圖片
+    lbText.innerText = `由 ${uploader} 分享`;
+    
+    // 顯示 Lightbox (移除 hidden)
     lb.classList.remove('hidden');
 
+    // 權限檢查
     const isAdmin = (currentUser.account === 'admin');
     const isOwner = (uploader === currentUser.nickname);
-    delBtn.style.display = (isAdmin || isOwner) ? 'inline-block' : 'none';
+    delBtn.style.display = (isAdmin || isOwner) ? 'block' : 'none';
     
     delBtn.onclick = (e) => {
         e.stopPropagation();
@@ -165,8 +170,12 @@ function viewPhoto(id, src, uploader) {
     };
 }
 
+// 修改後的 closeLightbox 函數
 function closeLightbox() {
-    document.getElementById('lightbox').classList.add('hidden');
+    const lb = document.getElementById('lightbox');
+    const lbImg = document.getElementById('lightbox-img');
+    if (lb) lb.classList.add('hidden');
+    if (lbImg) lbImg.src = ""; // 關閉時清空圖片，釋放記憶體並防止下次開啟閃爍
 }
 
 async function deletePhoto(id) {
