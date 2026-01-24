@@ -6,15 +6,21 @@
     <title>YashYash | 登入</title>
     <link rel="stylesheet" href="css/style-login.css">
 </head>
+<!-- login.html 修改重點 -->
 <body>
-    <div class="wabi-card auth-box">
-        <h1 class="brand">耍耍</h1>
-        <input type="text" id="acc" placeholder="帳號">
-        <input type="password" id="pw" placeholder="密碼">
-        <button onclick="login()" class="btn-primary">進入專案</button>
-        <p>還沒有帳號？ <a href="register.html">前往註冊</a></p>
+    <div class="auth-container"> <!-- 改用 container 包裹 -->
+        <div class="wabi-card" style="text-align: center;">
+            <h1 class="brand" style="margin-bottom: 20px;">耍耍</h1>
+            <input type="text" id="acc" placeholder="帳號">
+            <input type="password" id="pw" placeholder="密碼">
+            <button onclick="login()" class="btn-primary">進入專案</button>
+            <p style="margin-top: 20px; font-size: 0.9rem;">
+                還沒有帳號？ <a href="register.html" style="color:var(--accent-color);">前往註冊</a>
+            </p>
+        </div>
     </div>
     <script src="js/auth.js"></script>
 </body>
 
 </html>
+
