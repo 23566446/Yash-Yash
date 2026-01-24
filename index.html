@@ -2,7 +2,6 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>YashYash | 行程公告欄</title>
     <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500&family=Inter:wght@300;400&display=swap" rel="stylesheet">
@@ -46,16 +45,14 @@
 </nav>
 
 <main class="main-content">
-    <h2 class="section-title">行程公告欄</h2>
-    <!-- 移除 container，讓 board 自己處理 padding，這樣卡片才能左右滑動 -->
-    <div id="announcement-board" class="board">
-        <p class="empty-text">載入中...</p>
-    </div>
+    <!-- 原有的公告欄 -->
+    <section class="container"><h2 class="section-title">行程公告欄</h2></section>
+    <div id="announcement-board" class="board"></div>
 
-    <h2 class="section-title">即將到來的旅行</h2>
-    <div id="trip-list" class="board">
-        <p class="empty-text">尚無行程。</p>
-    </div>
+    <!-- 即將到來的旅行 (Active) -->
+    <section class="container"><h2 class="section-title">即將到來的旅行</h2></section>
+    <div id="trip-list" class="board"></div>
+
 </main>
 
     <!-- 點擊跳轉到建立行程頁面 -->
@@ -63,6 +60,4 @@
 
     <script src="js/main.js"></script>
 </body>
-
 </html>
-
