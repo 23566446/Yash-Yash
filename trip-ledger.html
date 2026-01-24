@@ -44,27 +44,32 @@
     </main>
 
     <!-- 新增支出 Modal -->
+    <!-- 確保一開始就有 hidden 類別 -->
     <div id="add-modal" class="modal hidden">
         <div class="modal-content wabi-card">
-            <h3>新增支出</h3>
-            <input type="number" id="exp-amount" placeholder="金額">
+            <h3 style="margin-top:0;">新增支出</h3>
+            <label style="font-size:0.8rem; color:#888;">金額</label>
+            <input type="number" id="exp-amount" placeholder="輸入金額" inputmode="decimal">
+            
+            <label style="font-size:0.8rem; color:#888;">幣別</label>
             <select id="exp-currency">
                 <option value="TWD">TWD (台幣)</option>
                 <option value="JPY">JPY (日幣)</option>
                 <option value="USD">USD (美金)</option>
-                <option value="KRW">KRW (韓幣)</option>
             </select>
-            <input type="text" id="exp-category" placeholder="分類 (例如：餐飲、交通)">
-            <input type="text" id="exp-note" placeholder="備註">
             
-            <p style="font-size:0.8rem; margin-top:15px;">誰要分攤？(點擊切換)</p>
-            <div id="participant-split-list" class="split-list">
-                <!-- 由 JS 渲染成員 -->
+            <input type="text" id="exp-category" placeholder="分類 (餐飲, 交通...)">
+            <input type="text" id="exp-note" placeholder="備註 (選填)">
+            
+            <div class="split-list-container">
+                <p style="font-size:0.8rem; margin:15px 0 5px;">誰要分攤？</p>
+                <div id="participant-split-list" class="split-list"></div>
             </div>
 
             <div style="display:flex; gap:10px; margin-top:20px;">
-                <button onclick="closeAddModal()" class="btn-text">取消</button>
-                <button onclick="submitExpense()" class="btn-primary" style="flex:1;">儲存支出</button>
+                <!-- 加入明確的取消按鈕 -->
+                <button onclick="closeAddModal()" class="btn-text" style="flex:1; text-decoration:none; color:#999; background:#eee; border-radius:10px;">取消</button>
+                <button onclick="submitExpense()" class="btn-primary" style="flex:2;">儲存</button>
             </div>
         </div>
     </div>
