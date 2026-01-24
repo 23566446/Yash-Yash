@@ -2,10 +2,10 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>YashYash | 回憶存檔</title>
     <link rel="stylesheet" href="css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500&family=Inter:wght@300;400&display=swap" rel="stylesheet">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         /* 過去行程專用的懷舊樣式 */
         .past-card {
@@ -30,27 +30,26 @@
         <div class="header-left">
             <button class="menu-btn" onclick="toggleMenu()">☰</button>
         </div>
-        <!-- 中間標題：現在獨立出來了 -->
-            <h1 class="brand brand-center">YashYash Archive</h1>
-        <!-- 右側預留空間 (確保平衡，或放其他功能) -->
-        <div class="header-right" style="width: 40px;"></div>
-        <button onclick="location.href='index.html'" class="btn-small">返回首頁</button>
+        <h1 class="brand brand-center">YashYash Archive</h1>
+        <div class="header-right">
+            <button onclick="location.href='index.html'" class="btn-small">返回</button>
+        </div>
     </header>
 
-    <!-- 側邊選單 (與首頁保持一致) -->
+    <!-- 側邊選單 (統一背景色) -->
     <nav id="side-menu" class="side-menu">
         <div class="menu-header">
-            <div class="user-profile-side">
-                <img id="side-user-avatar" src="img/default-avatar.png" class="nav-avatar" style="width:60px; height:60px;">
-                <div id="side-display-name" style="font-weight:bold; margin-top:10px;">載入中...</div>
-            </div>
             <button class="close-btn" onclick="toggleMenu()">×</button>
+            <div class="user-profile-side">
+                <img id="side-user-avatar" src="img/default-avatar.png" class="nav-avatar">
+                <div id="side-display-name">載入中...</div>
+            </div>
         </div>
         <ul class="menu-list">
             <li onclick="location.href='index.html'">🏠 首頁公告</li>
             <li onclick="location.href='user.html'">👤 個人設定</li>
             <li onclick="location.href='create-trip.html'">➕ 發起提案</li>
-            <li onclick="location.href='past-trip.html'" style="color:var(--accent-color);">📂 過去的行程</li>
+            <li onclick="location.href='past-trip.html'" style="color:var(--accent-color); font-weight: 600;">📂 過去的行程</li>
             <li class="menu-divider"></li>
             <li onclick="logout()" style="color:var(--danger);">🚪 登出系統</li>
         </ul>
@@ -68,5 +67,17 @@
     </main>
 
     <script src="js/past-trip.js"></script>
+    <script>
+        function toggleMenu() {
+            document.getElementById('side-menu').classList.toggle('active');
+        }
+        
+        function logout() {
+            if (confirm("確定要登出嗎？")) {
+                localStorage.removeItem('yashyash_user');
+                location.href = 'login.html';
+            }
+        }
+    </script>
 </body>
 </html>
