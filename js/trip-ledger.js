@@ -42,7 +42,20 @@ function toggleSplit(acc) {
 }
 
 function showAddModal() { document.getElementById('add-modal').classList.remove('hidden'); }
-function closeAddModal() { document.getElementById('add-modal').classList.add('hidden'); }
+function closeAddModal() {
+    // 1. 隱藏 Modal
+    const modal = document.getElementById('add-modal');
+    modal.classList.add('hidden');
+    
+    // 2. 清空輸入框防止下次開啟殘留資料
+    document.getElementById('exp-amount').value = "";
+    document.getElementById('exp-note').value = "";
+}
+
+// 點擊背景也可關閉 (UX 優化)
+document.getElementById('add-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeAddModal();
+});
 
 async function submitExpense() {
     const amount = document.getElementById('exp-amount').value;
