@@ -2,33 +2,81 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>YashYash | 會員中心</title>
     <link rel="stylesheet" href="css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500&family=Inter:wght@300;400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* 確保頭像完美圓形 */
+        .avatar-container {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 15px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            border-radius: 50%;
+            border: 4px solid var(--clay);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        
+        .avatar-container:hover {
+            transform: scale(1.05);
+        }
+        
+        .avatar-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        
+        .avatar-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            padding: 8px;
+            font-size: 0.7rem;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        .avatar-container:hover .avatar-overlay {
+            opacity: 1;
+        }
+    </style>
 </head>
 <body>
     <header class="app-header">
         <button onclick="location.href='index.html'" class="btn-back">← 返回</button>
-        <h2 id="header-nickname">個人設定</h2>
+        <h2 id="header-nickname" style="margin:0;">個人設定</h2>
+        <div style="width:50px;"></div>
     </header>
 
     <main class="container">
         <!-- 通知區塊 -->
-        <section id="notification-section" class="wabi-card hidden" style="border: 2px solid #d2b48c;">
+        <section id="notification-section" class="wabi-card hidden" style="border-left: 4px solid var(--clay) !important; background: #fdfcf9;">
             <h3 style="color: #a67c52;">🔔 活動建立通知</h3>
             <div id="notification-list">
-        <!-- JS 渲染通知內容 -->
+                <!-- JS 渲染通知內容 -->
             </div>
         </section>
+
         <!-- 區塊 A: 個人基本資料 (所有人可見) -->
         <section class="wabi-card">
             <h3>基本資料</h3>
-        <!-- 大頭照展示與隱藏的 input -->
+            
             <div class="avatar-container" onclick="document.getElementById('avatar-input').click()">
-                <img id="avatar-preview" src="img/default-avatar.png" class="avatar-circle" alt="頭像">
-                <div style="font-size: 0.7rem; color: var(--clay); margin-top: 5px; text-align: center;">點擊更換圖片</div>
+                <img id="avatar-preview" src="img/default-avatar.png" alt="用戶頭像">
+                <div class="avatar-overlay">點擊更換</div>
             </div>
+            
+            <p style="text-align:center; font-size:0.8rem; color:var(--clay); margin-bottom:20px;">點擊頭像更換照片</p>
             <input type="file" id="avatar-input" hidden accept="image/*" onchange="previewAvatar(event)">
 
             <div class="form-group">
@@ -51,28 +99,30 @@
             </div>
         </section>
 
-        <!-- 區塊 B: 超級管理員專區 (只有 admin 會看到) -->
-        <section class="wabi-card" style="border: 1px solid var(--accent-color);">
+        <!-- 跑馬燈管理區塊 -->
+        <section class="wabi-card" style="border-left: 4px solid var(--accent-color) !important;">
             <h3>📢 更新跑馬燈公告</h3>
             <input type="text" id="marquee-input" placeholder="輸入要顯示的公告內容...">
-            <button onclick="updateMarquee()" class="btn-primary" style="width:100%;">更新全站公告</button>
+            <button onclick="updateMarquee()" class="btn-primary" style="width:100%; margin-top:10px;">更新全站公告</button>
         </section>
-        <section id="super-user-section" class="wabi-card hidden">
+
+        <!-- 區塊 B: 超級管理員專區 (只有 admin 會看到) -->
+        <section id="super-user-section" class="wabi-card hidden" style="border-left: 4px solid var(--clay) !important;">
             <h3 style="color: #a67c52;">👑 超級管理員儀表板</h3>
             <p style="font-size: 0.8rem; opacity: 0.7;">您可以查看所有成員的帳號資訊。</p>
-            <div id="all-users-list" class="user-list-container">
-                <p class="empty-text">正在載入成員名單...</p>
-            </div>
-            <!-- 在 user.html 的 super-user-section 內加入 -->
+            
             <button onclick="location.href='license-manager.html'" class="btn-primary" style="width:100%; margin-bottom:20px; background:var(--clay);">
                 🎟️ 管理註冊許可證 (License Key)
             </button>
+            
+            <div id="all-users-list" class="user-list-container" style="margin-top: 20px;">
+                <p class="empty-text">正在載入成員名單...</p>
+            </div>
         </section>
 
-        <button onclick="logout()" class="btn-text" style="color: #a65252; margin-top: 20px;">登出帳號</button>
+        <button onclick="logout()" class="btn-text" style="color: #a65252; margin-top: 20px; width: 100%;">登出帳號</button>
     </main>
 
     <script src="js/user.js"></script>
 </body>
-
 </html>
