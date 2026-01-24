@@ -46,21 +46,16 @@ async function loadAllUsers(isSuperAdmin) {
             if (isTargetAdmin && !isSuperAdmin) return "";
 
             return `
-                <div class="user-item-row" style="border-left: 3px solid ${u.role === 'manager' ? '#8a9a5b' : (u.role === 'admin' ? '#d2b48c' : '#eee')};">
+                <div class="user-item-row" style="padding: 15px; background: #fff; margin-bottom: 10px; border-radius: 12px; border: 1px solid #eee;">
                     <div class="user-info-text">
-                        <strong>${u.nickname} <small style="color:#888;">(${u.role})</small></strong>
-                        <span>帳號: ${u.account}</span>
+                        <strong style="font-size: 1.1rem;">${u.nickname}</strong>
+                        <span style="color: #888; font-size: 0.85rem;">帳號: ${u.account}</span>
                     </div>
-                    <div class="user-actions">
-                        <!-- 所有管理者都可以協助改密碼 -->
+                    <div class="user-actions" style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap;">
                         <button onclick="adminResetPassword('${u._id}', '${u.nickname}')" class="btn-small">改密碼</button>
-                        
-                        <!-- 只有真正的 Admin 可以升降權限與刪除 -->
                         ${isSuperAdmin ? `
-                            <button onclick="changeRole('${u._id}', '${u.role === 'manager' ? 'user' : 'manager'}')" class="btn-small">
-                                ${u.role === 'manager' ? '降為一般' : '設為管理員'}
-                            </button>
-                            <button onclick="deleteUser('${u._id}')" class="btn-small" style="color:red; border-color:red;">移除</button>
+                            <button onclick="changeRole('${u._id}', '${u.role === 'manager' ? 'user' : 'manager'}')" class="btn-small">設權限</button>
+                            <button onclick="deleteUser('${u._id}')" class="btn-small" style="color:red; border-color:red;">刪除</button>
                         ` : ''}
                     </div>
                 </div>
