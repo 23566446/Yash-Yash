@@ -2,62 +2,68 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#f5f2ed">
     <title>YashYash | 行程公告欄</title>
     <link rel="stylesheet" href="css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500&family=Inter:wght@300;400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
     <header class="app-header">
-        <!-- 左側按鈕區 -->
         <div class="header-left">
-            <button class="menu-btn" onclick="toggleMenu()">☰</button>
+            <button class="menu-btn" onclick="toggleMenu()" aria-label="開啟選單">☰</button>
         </div>
-        <!-- 中間標題：現在獨立出來了 -->
-            <h1 class="brand brand-center">YashYash</h1>
-        <!-- 右側預留空間 (確保平衡，或放其他功能) -->
-        <div class="header-right" style="width: 40px;"></div>
+        <h1 class="brand brand-center">YashYash</h1>
+        <div class="header-right"></div>
     </header>
 
-<!-- 跑馬燈區塊 -->
-<div class="marquee-container">
-    <div id="marquee-text" class="marquee-content">正在載入公告...</div>
-</div>
-
-<!-- 側邊選單側邊欄 -->
-<nav id="side-menu" class="side-menu">
-    <div class="menu-header">
-        <div class="user-profile-side">
-            <img id="side-user-avatar" src="img/default-avatar.png" class="nav-avatar" style="width:60px; height:60px;">
-            <div id="side-display-name" style="font-weight:bold; margin-top:10px; font-size:1.1rem;">載入中...</div>
-        </div>
-        <button class="close-btn" onclick="toggleMenu()">×</button>
+    <!-- 跑馬燈區塊 -->
+    <div class="marquee-container">
+        <div id="marquee-text" class="marquee-content">正在載入公告...</div>
     </div>
-    
-    <ul class="menu-list">
-        <li onclick="location.href='index.html'">🏠 首頁公告</li>
-        <li onclick="location.href='user.html'">👤 個人設定</li>
-        <li onclick="location.href='create-trip.html'">➕ 發起提案</li>
-        <li onclick="location.href='past-trip.html'">📂 過去的行程</li>
-        <li class="menu-divider"></li>
-        <!-- 登出按鈕移到這裡 -->
-        <li onclick="logout()" style="color:var(--danger);">🚪 登出系統</li>
-    </ul>
-</nav>
 
-<main class="main-content">
-    <!-- 原有的公告欄 -->
-    <section class="container"><h2 class="section-title">行程公告欄</h2></section>
-    <div id="announcement-board" class="board"></div>
+    <!-- 側邊選單 -->
+    <nav id="side-menu" class="side-menu">
+        <div class="menu-header">
+            <button class="close-btn" onclick="toggleMenu()" aria-label="關閉選單">×</button>
+            <div class="user-profile-side">
+                <img id="side-user-avatar" src="img/default-avatar.png" class="nav-avatar" alt="用戶頭像">
+                <div id="side-display-name">載入中...</div>
+            </div>
+        </div>
+        
+        <ul class="menu-list">
+            <li onclick="location.href='index.html'">🏠 首頁公告</li>
+            <li onclick="location.href='user.html'">👤 個人設定</li>
+            <li onclick="location.href='create-trip.html'">➕ 發起提案</li>
+            <li onclick="location.href='past-trip.html'">📂 過去的行程</li>
+            <li class="menu-divider"></li>
+            <li onclick="logout()" style="color:var(--danger);">🚪 登出系統</li>
+        </ul>
+    </nav>
 
-    <!-- 即將到來的旅行 (Active) -->
-    <section class="container"><h2 class="section-title">即將到來的旅行</h2></section>
-    <div id="trip-list" class="board"></div>
+    <main class="main-content">
+        <!-- 行程公告欄 -->
+        <section class="container">
+            <h2 class="section-title">行程公告欄</h2>
+        </section>
+        <div id="announcement-board" class="board">
+            <p class="empty-text">載入中...</p>
+        </div>
 
-</main>
+        <!-- 即將到來的旅行 -->
+        <section class="container">
+            <h2 class="section-title">即將到來的旅行</h2>
+        </section>
+        <div id="trip-list" class="board">
+            <p class="empty-text">載入中...</p>
+        </div>
+    </main>
 
-    <!-- 點擊跳轉到建立行程頁面 -->
-    <button class="fab" onclick="location.href='create-trip.html'">+</button>
+    <!-- 浮動新增按鈕 -->
+    <button class="fab" onclick="location.href='create-trip.html'" aria-label="發起新提案">+</button>
 
     <script src="js/main.js"></script>
 </body>
