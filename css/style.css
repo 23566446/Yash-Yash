@@ -127,7 +127,7 @@ body {
     width: 85vw;
     max-width: 320px;
     height: 100vh;
-    background: white;
+    background: var(--bg-color);
     z-index: 2001;
     transition: left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     padding: 0;
@@ -171,6 +171,15 @@ body {
     box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 
+/* === 所有頭像統一圓形樣式 === */
+img[src*="avatar"], 
+.avatar-container img,
+#side-user-avatar,
+#avatar-preview {
+    border-radius: 50% !important;
+    object-fit: cover;
+}
+
 #side-display-name {
     font-weight: bold;
     margin-top: 12px;
@@ -187,7 +196,7 @@ body {
 
 .menu-list li {
     padding: 18px 25px;
-    border-bottom: 1px solid #f5f2ed;
+    border-bottom: 1px solid rgba(0,0,0,0.04);
     display: flex;
     align-items: center;
     gap: 12px;
@@ -195,16 +204,17 @@ body {
     cursor: pointer;
     transition: all 0.2s;
     min-height: 56px;
+    background: transparent;
 }
 
 .menu-list li:active {
-    background: var(--bg-color);
+    background: rgba(0,0,0,0.03);
 }
 
 .menu-divider {
     height: 1px;
-    background: #e0ddd7;
-    margin: 10px 0;
+    background: rgba(0,0,0,0.06);
+    margin: 8px 0;
     border: none;
     padding: 0;
     min-height: 1px;
