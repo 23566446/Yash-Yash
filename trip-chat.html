@@ -6,52 +6,192 @@
     <title>YashYash | 聊天室</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
         .chat-container {
             display: flex;
             flex-direction: column;
-            height: calc(100vh - 70px);
-            max-width: 600px;
+            height: calc(100vh - 60px);
+            max-width: 700px;
             margin: 0 auto;
-            background: #fdfcf9;
-            border-left: 1px solid #eee;
-            border-right: 1px solid #eee;
-        }
-        #chat-window {
+            width: 100%;
             background: #f5f2ed;
-            padding: 15px;
         }
-        .msg { display: flex; align-items: flex-start; gap: 10px; max-width: 80%; }
-        .msg.me { align-self: flex-end; flex-direction: row-reverse; }
         
-        .msg-avatar { width: 35px; height: 35px; border-radius: 50%; border: 1px solid var(--clay); }
+        #chat-window {
+            flex: 1;
+            background: #f5f2ed;
+            padding: 20px 15px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .msg { 
+            display: flex; 
+            align-items: flex-start; 
+            gap: 10px; 
+            max-width: 85%;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .msg.me { 
+            align-self: flex-end; 
+            flex-direction: row-reverse; 
+        }
+        
+        .msg-avatar { 
+            width: 36px; 
+            height: 36px; 
+            border-radius: 50%; 
+            border: 2px solid var(--clay);
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+        
         .msg-content {
-            max-width: 75%;
+            max-width: calc(100% - 46px);
             padding: 12px 16px;
             font-size: 1rem;
-            border-radius: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+            line-height: 1.5;
+            border-radius: 18px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            word-wrap: break-word;
         }
-        .msg.others .msg-content { background: #fff; border: 1px solid #e0ddd7; }
+        
+        .msg.others .msg-content { 
+            background: white; 
+            border: 1px solid #e0ddd7;
+            border-bottom-left-radius: 4px;
+        }
+        
         .msg.me .msg-content {
             background: var(--accent-color);
             color: white;
-            border-bottom-right-radius: 4px; /* 對話尖角感 */
+            border-bottom-right-radius: 4px;
         }        
-        .msg-info { font-size: 0.7rem; color: #999; margin-top: 4px; }
-        .msg.me .msg-info { text-align: right; }
+        
+        .msg-info { 
+            font-size: 0.7rem; 
+            color: #999; 
+            margin-top: 4px;
+            padding: 0 5px;
+        }
+        
+        .msg.me .msg-info { 
+            text-align: right; 
+        }
 
         .chat-input-area {
-            padding: 20px;
-            background: #fff;
-            border-top: 1px solid #eee;
+            padding: 15px;
+            background: white;
+            border-top: 1px solid #e0ddd7;
             display: flex;
             gap: 10px;
+            align-items: center;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
         }
-        .msg.others .msg-content {
-            background: white;
-            border-bottom-left-radius: 4px;
+        
+        #message-input { 
+            flex: 1; 
+            margin: 0;
+            padding: 14px 18px;
+            font-size: 16px;
+            border: 1.5px solid #e0ddd7;
+            border-radius: 25px;
+            background: var(--bg-color);
+            min-height: 48px;
+            max-height: 120px;
+            resize: none;
+            font-family: inherit;
         }
-        #message-input { flex: 1; margin: 0; }
+        
+        #message-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(138, 154, 91, 0.1);
+        }
+        
+        .chat-input-area button {
+            padding: 14px 24px;
+            min-height: 48px;
+            min-width: 48px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+        
+        .empty-text {
+            text-align: center;
+            color: #999;
+            font-style: italic;
+            margin: 40px 0;
+        }
+        
+        /* 捲動到底部提示 */
+        #scroll-to-bottom {
+            position: absolute;
+            bottom: 80px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            font-size: 20px;
+        }
+        
+        /* 小螢幕優化 */
+        @media (max-width: 375px) {
+            #message-input {
+                padding: 12px 16px;
+                font-size: 15px;
+            }
+            
+            .chat-input-area button {
+                padding: 12px 20px;
+            }
+            
+            .msg-content {
+                font-size: 0.95rem;
+                padding: 10px 14px;
+            }
+        }
+        
+        /* iOS 安全區域 */
+        @supports (padding: max(0px)) {
+            .chat-input-area {
+                padding-bottom: max(15px, env(safe-area-inset-bottom));
+            }
+        }
     </style>
 </head>
 <body>
@@ -63,16 +203,35 @@
 
     <main class="chat-container">
         <div id="chat-window">
-            <!-- 訊息會在這裡顯示 -->
             <p class="empty-text">正在載入對話...</p>
         </div>
         
         <form class="chat-input-area" onsubmit="handleSend(event)">
-            <input type="text" id="message-input" placeholder="輸入訊息..." autocomplete="off">
-            <button type="submit" class="btn-primary" style="padding: 10px 20px;">傳送</button>
+            <input type="text" id="message-input" placeholder="輸入訊息..." autocomplete="off" maxlength="500">
+            <button type="submit" class="btn-primary">傳送</button>
         </form>
     </main>
+    
+    <!-- 捲動到底部按鈕 -->
+    <button id="scroll-to-bottom" onclick="scrollToBottom()">↓</button>
 
     <script src="js/trip-chat.js"></script>
+    <script>
+        // 監聽捲動，顯示/隱藏「捲動到底部」按鈕
+        const chatWindow = document.getElementById('chat-window');
+        const scrollBtn = document.getElementById('scroll-to-bottom');
+        
+        chatWindow.addEventListener('scroll', function() {
+            const isNearBottom = chatWindow.scrollHeight - chatWindow.scrollTop - chatWindow.clientHeight < 100;
+            scrollBtn.style.display = isNearBottom ? 'none' : 'flex';
+        });
+        
+        function scrollToBottom() {
+            chatWindow.scrollTo({
+                top: chatWindow.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    </script>
 </body>
 </html>
