@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>YashYash | 行程公告欄</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500&family=Inter:wght@300;400&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="app-header">
+        <!-- 左側按鈕區 -->
+        <div class="header-left">
+            <button class="menu-btn" onclick="toggleMenu()">☰</button>
+        </div>
+        <!-- 中間標題：現在獨立出來了 -->
+            <h1 class="brand brand-center">YashYash</h1>
+        <!-- 右側預留空間 (確保平衡，或放其他功能) -->
+        <div class="header-right" style="width: 40px;"></div>
+    </header>
+
+<!-- 跑馬燈區塊 -->
+<div class="marquee-container">
+    <div id="marquee-text" class="marquee-content">正在載入公告...</div>
+</div>
+
+<!-- 側邊選單側邊欄 -->
+<nav id="side-menu" class="side-menu">
+    <div class="menu-header">
+        <div class="user-profile-side">
+            <img id="side-user-avatar" src="img/default-avatar.png" class="nav-avatar" style="width:60px; height:60px;">
+            <div id="side-display-name" style="font-weight:bold; margin-top:10px; font-size:1.1rem;">載入中...</div>
+        </div>
+        <button class="close-btn" onclick="toggleMenu()">×</button>
+    </div>
+    
+    <ul class="menu-list">
+        <li onclick="location.href='index.html'">🏠 首頁公告</li>
+        <li onclick="location.href='user.html'">👤 個人設定</li>
+        <li onclick="location.href='create-trip.html'">➕ 發起提案</li>
+        <li onclick="location.href='past-trip.html'">📂 過去的行程</li>
+        <li class="menu-divider"></li>
+        <!-- 登出按鈕移到這裡 -->
+        <li onclick="logout()" style="color:var(--danger);">🚪 登出系統</li>
+    </ul>
+</nav>
+
+<main class="main-content">
+    <!-- 原有的公告欄 -->
+    <section class="container"><h2 class="section-title">行程公告欄</h2></section>
+    <div id="announcement-board" class="board"></div>
+
+    <!-- 即將到來的旅行 (Active) -->
+    <section class="container"><h2 class="section-title">即將到來的旅行</h2></section>
+    <div id="trip-list" class="board"></div>
+
+</main>
+
+    <!-- 點擊跳轉到建立行程頁面 -->
+    <button class="fab" onclick="location.href='create-trip.html'">+</button>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

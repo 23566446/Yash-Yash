@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YashYash | 註冊新帳號</title>
+    <link rel="stylesheet" href="css/style-login.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500&family=Inter:wght@300;400&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="auth-container">
+        <div class="wabi-card auth-box">
+            <h1 class="brand">Join YashYash</h1>
+            <p class="subtitle">開啟你的不完美旅程</p>
+            
+            <div class="form-group">
+                <input type="text" id="reg-acc" placeholder="帳號 (Account)">
+                <input type="password" id="reg-pw" placeholder="密碼 (Password)">
+                <input type="text" id="reg-nick" placeholder="暱稱 (Nickname)">
+                
+                <label for="reg-gen" class="label-text">性別：</label>
+                <select id="reg-gen">
+                    <option value="male">男 (Male)</option>
+                    <option value="female">女 (Female)</option>
+                    <option value="other">其他 (Other)</option>
+                </select>
+                <!-- 在 register.html 中 -->
+                <input type="text" id="reg-license" placeholder="請輸入註冊許可證 (License Key)">
+                <button onclick="register()" class="btn-primary" style="margin-top: 20px;">完成註冊</button>
+            </div>
+
+            <p class="footer-text">已經有帳號了？ <a href="login.html">返回登入</a></p>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+</body>
+</html>

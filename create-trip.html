@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>YashYash | 發起提案</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="wabi-card">
+            <h3>發起新的旅行提案</h3>
+            <div class="form-group">
+                <label>開始日期</label>
+                <input type="date" id="start-date">
+                <label>結束日期</label>
+                <input type="date" id="end-date">
+                <label>最低成行人數</label>
+                <input type="number" id="min-ppl" value="2" min="1">
+                
+                <div class="actions" style="margin-top: 20px;">
+                    <button onclick="location.href='index.html'" class="btn-text">取消</button>
+                    <button onclick="submitProposal()" class="btn-primary">發布提案</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    const API_URL = 'http://localhost:3000';
+    async function submitProposal() {
+        const startDate = document.getElementById('start-date').value;
+        const endDate = document.getElementById('end-date').value;
+        const minPpl = document.getElementById('min-ppl').value;
+        
+        if (!startDate || !endDate) {
+            alert("🚨 請完整填寫開始與結束日期！");
+            return;
+        }
+
+        if (new Date(endDate) < new Date(startDate)) {
+            alert("🚨 結束日期不能早於開始日期喔！");
+            return;
+        }
+
+        const user = JSON.parse(localStorage.getItem('yashyash_user'));
+        
+        const payload = {
+            creator: user.nickname, // 用於顯示的名稱
+            start: startDate,
+            end: endDate,
+            min: parseInt(minPpl),
+            // --- 核心修正：初始投票人存入唯一的 account 而不是 nickname ---
+            votes: [user.account], 
+            status: 'voting'
+        };
+
+        try {
+            const response = await fetch(`${API_URL}/api/proposals`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if(response.ok) {
+                alert("✅ 提案已發布到公告欄！");
+                location.href = 'index.html';
+            } else {
+                alert("發布失敗，請稍後再試");
+            }
+        } catch (err) {
+            alert("伺服器連線失敗");
+        }
+    }
+    </script>
+</body>
+</html>

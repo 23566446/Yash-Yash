@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>YashYash | 旅行相簿</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/album.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+<body>
+    <header class="app-header">
+        <button id="back-to-details" class="btn-small">← 行程</button>
+        <h2 style="margin:0;">旅行相簿</h2>
+        <!-- 新增打包下載按鈕 -->
+        <button onclick="downloadAllPhotos()" class="btn-small" style="background:var(--clay); color:white; border:none;">📦 全部下載</button>
+    </header>
+
+    <main class="album-container">
+        <div id="days-album-wrapper">
+            <p class="empty-text">載入回憶中...</p>
+        </div>
+    </main>
+
+    <!-- 批量上傳用的隱藏 input (注意新增了 multiple) -->
+    <input type="file" id="photo-input" hidden multiple accept="image/*" onchange="handleFileUpload(event)">
+
+    <!-- 全螢幕預覽層 (Lightbox) -->
+    <div id="lightbox" class="lightbox hidden" onclick="closeLightbox()">
+        <img id="lightbox-img" src="" alt="">
+        <div class="lightbox-info" onclick="event.stopPropagation()">
+            <span id="lightbox-text"></span>
+            <button id="btn-delete-photo" class="btn-danger-small">刪除</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="js/trip-album.js"></script>
+</body>
+</html>

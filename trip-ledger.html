@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/ledger.css"> <!-- 引入剛建立的 CSS -->
+    <title>YashYash | 記帳本</title>
+    <style>
+        .ledger-container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .summary-card { background: var(--accent-color); color: white; padding: 20px; border-radius: var(--border-radius); margin-bottom: 20px; }
+        .expense-card { position: relative; border-left: 5px solid var(--clay); padding: 15px; margin-bottom: 15px; background: #fff; }
+        .category-tag { font-size: 0.7rem; background: #eee; padding: 2px 8px; border-radius: 10px; color: #666; }
+        .amount-text { font-weight: bold; color: var(--text-color); font-size: 1.2rem; }
+        
+        /* 彈出層樣式 */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { background: white; padding: 25px; border-radius: var(--border-radius); width: 90%; max-width: 400px; }
+        .split-list { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+        .split-item { font-size: 0.8rem; border: 1px solid #ddd; padding: 5px 10px; border-radius: 20px; cursor: pointer; }
+        .split-item.active { background: var(--accent-color); color: white; border-color: var(--accent-color); }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <button id="back-to-details" class="btn-small">← 行程</button>
+        <h2 style="margin:0;">行程記帳本</h2>
+        <button onclick="showAddModal()" class="btn-primary" style="padding: 5px 15px;">+</button>
+    </header>
+
+    <main class="ledger-container">
+        <!-- 結算總覽 -->
+        <section class="summary-card" id="balance-summary">
+            <h3>結算總覽 (待計算)</h3>
+            <div id="balance-list" style="font-size: 0.9rem; opacity: 0.9;"></div>
+        </section>
+
+        <!-- 支出清單 -->
+        <div id="expense-list">
+            <p class="empty-text">尚無支出紀錄</p>
+        </div>
+    </main>
+
+    <!-- 新增支出 Modal -->
+    <div id="add-modal" class="modal hidden">
+        <div class="modal-content wabi-card">
+            <h3>新增支出</h3>
+            <input type="number" id="exp-amount" placeholder="金額">
+            <select id="exp-currency">
+                <option value="TWD">TWD (台幣)</option>
+                <option value="JPY">JPY (日幣)</option>
+                <option value="USD">USD (美金)</option>
+                <option value="KRW">KRW (韓幣)</option>
+            </select>
+            <input type="text" id="exp-category" placeholder="分類 (例如：餐飲、交通)">
+            <input type="text" id="exp-note" placeholder="備註">
+            
+            <p style="font-size:0.8rem; margin-top:15px;">誰要分攤？(點擊切換)</p>
+            <div id="participant-split-list" class="split-list">
+                <!-- 由 JS 渲染成員 -->
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:20px;">
+                <button onclick="closeAddModal()" class="btn-text">取消</button>
+                <button onclick="submitExpense()" class="btn-primary" style="flex:1;">儲存支出</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/trip-ledger.js"></script>
+</body>
+</html>

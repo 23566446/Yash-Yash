@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>YashYash | 行程規劃</title>
+    <!-- 1. 引入你的樣式表 -->
+    <link rel="stylesheet" href="css/style.css">
+    <!-- 2. 額外加入這段 CSS 修正，強制覆蓋 body 的置中問題 -->
+    <style>
+        body { 
+            display: flex !important; 
+            flex-direction: column !important; 
+            justify-content: flex-start !important; 
+            align-items: stretch !important; 
+            overflow: hidden !important;
+            height: 100vh;
+        }
+        .trip-layout {
+            display: flex;
+            flex-direction: row;
+            flex: 1;
+            height: calc(100vh - 70px);
+            width: 100vw;
+        }
+        /* 強制固定左側寬度，防止變細線 */
+        .itinerary-sidebar {
+            width: 380px !important;
+            min-width: 380px !important;
+            background: #fdfcf9;
+            border-right: 1px solid #e0ddd7;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        .map-view {
+            flex: 1;
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <button onclick="location.href='index.html'" class="btn-small">← 返回</button>
+        <div id="trip-title" class="trip-title">載入中...</div>
+        
+        <div class="actions">
+            <!-- 新增相簿按鈕 -->
+            <button onclick="goToAlbum()" class="btn-small" style="background:#d2b48c; color:white; border:none;">🖼️ 相簿</button>
+            <!-- 新增聊天室按鈕 -->
+            <button onclick="goToChat()" class="btn-small" style="background:#8a9a5b; color:white; border:none;">💬 聊天室</button>
+            <!-- 新增記帳本按鈕 -->
+            <button onclick="goToLedger()" class="btn-small" style="background:var(--clay); color:white; border:none;">💰 記帳本</button>
+            <!-- 修改日期按鈕 -->
+            <button id="edit-date-btn" onclick="editTripDates()" class="btn-small hidden">修改日期</button>
+            <!-- 刪除行程按鈕 -->
+            <button id="delete-trip-btn" onclick="deleteTrip()" class="btn-small hidden" style="color:var(--danger); border-color:var(--danger); margin-left:10px;">刪除行程</button>
+        </div>
+    </header>
+
+    <div class="trip-layout">
+        <aside class="itinerary-sidebar">
+            <!-- 搜尋框移到這裡 -->
+            <div class="search-box-container">
+                <input id="pac-input" type="text" placeholder="🔍 搜尋地點或在地圖點擊...">
+            </div>
+            <div id="days-container" style="padding: 15px; flex: 1; overflow-y: auto;">
+                <!-- 由 JS 渲染 -->
+            </div>
+        </aside>
+
+        <main class="map-view">
+            <div id="map"></div>
+        </main>
+    </div>
+
+    <!-- 關鍵：必須引入 Sortable.js -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <!-- 載入 Google Maps API (記得換你的 KEY) -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyByHmLJTyobrL2u8kjPmK-mDtD2JqR2Elc&libraries&libraries&libraries=places"></script>
+    <script src="js/trip-details.js"></script>
+    <!-- 聊天室 -->
+    <script>
+        function goToChat() {
+            // 跳轉到新的聊天頁面，並帶上 tripId
+            window.location.href = `trip-chat.html?id=${tripId}`;
+        }
+    </script>
+    <!-- 記帳本 -->
+    <script>
+    function goToLedger() {
+        window.location.href = `trip-ledger.html?id=${tripId}`;
+    }
+    </script>
+    <!-- 相簿 -->    
+        <script>
+    function goToAlbum() {
+        window.location.href = `trip-album.html?id=${tripId}`;
+    }
+    </script>
+</body>
+</html>

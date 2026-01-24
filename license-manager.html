@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>YashYash | 許可證管理</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="app-header">
+        <button onclick="location.href='user.html'" class="btn-small">← 返回後台</button>
+        <h2>許可證金鑰管理</h2>
+        <div style="width:50px;"></div>
+    </header>
+
+    <main class="container">
+        <!-- 生成區塊 -->
+        <section class="wabi-card">
+            <h3>生成新許可證</h3>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="number" id="license-limit" value="1" min="1" style="margin:0;">
+                <button onclick="createLicense()" class="btn-primary" style="white-space:nowrap;">生成金鑰</button>
+            </div>
+            <p style="font-size:0.8rem; color:#888; margin-top:10px;">設定此金鑰可被多少人次用於註冊。</p>
+        </section>
+
+        <!-- 列表區塊 -->
+        <section class="wabi-card">
+            <h3>目前所有金鑰</h3>
+            <div id="license-list">
+                <!-- 由 JS 渲染 -->
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const API_URL = 'http://localhost:3000';
+
+        window.onload = loadLicenses;
+
+        async function loadLicenses() {
+            try {
+                const res = await fetch(`${API_URL}/api/admin/licenses`);
+                const data = await res.json();
+                const list = document.getElementById('license-list');
+                
+                list.innerHTML = data.map(l => `
+                    <div class="user-item-row" style="padding:15px 0; border-bottom:1px dashed #ddd;">
+                        <div>
+                            <strong style="color:var(--accent-color); font-family:monospace; font-size:1.1rem;">${l.key}</strong>
+                            <div style="font-size:0.8rem; color:#666;">
+                                使用情況: ${l.used} / ${l.limit} 
+                                ${l.used >= l.limit ? '<span style="color:red; font-weight:bold;">(已失效)</span>' : ''}
+                            </div>
+                        </div>
+                        <!-- 修正：確保呼叫的是 deleteLicense 且傳入 l._id -->
+                        <button onclick="deleteLicense('${l._id}')" class="btn-small" style="color:red; border-color:#ffcccc;">刪除</button>
+                    </div>
+                `).join('');
+            } catch (e) { console.error("載入金鑰失敗"); }
+        }
+
+        // 修正後的刪除函數
+        async function deleteLicense(id) {
+            // 保留您的提示訊息需求
+            if(!confirm("⚠️ 確定要作廢並刪除此許可證金鑰嗎？\n刪除後，尚未使用的名額將無法再進行註冊。")) return;
+
+            try {
+                const res = await fetch(`${API_URL}/api/admin/licenses/${id}`, { 
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (res.ok) {
+                    alert("✅ 許可證已成功移除");
+                    loadLicenses(); // 重新載入列表
+                } else {
+                    const err = await res.json();
+                    alert("❌ 刪除失敗：" + err.message);
+                }
+            } catch (e) {
+                console.error(e);
+                alert("網路連線失敗，請檢查後端是否啟動");
+            }
+        }
+
+        // 生成金鑰的函數也補上提示
+        async function createLicense() {
+            const limitInput = document.getElementById('license-limit');
+            const limitValue = limitInput.value;
+
+            if (!limitValue || limitValue < 1) {
+                return alert("請輸入有效的使用次數！");
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/api/admin/licenses`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ limit: limitValue })
+                });
+                
+                if (res.ok) {
+                    alert("✨ 新許可證金鑰已生成！");
+                    loadLicenses();
+                } else {
+                    alert("生成失敗，請稍後再試");
+                }
+            } catch (e) { alert("伺服器連線失敗"); }
+        }
+    </script>
+</body>
+</html>

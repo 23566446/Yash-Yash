@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>YashYash | 會員中心</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500&family=Inter:wght@300;400&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="app-header">
+        <button onclick="location.href='index.html'" class="btn-back">← 返回</button>
+        <h2 id="header-nickname">個人設定</h2>
+    </header>
+
+    <main class="container">
+        <!-- 通知區塊 -->
+        <section id="notification-section" class="wabi-card hidden" style="border: 2px solid #d2b48c;">
+            <h3 style="color: #a67c52;">🔔 活動建立通知</h3>
+            <div id="notification-list">
+        <!-- JS 渲染通知內容 -->
+            </div>
+        </section>
+        <!-- 區塊 A: 個人基本資料 (所有人可見) -->
+        <section class="wabi-card">
+            <h3>基本資料</h3>
+        <!-- 大頭照展示與隱藏的 input -->
+            <div class="avatar-container" onclick="document.getElementById('avatar-input').click()">
+                <img id="avatar-preview" src="img/default-avatar.png" class="avatar-circle" alt="頭像">
+                <div style="font-size: 0.7rem; color: var(--clay); margin-top: 5px; text-align: center;">點擊更換圖片</div>
+            </div>
+            <input type="file" id="avatar-input" hidden accept="image/*" onchange="previewAvatar(event)">
+
+            <div class="form-group">
+                <p>帳號：<span id="display-account" style="color: #888;"></span></p>
+                
+                <label>更改暱稱</label>
+                <input type="text" id="edit-nick">
+                
+                <label>修改密碼 (留空代表不修改)</label>
+                <input type="password" id="edit-pw" placeholder="輸入新密碼">
+                
+                <label>性別</label>
+                <select id="edit-gen">
+                    <option value="male">男</option>
+                    <option value="female">女</option>
+                    <option value="other">其他</option>
+                </select>
+                
+                <button onclick="updateMyInfo()" class="btn-primary" style="margin-top:15px;">更新資料</button>
+            </div>
+        </section>
+
+        <!-- 區塊 B: 超級管理員專區 (只有 admin 會看到) -->
+        <section class="wabi-card" style="border: 1px solid var(--accent-color);">
+            <h3>📢 更新跑馬燈公告</h3>
+            <input type="text" id="marquee-input" placeholder="輸入要顯示的公告內容...">
+            <button onclick="updateMarquee()" class="btn-primary" style="width:100%;">更新全站公告</button>
+        </section>
+        <section id="super-user-section" class="wabi-card hidden">
+            <h3 style="color: #a67c52;">👑 超級管理員儀表板</h3>
+            <p style="font-size: 0.8rem; opacity: 0.7;">您可以查看所有成員的帳號資訊。</p>
+            <div id="all-users-list" class="user-list-container">
+                <p class="empty-text">正在載入成員名單...</p>
+            </div>
+            <!-- 在 user.html 的 super-user-section 內加入 -->
+            <button onclick="location.href='license-manager.html'" class="btn-primary" style="width:100%; margin-bottom:20px; background:var(--clay);">
+                🎟️ 管理註冊許可證 (License Key)
+            </button>
+        </section>
+
+        <button onclick="logout()" class="btn-text" style="color: #a65252; margin-top: 20px;">登出帳號</button>
+    </main>
+
+    <script src="js/user.js"></script>
+</body>
+</html>
