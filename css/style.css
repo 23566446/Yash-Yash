@@ -1,134 +1,395 @@
-/* --- 全域基礎修正 --- */
+/* --- 全域基礎變數 --- */
 :root {
     --bg-color: #f5f2ed;
     --text-color: #363636;
     --accent-color: #8a9a5b;
     --clay: #d2b48c;
+    --danger: #a65252;
     --card-bg: #ffffff;
     --border-radius: 16px;
     --shadow: 0 8px 30px rgba(0,0,0,0.05);
 }
 
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+* { 
+    box-sizing: border-box; 
+    -webkit-tap-highlight-color: transparent;
+}
 
 body {
     background-color: var(--bg-color);
     color: var(--text-color);
-    font-family: 'Inter', -apple-system, sans-serif;
-    margin: 0; padding: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    margin: 0; 
+    padding: 0;
     font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
 }
 
-/* --- Header 完美置中 --- */
+/* --- Header 手機優化 --- */
 .app-header {
-    position: sticky; top: 0; height: 60px;
-    background: rgba(245, 242, 237, 0.95);
-    backdrop-filter: blur(10px);
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0 15px; z-index: 1000;
-    border-bottom: 1px solid rgba(0,0,0,0.05);
+    position: sticky; 
+    top: 0; 
+    height: 60px;
+    background: rgba(245, 242, 237, 0.98);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    display: flex; 
+    align-items: center; 
+    justify-content: space-between;
+    padding: 0 12px;
+    z-index: 1000;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+}
+
+.header-left, .header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 50px;
 }
 
 .brand-center {
-    position: absolute; left: 50%; top: 50%;
+    position: absolute; 
+    left: 50%; 
+    top: 50%;
     transform: translate(-50%, -50%);
     font-family: 'Cormorant Garamond', serif;
-    font-size: 1.4rem; font-weight: bold; margin: 0;
+    font-size: 1.3rem; 
+    font-weight: bold; 
+    margin: 0;
+    white-space: nowrap;
+    max-width: 50%;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-/* --- 側邊選單 Sidebar 美化 (修正黑點問題) --- */
+/* 手機版標題縮小 */
+@media (max-width: 480px) {
+    .brand-center {
+        font-size: 1.1rem;
+    }
+    .app-header {
+        padding: 0 8px;
+    }
+}
+
+.menu-btn, .close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 8px;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-color);
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.menu-btn:active, .close-btn:active {
+    background: rgba(0,0,0,0.05);
+}
+
+/* --- 跑馬燈優化 --- */
+.marquee-container {
+    background: linear-gradient(135deg, var(--accent-color), #7a8a4b);
+    color: white;
+    height: 36px;
+    overflow: hidden;
+    position: relative;
+    z-index: 999;
+}
+
+.marquee-content {
+    display: inline-block;
+    white-space: nowrap;
+    padding: 10px 0;
+    font-size: 0.9rem;
+    animation: marquee 20s linear infinite;
+    padding-left: 100%;
+}
+
+@keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+}
+
+/* --- 側邊選單優化 --- */
 .side-menu {
     position: fixed;
     top: 0;
     left: -100%;
-    width: 80vw; /* 寬度佔螢幕 80% */
-    max-width: 300px;
+    width: 85vw;
+    max-width: 320px;
     height: 100vh;
     background: white;
-    z-index: 2000; /* 高於 Header */
-    transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    padding: 60px 25px; /* 增加頂部 Padding */
+    z-index: 2001;
+    transition: left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 0;
     display: flex;
     flex-direction: column;
+    box-shadow: 2px 0 15px rgba(0,0,0,0.1);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .side-menu.active {
     left: 0;
 }
 
-/* 移除選單列表的預設黑點 */
+.menu-header {
+    padding: 30px 20px;
+    background: linear-gradient(135deg, var(--bg-color), #ffffff);
+    border-bottom: 1px solid #e0ddd7;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+.close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+}
+
+.user-profile-side {
+    text-align: center;
+}
+
+.nav-avatar {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--clay);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+#side-display-name {
+    font-weight: bold;
+    margin-top: 12px;
+    font-size: 1.1rem;
+    color: var(--text-color);
+}
+
 .menu-list {
     list-style: none;
     padding: 0;
-    margin: 20px 0;
+    margin: 0;
+    flex: 1;
 }
 
 .menu-list li {
-    padding: 18px 0;
+    padding: 18px 25px;
     border-bottom: 1px solid #f5f2ed;
     display: flex;
     align-items: center;
-    gap: 15px; /* 圖示與文字間距 */
+    gap: 12px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-height: 56px;
 }
 
-.menu-header { margin-bottom: 30px; text-align: center; }
-.user-profile-side img {
-    width: 80px; height: 80px;
-    border-radius: 50%; object-fit: cover;
-    border: 3px solid var(--clay);
+.menu-list li:active {
+    background: var(--bg-color);
 }
 
+.menu-divider {
+    height: 1px;
+    background: #e0ddd7;
+    margin: 10px 0;
+    border: none;
+    padding: 0;
+    min-height: 1px;
+}
 
-/* --- 首頁板塊優化 (修正歪斜問題) --- */
+/* --- 遮罩層 --- */
+.side-menu::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s;
+    z-index: -1;
+}
+
+.side-menu.active::before {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* --- 主要內容區 --- */
+.main-content {
+    padding-bottom: 80px;
+    min-height: calc(100vh - 96px);
+}
+
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px 16px;
+}
+
+.section-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.8rem;
+    color: var(--text-color);
+    margin: 20px 0 10px;
+    padding: 0 10px;
+}
+
+/* --- 卡片區塊優化 --- */
 .board {
-    display: flex; gap: 15px;
-    padding: 10px 20px 30px;
+    display: flex;
+    gap: 12px;
+    padding: 10px 16px 30px;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
 }
-.board::-webkit-scrollbar { display: none; }
+
+.board::-webkit-scrollbar {
+    display: none;
+}
 
 .proposal-card, .trip-card {
-    flex: 0 0 85vw; /* 手機寬度 85% */
-    max-width: 340px;
-    background: white; padding: 20px;
+    flex: 0 0 88vw;
+    max-width: 360px;
+    background: white;
+    padding: 20px;
     border-radius: var(--border-radius);
     box-shadow: var(--shadow);
     scroll-snap-align: center;
+    border: 1px solid rgba(0,0,0,0.04);
 }
 
-/* --- 行程詳情 Layout 修正 (解決地圖細縫問題) --- */
-.trip-layout {
-    display: flex; flex-direction: column; /* 手機預設上下排 */
-    height: calc(100vh - 60px);
-}
-.itinerary-sidebar {
-    height: 40vh; overflow-y: auto;
-    background: #fdfcf9; border-bottom: 1px solid #ddd;
-}
-.map-view { flex: 1; position: relative; } /* 地圖撐開剩下空間 */
-
-@media (min-width: 769px) {
-    .trip-layout { flex-direction: row; }
-    .itinerary-sidebar { width: 400px; height: 100%; border-right: 1px solid #ddd; }
+.wabi-card {
+    background: white;
+    padding: 25px;
+    border: 1px solid #e0ddd7;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
 }
 
-/* --- 小組件 --- */
+/* --- 按鈕系統 --- */
+.btn-primary {
+    background: var(--text-color);
+    color: var(--bg-color);
+    border: none;
+    padding: 14px 24px;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-height: 48px;
+    width: 100%;
+}
+
+.btn-primary:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+}
+
 .btn-small {
-    padding: 6px 12px; font-size: 0.8rem;
-    border-radius: 8px; border: 1px solid #ddd; background: white;
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-height: 40px;
+    white-space: nowrap;
 }
-input, select {
-    font-size: 16px !important; /* 避免 iOS 縮放 */
-    padding: 12px; border: 1px solid #eee; border-radius: 10px;
+
+.btn-small:active {
+    background: #f5f2ed;
 }
-/* --- 修正後的行程詳情佈局 --- */
 
-/* 1. 確保整體頁面不產生多餘捲軸 */
-/* --- 修正後的行程詳情全方位佈局 --- */
+.btn-text {
+    background: transparent;
+    border: none;
+    color: var(--text-color);
+    padding: 10px 16px;
+    cursor: pointer;
+    min-height: 44px;
+}
 
-/* 確保詳情頁 body 不產生全頁滾動 */
+.btn-danger {
+    background: var(--danger);
+    color: white;
+    border: none;
+}
+
+/* --- 表單元素優化 --- */
+input, select, textarea {
+    font-size: 16px !important;
+    padding: 14px 16px;
+    border: 1.5px solid #e0ddd7;
+    border-radius: 10px;
+    background: white;
+    width: 100%;
+    margin: 8px 0;
+    font-family: inherit;
+    transition: border-color 0.2s;
+    min-height: 48px;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(138, 154, 91, 0.1);
+}
+
+label {
+    display: block;
+    font-size: 0.9rem;
+    color: #666;
+    margin-top: 15px;
+    margin-bottom: 5px;
+}
+
+/* --- 浮動按鈕 FAB --- */
+.fab {
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    color: white;
+    font-size: 28px;
+    border: none;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    cursor: pointer;
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+}
+
+.fab:active {
+    transform: scale(0.95);
+}
+
+/* --- 行程詳情頁面優化 --- */
 body.details-page {
     height: 100vh;
     overflow: hidden;
@@ -139,50 +400,79 @@ body.details-page {
 .trip-layout {
     display: flex;
     width: 100%;
-    /* 扣除 Header (60px) + 跑馬燈 (32px) = 92px */
-    height: calc(100vh - 92px);
+    height: calc(100vh - 96px);
+    overflow: hidden;
 }
 
-/* 電腦版：左右分欄 */
+.trip-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.3rem;
+    font-weight: bold;
+    margin: 0;
+    flex: 1;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0 10px;
+}
+
+.actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+@media (max-width: 480px) {
+    .actions .btn-small {
+        font-size: 0.75rem;
+        padding: 6px 10px;
+    }
+    .trip-title {
+        font-size: 1.1rem;
+    }
+}
+
+/* --- 手機版：地圖在上，行程在下 --- */
+@media (max-width: 768px) {
+    .trip-layout {
+        flex-direction: column;
+    }
+    
+    .map-view {
+        width: 100%;
+        height: 45%;
+        flex: none;
+        order: 1;
+    }
+    
+    .itinerary-sidebar {
+        width: 100%;
+        height: 55%;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        border-top: 2px solid #e0ddd7;
+        order: 2;
+    }
+}
+
+/* --- 電腦版：左右分欄 --- */
 @media (min-width: 769px) {
     .trip-layout {
         flex-direction: row;
     }
+    
     .itinerary-sidebar {
-        width: 400px;
-        min-width: 400px;
+        width: 420px;
+        min-width: 420px;
         border-right: 1px solid #e0ddd7;
         overflow-y: auto;
+        height: 100%;
     }
+    
     .map-view {
         flex: 1;
         height: 100%;
-    }
-}
-
-/* 手機版：改為上下排列，地圖在上，行程在下 */
-@media (max-width: 768px) {
-    .trip-layout {
-        flex-direction: column; /* 強制垂直堆疊 */
-    }
-    .map-view {
-        width: 100%;
-        height: 40%; /* 地圖佔畫面上方 40% */
-        flex: none;
-    }
-    .itinerary-sidebar {
-        width: 100%;
-        height: 60%; /* 行程列表佔下方 60% */
-        overflow-y: auto;
-        border-top: 1px solid #e0ddd7;
-    }
-    
-    /* 手機版標題縮小避免擠壓按鈕 */
-    .brand-center {
-        font-size: 1.1rem;
-        max-width: 50%;
-        overflow: hidden;
-        text-overflow: ellipsis;
     }
 }
 
@@ -191,12 +481,140 @@ body.details-page {
     height: 100% !important;
 }
 
-/* 6. 搜尋框背景修正 */
 .search-box-container {
     padding: 12px;
-    background: #fff;
+    background: white;
     border-bottom: 1px solid #eee;
     position: sticky;
     top: 0;
     z-index: 100;
+}
+
+#pac-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1.5px solid #e0ddd7;
+    border-radius: 25px;
+    font-size: 15px;
+    margin: 0;
+}
+
+/* --- 空狀態 --- */
+.empty-text {
+    font-style: italic;
+    opacity: 0.5;
+    text-align: center;
+    padding: 40px 20px;
+    color: #999;
+}
+
+/* --- 通用工具類 --- */
+.hidden {
+    display: none !important;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.form-group {
+    margin: 20px 0;
+}
+
+/* --- 頭像相關 --- */
+.avatar-container {
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.avatar-container:active {
+    transform: scale(0.98);
+}
+
+/* --- 響應式斷點優化 --- */
+@media (max-width: 375px) {
+    .section-title {
+        font-size: 1.5rem;
+    }
+    
+    .wabi-card {
+        padding: 18px;
+    }
+    
+    .fab {
+        width: 55px;
+        height: 55px;
+        font-size: 24px;
+        bottom: 20px;
+        right: 20px;
+    }
+}
+
+/* --- 用戶列表優化 --- */
+.user-item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 0;
+    border-bottom: 1px dashed #e0ddd7;
+    min-height: 60px;
+}
+
+.user-info-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+}
+
+.user-info-text strong {
+    font-size: 1rem;
+    color: var(--text-color);
+}
+
+.user-info-text span {
+    font-size: 0.8rem;
+    color: #888;
+}
+
+/* --- 通知區塊 --- */
+#notification-section {
+    border-left: 4px solid var(--clay) !important;
+    background: #fdfcf9;
+}
+
+/* --- 平滑滾動 --- */
+html {
+    scroll-behavior: smooth;
+}
+
+/* --- 觸控反饋優化 --- */
+button, a, .clickable {
+    -webkit-tap-highlight-color: rgba(0,0,0,0.05);
+    touch-action: manipulation;
+}
+
+/* --- 防止文字選取（某些互動元素） --- */
+.no-select {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* --- iOS 安全區域適配 --- */
+@supports (padding: max(0px)) {
+    body {
+        padding-left: max(0px, env(safe-area-inset-left));
+        padding-right: max(0px, env(safe-area-inset-right));
+    }
+    
+    .app-header {
+        padding-left: max(12px, env(safe-area-inset-left));
+        padding-right: max(12px, env(safe-area-inset-right));
+    }
+    
+    .fab {
+        bottom: max(25px, env(safe-area-inset-bottom));
+        right: max(25px, env(safe-area-inset-right));
+    }
 }
