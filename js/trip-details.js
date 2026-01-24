@@ -14,9 +14,12 @@ let geocoder = new google.maps.Geocoder();
 let placesService;
 let polyline = null; 
 
-// --- 1. 修正：保證嚴格的執行順序 ---
+// === 初始化載入 ===
 window.onload = async () => {
-    if (!tripId) return alert("找不到行程 ID");
+    if (!tripId) {
+        alert("找不到行程 ID");
+        return;
+    }
     
     // 第一步：先抓資料
     await fetchTripDetails(); 
@@ -28,7 +31,12 @@ window.onload = async () => {
 async function fetchTripDetails() {
     try {
         const response = await fetch(`${API_URL}/api/trips/${tripId}`);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
         currentTripData = await response.json();
+        console.log("✅ 行程資料載入成功:", currentTripData);
         
         document.getElementById('trip-title').innerText = currentTripData.title;
         
@@ -43,13 +51,12 @@ async function fetchTripDetails() {
         }
 
         renderItinerary();
-        // 注意：這裡移除了原本的 renderMarkers，改放到 initMap 最後執行
     } catch (err) {
-        console.error("載入詳情失敗:", err);
+        console.error("❌ 載入詳情失敗:", err);
+        alert("載入行程失敗，請重新整理頁面");
     }
 }
 
-// ... (中間的 renderItinerary 保持不變) ...
 function renderItinerary() {
     const container = document.getElementById('days-container');
     if (!container || !currentTripData) return;
@@ -62,7 +69,7 @@ function renderItinerary() {
         return `
             <div class="day-card wabi-card ${isActive ? 'active-day' : ''}" style="margin-bottom:15px; cursor:pointer; border:${isActive?'2px solid #8a9a5b':'1px solid #e0ddd7'}">
                 <div class="day-header" onclick="setActiveDay(${index})" style="padding:15px; display:flex; justify-content:space-between; align-items:center;">
-                    <h4 style="margin:0;">Day ${day.dayNumber} ${isActive ? '📍' : ''}</h4>
+                    <h4 style="margin:0;">Day ${day.dayNumber} ${isActive ? '🔓' : ''}</h4>
                     <span>${isActive ? '▼' : '▶'}</span>
                 </div>
                 <div class="day-content" style="display:${isActive ? 'block' : 'none'}; padding:0 15px 15px 15px; background:#f9f9f7;">
@@ -106,7 +113,6 @@ function renderItinerary() {
     }
 }
 
-// ... (中間的 showPreview, findNearbyPlace 保持不變) ...
 function initMap() {
     const mapEl = document.getElementById("map");
     if (!mapEl) return;
@@ -150,7 +156,7 @@ function initMap() {
 
     // 關鍵：地圖閒置後執行
     google.maps.event.addListenerOnce(map, 'idle', () => {
-        console.log("地圖核心已就緒 (idle)");
+        console.log("✅ 地圖核心已就緒 (idle)");
         if (currentTripData) {
             renderMarkers();
         }
@@ -202,7 +208,6 @@ function showPreview(latLng, name, address) {
 }
 
 async function confirmAdd(name, addr, lat, lng) {
-    // 強制轉換為數字，確保存入資料庫前不是字串
     const locationObj = { 
         name: name, 
         addr: addr, 
@@ -216,20 +221,19 @@ async function confirmAdd(name, addr, lat, lng) {
     infoWindow.close();
 }
 
-// --- 3. 修正：強化穩定性的 renderMarkers ---
 function renderMarkers() {
     if (!map || !currentTripData) {
         console.error("❌ 渲染失敗：map 或 currentTripData 未準備好");
         return;
     }
 
-    // 1. 清除舊標記與線段
+    // 清除舊標記與線段
     markers.forEach(m => m.setMap(null));
     markers = [];
     if (polyline) { polyline.setMap(null); polyline = null; }
 
     const activeDayPath = [];
-    const bounds = new google.maps.LatLngBounds(); // 用於自動縮放地圖
+    const bounds = new google.maps.LatLngBounds();
     let hasAnyMarker = false;
 
     console.log("🔍 開始掃描行程天數...", currentTripData.days.length);
@@ -238,7 +242,6 @@ function renderMarkers() {
         const isActiveDay = (dIdx === activeDayIndex);
         
         day.locations.forEach((loc, locIdx) => {
-            // 確保座標是正確的數字數字類型
             const lat = parseFloat(loc.lat);
             const lng = parseFloat(loc.lng);
 
@@ -250,7 +253,6 @@ function renderMarkers() {
             const pos = { lat, lng };
             hasAnyMarker = true;
 
-            // 建立標記
             const marker = new google.maps.Marker({
                 position: pos,
                 map: map,
@@ -261,19 +263,19 @@ function renderMarkers() {
                     fontWeight: "bold"
                 } : null,
                 opacity: isActiveDay ? 1.0 : 0.4,
-                zIndex: isActiveDay ? 100 : 10 // 讓當前天數的地點疊在上面
+                zIndex: isActiveDay ? 100 : 10
             });
 
             markers.push(marker);
             
             if (isActiveDay) {
                 activeDayPath.push(pos);
-                bounds.extend(pos); // 將座標加入縮放範圍
+                bounds.extend(pos);
             }
         });
     });
 
-    // 2. 畫線邏輯
+    // 畫線邏輯
     if (activeDayPath.length > 1) {
         console.log(`🛣️ 正在為 Day ${activeDayIndex + 1} 畫線，點數:`, activeDayPath.length);
         polyline = new google.maps.Polyline({
@@ -287,28 +289,30 @@ function renderMarkers() {
                 offset: '100%',
                 repeat: '80px'
             }],
-            map: map // 直接設定 map
+            map: map
         });
     }
 
-    // 3. 自動縮放地圖以看見所有點
+    // 自動縮放地圖
     if (hasAnyMarker && !bounds.isEmpty()) {
         console.log("📌 自動調整視角以包含所有標記");
         map.fitBounds(bounds);
         
-        // 如果點太近，避免過度放大
         const listener = google.maps.event.addListener(map, "idle", function() {
             if (map.getZoom() > 17) map.setZoom(17);
             google.maps.event.removeListener(listener);
         });
-    } else {
-        console.warn("⚠️ 本天行程沒有有效地點，無法畫線或調整視角");
     }
 }
 
-// ... (其餘 deleteTrip, addLocationToDB 等函數保持不變) ...
-function startNavigation(lat, lng) { window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`, '_blank'); }
-function focusLocation(lat, lng) { map.panTo({ lat: parseFloat(lat), lng: parseFloat(lng) }); map.setZoom(17); }
+function startNavigation(lat, lng) { 
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`, '_blank'); 
+}
+
+function focusLocation(lat, lng) { 
+    map.panTo({ lat: parseFloat(lat), lng: parseFloat(lng) }); 
+    map.setZoom(17); 
+}
 
 function setActiveDay(index) {
     activeDayIndex = index;
@@ -317,59 +321,171 @@ function setActiveDay(index) {
 }
 
 async function addLocationToDB(locationObj) {
-    const response = await fetch(`${API_URL}/api/trips/${tripId}/location`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dayIndex: activeDayIndex, location: locationObj })
-    });
-    if (response.ok) {
-        currentTripData = await response.json();
-        renderItinerary();
-        renderMarkers();
+    try {
+        const response = await fetch(`${API_URL}/api/trips/${tripId}/location`, {
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dayIndex: activeDayIndex, location: locationObj })
+        });
+        
+        if (response.ok) {
+            currentTripData = await response.json();
+            renderItinerary();
+            renderMarkers();
+        } else {
+            alert("新增地點失敗");
+        }
+    } catch (e) {
+        console.error("新增地點錯誤:", e);
+        alert("網路錯誤");
     }
 }
 
 async function deleteLocation(dayIdx, locIdx) {
-    if(!confirm("確定移除？")) return;
-    const response = await fetch(`${API_URL}/api/trips/${tripId}/location/delete`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dayIndex: dayIdx, locationIndex: locIdx })
-    });
-    if(response.ok) {
-        currentTripData = await response.json();
-        renderItinerary();
-        renderMarkers();
+    if(!confirm("確定移除此地點嗎？")) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/api/trips/${tripId}/location/delete`, {
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dayIndex: dayIdx, locationIndex: locIdx })
+        });
+        
+        if(response.ok) {
+            currentTripData = await response.json();
+            renderItinerary();
+            renderMarkers();
+        } else {
+            alert("刪除失敗");
+        }
+    } catch (e) {
+        console.error("刪除地點錯誤:", e);
+        alert("網路錯誤");
     }
 }
 
 async function handleReorder(dayIdx, oldIdx, newIdx) {
-    const response = await fetch(`${API_URL}/api/trips/${tripId}/location/reorder`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dayIndex: dayIdx, oldIndex: oldIdx, newIndex: newIdx })
-    });
-    if(response.ok) {
-        currentTripData = await response.json();
-        renderMarkers();
+    try {
+        const response = await fetch(`${API_URL}/api/trips/${tripId}/location/reorder`, {
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dayIndex: dayIdx, oldIndex: oldIdx, newIndex: newIdx })
+        });
+        
+        if(response.ok) {
+            currentTripData = await response.json();
+            renderMarkers();
+        }
+    } catch (e) {
+        console.error("重新排序錯誤:", e);
     }
 }
 
+// === 修正後的日期修改功能 ===
 async function editTripDates() {
-    const newStart = prompt("開始日期:", currentTripData.startDate);
-    const newEnd = prompt("結束日期:", currentTripData.endDate);
-    if (!newStart || !newEnd) return;
-    const response = await fetch(`${API_URL}/api/trips/${tripId}/dates`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ startDate: newStart, endDate: newEnd })
-    });
-    const result = await response.json();
-    if (response.ok) {
-        currentTripData = result.trip; 
-        renderItinerary(); 
-        renderMarkers();
+    if (!currentTripData) {
+        alert("行程資料尚未載入");
+        return;
+    }
+    
+    console.log("📅 開始修改日期...");
+    console.log("目前資料:", currentTripData);
+    
+    // 取得當前日期（移除時間部分）
+    const currentStart = currentTripData.startDate.split('T')[0];
+    const currentEnd = currentTripData.endDate.split('T')[0];
+    
+    console.log("目前開始日期:", currentStart);
+    console.log("目前結束日期:", currentEnd);
+    
+    // 第一步：輸入新的開始日期
+    const newStart = prompt(`📅 修改開始日期 (格式：YYYY-MM-DD)\n\n目前開始日期：${currentStart}`, currentStart);
+    
+    if (!newStart) {
+        console.log("使用者取消輸入開始日期");
+        return;
+    }
+    
+    // 第二步：輸入新的結束日期
+    const newEnd = prompt(`📅 修改結束日期 (格式：YYYY-MM-DD)\n\n目前結束日期：${currentEnd}`, currentEnd);
+    
+    if (!newEnd) {
+        console.log("使用者取消輸入結束日期");
+        return;
+    }
+    
+    // 驗證日期格式
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(newStart) || !dateRegex.test(newEnd)) {
+        alert("❌ 日期格式錯誤！\n請使用 YYYY-MM-DD 格式\n例如：2025-03-15");
+        return;
+    }
+    
+    // 驗證日期邏輯
+    if (new Date(newEnd) < new Date(newStart)) {
+        alert("❌ 結束日期不能早於開始日期！");
+        return;
+    }
+    
+    console.log("新開始日期:", newStart);
+    console.log("新結束日期:", newEnd);
+    
+    try {
+        console.log("📤 發送 API 請求...");
+        const response = await fetch(`${API_URL}/api/trips/${tripId}/dates`, {
+            method: 'PUT', 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                startDate: newStart, 
+                endDate: newEnd 
+            })
+        });
+        
+        console.log("📥 API 回應狀態:", response.status);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("API 錯誤:", errorText);
+            alert(`❌ 更新失敗 (${response.status})\n${errorText}`);
+            return;
+        }
+        
+        const result = await response.json();
+        console.log("✅ API 回應成功:", result);
+        
+        if (result.trip) {
+            currentTripData = result.trip;
+            alert(`✅ 日期已成功更新！\n\n新日期：${newStart} ~ ${newEnd}\n總天數：${currentTripData.days.length} 天`);
+            renderItinerary();
+            renderMarkers();
+        } else {
+            alert("⚠️ 更新成功但資料格式異常，請重新整理頁面");
+        }
+        
+    } catch (err) {
+        console.error("❌ 修改日期失敗:", err);
+        alert(`❌ 網路錯誤\n${err.message}\n\n請檢查網路連線或聯繫管理員`);
     }
 }
 
 async function deleteTrip() {
-    if (!confirm("確定刪除整個行程？")) return;
-    const response = await fetch(`${API_URL}/api/trips/${tripId}`, { method: 'DELETE' });
-    if (response.ok) location.href = 'index.html';
+    if (!confirm(`⚠️ 確定刪除整個行程「${currentTripData.title}」嗎？\n\n此操作無法復原！`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_URL}/api/trips/${tripId}`, { 
+            method: 'DELETE' 
+        });
+        
+        if (response.ok) {
+            alert("✅ 行程已刪除");
+            location.href = 'index.html';
+        } else {
+            alert("❌ 刪除失敗");
+        }
+    } catch (e) {
+        console.error("刪除行程錯誤:", e);
+        alert("❌ 網路錯誤");
+    }
 }
