@@ -144,7 +144,7 @@ body {
 
 .menu-header {
     padding: 30px 20px;
-    background: linear-gradient(135deg, var(--bg-color), #ffffff);
+    background: var(--bg-color);
     border-bottom: 1px solid #e0ddd7;
     display: flex;
     flex-direction: column;
