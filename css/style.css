@@ -38,14 +38,38 @@ body {
 
 /* --- 側邊選單 Sidebar 美化 (修正黑點問題) --- */
 .side-menu {
-    position: fixed; top: 0; left: -100%;
-    width: 80%; max-width: 300px; height: 100%;
-    background: white; z-index: 2000;
+    position: fixed;
+    top: 0;
+    left: -100%;
+    width: 80vw; /* 寬度佔螢幕 80% */
+    max-width: 300px;
+    height: 100vh;
+    background: white;
+    z-index: 2000; /* 高於 Header */
     transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    padding: 50px 25px;
-    box-shadow: 20px 0 50px rgba(0,0,0,0.1);
+    padding: 60px 25px; /* 增加頂部 Padding */
+    display: flex;
+    flex-direction: column;
 }
-.side-menu.active { left: 0; }
+
+.side-menu.active {
+    left: 0;
+}
+
+/* 移除選單列表的預設黑點 */
+.menu-list {
+    list-style: none;
+    padding: 0;
+    margin: 20px 0;
+}
+
+.menu-list li {
+    padding: 18px 0;
+    border-bottom: 1px solid #f5f2ed;
+    display: flex;
+    align-items: center;
+    gap: 15px; /* 圖示與文字間距 */
+}
 
 .menu-header { margin-bottom: 30px; text-align: center; }
 .user-profile-side img {
@@ -54,15 +78,6 @@ body {
     border: 3px solid var(--clay);
 }
 
-.menu-list { 
-    list-style: none; /* 移除黑點 */
-    padding: 0; margin: 0; 
-}
-.menu-list li {
-    padding: 15px 0; font-size: 1.1rem;
-    border-bottom: 1px solid #f5f2ed;
-    display: flex; align-items: center; gap: 15px;
-}
 
 /* --- 首頁板塊優化 (修正歪斜問題) --- */
 .board {
@@ -111,6 +126,9 @@ input, select {
 /* --- 修正後的行程詳情佈局 --- */
 
 /* 1. 確保整體頁面不產生多餘捲軸 */
+/* --- 修正後的行程詳情全方位佈局 --- */
+
+/* 確保詳情頁 body 不產生全頁滾動 */
 body.details-page {
     height: 100vh;
     overflow: hidden;
@@ -118,15 +136,14 @@ body.details-page {
     flex-direction: column;
 }
 
-/* 2. 佈局容器高度計算 */
 .trip-layout {
     display: flex;
-    /* 扣除 Header(60px) + 跑馬燈(32px) = 92px */
-    height: calc(100vh - 92px); 
     width: 100%;
+    /* 扣除 Header (60px) + 跑馬燈 (32px) = 92px */
+    height: calc(100vh - 92px);
 }
 
-/* 3. 電腦版 (> 768px) */
+/* 電腦版：左右分欄 */
 @media (min-width: 769px) {
     .trip-layout {
         flex-direction: row;
@@ -134,10 +151,8 @@ body.details-page {
     .itinerary-sidebar {
         width: 400px;
         min-width: 400px;
-        height: 100%;
-        overflow-y: auto;
-        background: #fdfcf9;
         border-right: 1px solid #e0ddd7;
+        overflow-y: auto;
     }
     .map-view {
         flex: 1;
@@ -145,30 +160,35 @@ body.details-page {
     }
 }
 
-/* 4. 手機版 (<= 768px) */
+/* 手機版：改為上下排列，地圖在上，行程在下 */
 @media (max-width: 768px) {
     .trip-layout {
-        flex-direction: column; /* 改為上下排 */
-    }
-    .itinerary-sidebar {
-        width: 100%;
-        height: 40%; /* 清單佔 40% */
-        overflow-y: auto;
-        border-bottom: 1px solid #e0ddd7;
+        flex-direction: column; /* 強制垂直堆疊 */
     }
     .map-view {
         width: 100%;
-        height: 60%; /* 強制地圖佔 60%，防止消失 */
-        flex: none; /* 關閉彈性縮放，固定比例 */
+        height: 40%; /* 地圖佔畫面上方 40% */
+        flex: none;
+    }
+    .itinerary-sidebar {
+        width: 100%;
+        height: 60%; /* 行程列表佔下方 60% */
+        overflow-y: auto;
+        border-top: 1px solid #e0ddd7;
+    }
+    
+    /* 手機版標題縮小避免擠壓按鈕 */
+    .brand-center {
+        font-size: 1.1rem;
+        max-width: 50%;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 }
 
-/* 5. 地圖實體：必須強制 100% */
 #map {
     width: 100% !important;
     height: 100% !important;
-    min-height: 200px; /* 保底高度 */
-    display: block;
 }
 
 /* 6. 搜尋框背景修正 */
