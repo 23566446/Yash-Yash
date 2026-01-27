@@ -14,7 +14,7 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-const MONGO_URI = process.env.MONGO_URI;
+const MONGO_URI =  process.env.MONGO_URI;
 
 mongoose.connect(MONGO_URI).then(() => console.log("✅ 成功連上 MongoDB!"));
 
@@ -144,6 +144,31 @@ app.put('/api/users/update', async (req, res) => {
     } catch (error) { res.status(500).json({ message: "更新失敗" }); }
 });
 
+// [公開] 依帳號批次取得使用者公開資料（暱稱/頭像）
+// GET /api/users/by-accounts?accounts=a,b,c
+app.get('/api/users/by-accounts', async (req, res) => {
+    try {
+        const raw = (req.query.accounts || "").toString();
+        const accounts = raw.split(',').map(s => s.trim()).filter(Boolean);
+        if (accounts.length === 0) return res.json([]);
+
+        const users = await User.find(
+            { account: { $in: accounts } },
+            { account: 1, nickname: 1, avatar: 1, _id: 0 }
+        );
+        const map = new Map(users.map(u => [u.account, u]));
+
+        // 依照輸入順序回傳，缺資料的用 fallback
+        res.json(accounts.map(acc => {
+            const u = map.get(acc);
+            if (!u) return { account: acc, nickname: acc, avatar: "" };
+            return { account: u.account, nickname: u.nickname || u.account, avatar: u.avatar || "" };
+        }));
+    } catch (e) {
+        res.status(500).json({ message: "讀取使用者資料失敗" });
+    }
+});
+
 // [管理員 API：獲取使用者、金鑰、重設密碼、刪除]
 app.get('/api/admin/users', async (req, res) => { res.json(await User.find({}, '-password')); });
 app.get('/api/admin/licenses', async (req, res) => { res.json(await License.find().sort({ createdAt: -1 })); });
@@ -224,6 +249,14 @@ app.post('/api/proposals/vote', async (req, res) => {
     }
 });
 
+// 判斷行程是否已過期（結束日 < 今天）
+function isTripExpired(trip) {
+    if (!trip || !trip.endDate) return false;
+    const today = new Date().toISOString().split('T')[0];
+    const end = typeof trip.endDate === 'string' ? trip.endDate.split('T')[0] : trip.endDate;
+    return end < today;
+}
+
 app.post('/api/trips/confirm', async (req, res) => {
     try {
         const { proposalId, action, title } = req.body;
@@ -231,7 +264,8 @@ app.post('/api/trips/confirm', async (req, res) => {
         if (!prop) return res.status(404).json({ message: "找不到提案" });
 
         if (action === 'confirm') {
-            const exist = await Trip.findOne({ title });
+            const today = new Date().toISOString().split('T')[0];
+            const exist = await Trip.findOne({ title, endDate: { $gte: today } });
             if (exist) return res.status(400).json({ message: `名稱「${title}」已被使用，請換一個名字。` });
 
             const start = new Date(prop.start);
@@ -263,17 +297,25 @@ app.get('/api/my-trips/:account', async (req, res) => {
 app.get('/api/trips/:id', async (req, res) => res.json(await Trip.findById(req.params.id)));
 
 app.post('/api/trips/:id/location', async (req, res) => {
-    const t = await Trip.findById(req.params.id); 
-    t.days[req.body.dayIndex].locations.push(req.body.location);
-    await t.save(); 
-    res.json(t);
+    try {
+        const t = await Trip.findById(req.params.id);
+        if (!t) return res.status(404).json({ message: "找不到該行程" });
+        if (isTripExpired(t)) return res.status(403).json({ message: "此行程已結束，僅供檢視，無法修改。" });
+        t.days[req.body.dayIndex].locations.push(req.body.location);
+        await t.save();
+        res.json(t);
+    } catch (e) { res.status(500).json({ message: "新增地點失敗" }); }
 });
 
 app.post('/api/trips/:id/location/delete', async (req, res) => {
-    const t = await Trip.findById(req.params.id); 
-    t.days[req.body.dayIndex].locations.splice(req.body.locationIndex, 1);
-    await t.save(); 
-    res.json(t);
+    try {
+        const t = await Trip.findById(req.params.id);
+        if (!t) return res.status(404).json({ message: "找不到該行程" });
+        if (isTripExpired(t)) return res.status(403).json({ message: "此行程已結束，僅供檢視，無法修改。" });
+        t.days[req.body.dayIndex].locations.splice(req.body.locationIndex, 1);
+        await t.save();
+        res.json(t);
+    } catch (e) { res.status(500).json({ message: "刪除地點失敗" }); }
 });
 
 // ========== 【新增】修改行程日期 API ==========
@@ -290,10 +332,9 @@ app.put('/api/trips/:id/dates', async (req, res) => {
         }
         
         const trip = await Trip.findById(req.params.id);
-        if (!trip) {
-            return res.status(404).json({ message: "找不到該行程" });
-        }
-        
+        if (!trip) return res.status(404).json({ message: "找不到該行程" });
+        if (isTripExpired(trip)) return res.status(403).json({ message: "此行程已結束，僅供檢視，無法修改。" });
+
         // 計算新的天數
         const start = new Date(startDate);
         const end = new Date(endDate);
@@ -334,9 +375,14 @@ app.put('/api/trips/:id/dates', async (req, res) => {
     }
 });
 
-app.delete('/api/trips/:id', async (req, res) => { 
-    await Trip.findByIdAndDelete(req.params.id); 
-    res.json({ message: "OK" }); 
+app.delete('/api/trips/:id', async (req, res) => {
+    try {
+        const trip = await Trip.findById(req.params.id);
+        if (!trip) return res.status(404).json({ message: "找不到該行程" });
+        if (isTripExpired(trip)) return res.status(403).json({ message: "此行程已結束，僅供檢視，無法修改或刪除。" });
+        await Trip.findByIdAndDelete(req.params.id);
+        res.json({ message: "OK" });
+    } catch (e) { res.status(500).json({ message: "刪除失敗" }); }
 });
 
 app.get('/api/notifications/:nickname', async (req, res) => {
@@ -355,17 +401,12 @@ app.post('/api/trips/:id/chat', async (req, res) => {
     try {
         const { sender, text, avatar } = req.body;
         const trip = await Trip.findById(req.params.id);
-        
-        const newMessage = {
-            sender,
-            text,
-            avatar,
-            time: new Date()
-        };
-        
+        if (!trip) return res.status(404).json({ message: "找不到該行程" });
+        if (isTripExpired(trip)) return res.status(403).json({ message: "此行程已結束，僅供檢視，無法發送訊息。" });
+
+        const newMessage = { sender, text, avatar, time: new Date() };
         trip.chatMessages.push(newMessage);
         await trip.save();
-        
         res.status(201).json(newMessage);
     } catch (e) { res.status(500).send("傳送失敗"); }
 });
@@ -380,18 +421,24 @@ app.get('/api/trips/:id/expenses', async (req, res) => {
 
 app.post('/api/trips/:id/expenses', async (req, res) => {
     try {
-        const newExpense = new Expense({
-            tripId: req.params.id,
-            ...req.body
-        });
+        const trip = await Trip.findById(req.params.id);
+        if (!trip) return res.status(404).json({ message: "找不到該行程" });
+        if (isTripExpired(trip)) return res.status(403).json({ message: "此行程已結束，僅供檢視，無法新增支出。" });
+        const newExpense = new Expense({ tripId: req.params.id, ...req.body });
         await newExpense.save();
         res.status(201).json(newExpense);
     } catch (e) { res.status(500).send("儲存失敗"); }
 });
 
 app.delete('/api/expenses/:id', async (req, res) => {
-    await Expense.findByIdAndDelete(req.params.id);
-    res.json({ message: "已刪除" });
+    try {
+        const exp = await Expense.findById(req.params.id);
+        if (!exp) return res.status(404).json({ message: "找不到該支出" });
+        const trip = await Trip.findById(exp.tripId);
+        if (trip && isTripExpired(trip)) return res.status(403).json({ message: "此行程已結束，僅供檢視，無法刪除支出。" });
+        await Expense.findByIdAndDelete(req.params.id);
+        res.json({ message: "已刪除" });
+    } catch (e) { res.status(500).json({ message: "刪除失敗" }); }
 });
 
 // [相簿 API]
@@ -404,10 +451,10 @@ app.get('/api/trips/:id/photos', async (req, res) => {
 
 app.post('/api/trips/:id/photos', async (req, res) => {
     try {
-        const newPhoto = new Photo({
-            tripId: req.params.id,
-            ...req.body
-        });
+        const trip = await Trip.findById(req.params.id);
+        if (!trip) return res.status(404).json({ message: "找不到該行程" });
+        if (isTripExpired(trip)) return res.status(403).json({ message: "此行程已結束，僅供檢視，無法上傳照片。" });
+        const newPhoto = new Photo({ tripId: req.params.id, ...req.body });
         await newPhoto.save();
         res.status(201).json(newPhoto);
     } catch (e) { res.status(500).send("儲存失敗"); }
@@ -415,12 +462,14 @@ app.post('/api/trips/:id/photos', async (req, res) => {
 
 app.put('/api/photos/reorder', async (req, res) => {
     try {
-        const { photoOrders } = req.body; 
-        for (let item of photoOrders) {
-            await Photo.findByIdAndUpdate(item.id, { 
-                order: item.order,
-                dayIndex: item.dayIndex 
-            });
+        const { photoOrders } = req.body;
+        if (!photoOrders || photoOrders.length === 0) return res.json({ message: "排序與分類已更新" });
+        const first = await Photo.findById(photoOrders[0].id);
+        if (!first) return res.status(404).json({ message: "找不到照片" });
+        const trip = await Trip.findById(first.tripId);
+        if (trip && isTripExpired(trip)) return res.status(403).json({ message: "此行程已結束，僅供檢視，無法調整排序。" });
+        for (const item of photoOrders) {
+            await Photo.findByIdAndUpdate(item.id, { order: item.order, dayIndex: item.dayIndex });
         }
         res.json({ message: "排序與分類已更新" });
     } catch (e) { res.status(500).send("更新失敗"); }
@@ -440,5 +489,3 @@ app.put('/api/settings/marquee', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 YashYash 伺服器運作中: ${PORT}`));
-
-
