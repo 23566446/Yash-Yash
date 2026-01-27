@@ -227,12 +227,18 @@ async function loadMyTrips() {
         const res = await fetch(`${API_URL}/api/my-trips/${currentUser.account}`);
         const trips = await res.json();
         
-        if (trips.length === 0) {
+        // 取得今天的日期（格式：YYYY-MM-DD）
+        const today = new Date().toISOString().split('T')[0];
+        
+        // 過濾出尚未結束的行程（結束日期 >= 今天）
+        const upcomingTrips = trips.filter(t => t.endDate >= today);
+        
+        if (upcomingTrips.length === 0) {
             tripList.innerHTML = '<p class="empty-text">尚無確定的行程。</p>';
             return;
         }
         
-        tripList.innerHTML = trips.map(t => {
+        tripList.innerHTML = upcomingTrips.map(t => {
             const dayCount = Math.ceil((new Date(t.endDate) - new Date(t.startDate)) / (1000 * 60 * 60 * 24)) + 1;
             const daysLeft = Math.ceil((new Date(t.startDate) - new Date()) / (1000 * 60 * 60 * 24));
             
@@ -325,3 +331,5 @@ function formatDate(dateString) {
     
     return `${year}/${month}/${day} (${weekday})`;
 }
+
+
