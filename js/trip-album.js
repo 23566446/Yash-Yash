@@ -12,20 +12,18 @@ let tripData = null;
 let allPhotos = [];
 let sortables = [];
 let currentUploadDay = 0;
+let tripExpired = false;
 
-// --- 1. 初始化頁面 ---
 window.onload = async () => {
-    // 修正點：綁定返回按鈕事件
     const backBtn = document.getElementById('back-to-details');
-    if (backBtn) {
-        backBtn.onclick = () => {
-            window.location.href = `trip-details.html?id=${tripId}`;
-        };
-    }
+    if (backBtn) backBtn.onclick = () => { window.location.href = `trip-details.html?id=${tripId}`; };
 
     try {
         const tripRes = await fetch(`${API_URL}/api/trips/${tripId}`);
         tripData = await tripRes.json();
+        const today = new Date().toISOString().split('T')[0];
+        const end = (tripData.endDate || '').split('T')[0];
+        tripExpired = !!end && end < today;
         await loadPhotos();
     } catch (err) {
         console.error("初始化失敗", err);
@@ -69,7 +67,7 @@ function renderAlbum() {
                     <span class="day-title" style="font-weight:bold; font-size:1.2rem;">Day ${i + 1}</span>
                     <span class="day-date" style="margin-left:10px; color:#888;">${dateStr}</span>
                 </div>
-                <button class="btn-upload-day" onclick="openUpload(${i})" style="background:var(--accent-color); color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">＋ 上傳</button>
+                ${tripExpired ? '' : `<button class="btn-upload-day" onclick="openUpload(${i})" style="background:var(--accent-color); color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">＋ 上傳</button>`}
             </div>
             <div class="photo-grid" id="grid-day-${i}" data-day="${i}" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:5px; padding:10px; min-height:50px;">
                 ${dayPhotos.map(p => `
@@ -81,25 +79,27 @@ function renderAlbum() {
         `;
         wrapper.appendChild(daySection);
 
-        // 初始化拖拽
-        const el = document.getElementById(`grid-day-${i}`);
-        sortables.push(new Sortable(el, {
-            group: 'shared-album',
-            animation: 150,
-            onEnd: async (evt) => {
-                const targetDayIdx = parseInt(evt.to.getAttribute('data-day'));
-                await handleReorder(targetDayIdx, evt.to);
-                if (evt.from !== evt.to) {
-                    const fromDayIdx = parseInt(evt.from.getAttribute('data-day'));
-                    await handleReorder(fromDayIdx, evt.from);
+        if (!tripExpired) {
+            const el = document.getElementById(`grid-day-${i}`);
+            sortables.push(new Sortable(el, {
+                group: 'shared-album',
+                animation: 150,
+                onEnd: async (evt) => {
+                    const targetDayIdx = parseInt(evt.to.getAttribute('data-day'));
+                    await handleReorder(targetDayIdx, evt.to);
+                    if (evt.from !== evt.to) {
+                        const fromDayIdx = parseInt(evt.from.getAttribute('data-day'));
+                        await handleReorder(fromDayIdx, evt.from);
+                    }
                 }
-            }
-        }));
+            }));
+        }
     }
 }
 
 // --- 4. 上傳邏輯 (批量上傳) ---
 function openUpload(dayIdx) {
+    if (tripExpired) return;
     currentUploadDay = dayIdx;
     document.getElementById('photo-input').click();
 }
@@ -153,16 +153,13 @@ function viewPhoto(id, src, uploader) {
 
     if (!lb || !lbImg) return;
 
-    lbImg.src = src; // 填入圖片
+    lbImg.src = src;
     lbText.innerText = `由 ${uploader} 分享`;
-    
-    // 顯示 Lightbox (移除 hidden)
     lb.classList.remove('hidden');
 
-    // 權限檢查
     const isAdmin = (currentUser.account === 'admin');
     const isOwner = (uploader === currentUser.nickname);
-    delBtn.style.display = (isAdmin || isOwner) ? 'block' : 'none';
+    delBtn.style.display = (!tripExpired && (isAdmin || isOwner)) ? 'block' : 'none';
     
     delBtn.onclick = (e) => {
         e.stopPropagation();

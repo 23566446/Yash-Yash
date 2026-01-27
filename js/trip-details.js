@@ -5,7 +5,8 @@ const tripId = urlParams.get('id');
 let map, searchBox, markers = [];
 let currentTripData = null;
 let activeDayIndex = 0; 
-let sortables = []; 
+let sortables = [];
+let tripExpired = false; 
 
 // 地圖輔助變數
 let tempMarker = null;
@@ -13,6 +14,8 @@ let infoWindow = new google.maps.InfoWindow();
 let geocoder = new google.maps.Geocoder();
 let placesService;
 let polyline = null; 
+
+let participantsPopoverBound = false;
 
 // === 初始化載入 ===
 window.onload = async () => {
@@ -37,23 +40,151 @@ async function fetchTripDetails() {
         
         currentTripData = await response.json();
         console.log("✅ 行程資料載入成功:", currentTripData);
-        
-        document.getElementById('trip-title').innerText = currentTripData.title;
-        
-        // 權限判斷
+
+        const today = new Date().toISOString().split('T')[0];
+        const end = (currentTripData.endDate || '').split('T')[0];
+        tripExpired = !!end && end < today;
+
+        const titleTextEl = document.getElementById('trip-title-text');
+        if (titleTextEl) titleTextEl.innerText = currentTripData.title;
+        else document.getElementById('trip-title').innerText = currentTripData.title;
+
+        await renderTripParticipants(currentTripData.participants || []);
+
         const user = JSON.parse(localStorage.getItem('yashyash_user'));
         const isOwner = currentTripData.creator === user.nickname;
         const isAdmin = user.account === 'admin';
+        const canEdit = (isOwner || isAdmin) && !tripExpired;
 
-        if (isOwner || isAdmin) {
+        if (canEdit) {
             document.getElementById('edit-date-btn').classList.remove('hidden');
             document.getElementById('delete-trip-btn').classList.remove('hidden');
         }
+        const searchBoxEl = document.querySelector('.search-box-container');
+        if (searchBoxEl) searchBoxEl.style.display = tripExpired ? 'none' : '';
 
         renderItinerary();
     } catch (err) {
         console.error("❌ 載入詳情失敗:", err);
         alert("載入行程失敗，請重新整理頁面");
+    }
+}
+
+async function fetchUsersByAccounts(accounts) {
+    const unique = Array.from(new Set((accounts || []).filter(Boolean)));
+    if (unique.length === 0) return [];
+    const qs = encodeURIComponent(unique.join(','));
+    const res = await fetch(`${API_URL}/api/users/by-accounts?accounts=${qs}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+}
+
+function getParticipantDisplayName(p) {
+    if (!p) return "未知";
+    const nick = (p.nickname || "").trim();
+    const acc = (p.account || "").trim();
+    if (nick && acc && nick !== acc) return `${nick} (${acc})`;
+    return nick || acc || "未知";
+}
+
+function getParticipantInitial(p) {
+    const name = getParticipantDisplayName(p).trim();
+    return name ? name[0].toUpperCase() : "?";
+}
+
+function createParticipantAvatarEl(p) {
+    const wrap = document.createElement('div');
+    wrap.className = 'trip-participant-avatar';
+    wrap.title = getParticipantDisplayName(p);
+
+    const avatar = (p?.avatar || "").trim();
+    if (avatar) {
+        const img = document.createElement('img');
+        img.src = avatar;
+        img.alt = getParticipantDisplayName(p);
+        img.addEventListener('error', () => {
+            img.remove();
+            wrap.textContent = getParticipantInitial(p);
+        });
+        wrap.appendChild(img);
+    } else {
+        wrap.textContent = getParticipantInitial(p);
+    }
+    return wrap;
+}
+
+function bindParticipantsPopoverGlobalClose() {
+    if (participantsPopoverBound) return;
+    participantsPopoverBound = true;
+
+    document.addEventListener('click', () => {
+        const pop = document.getElementById('trip-participant-popover');
+        if (pop) pop.classList.add('hidden');
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        const pop = document.getElementById('trip-participant-popover');
+        if (pop) pop.classList.add('hidden');
+    });
+}
+
+async function renderTripParticipants(accounts) {
+    const container = document.getElementById('trip-participants');
+    if (!container) return;
+
+    container.innerHTML = '';
+    if (!Array.isArray(accounts) || accounts.length === 0) return;
+
+    bindParticipantsPopoverGlobalClose();
+
+    let profiles = [];
+    try {
+        profiles = await fetchUsersByAccounts(accounts);
+    } catch (e) {
+        console.warn("載入參與者頭像失敗，改用 fallback:", e);
+        profiles = accounts.map(a => ({ account: a, nickname: a, avatar: "" }));
+    }
+
+    const visible = profiles.slice(0, 3);
+    const hidden = profiles.slice(3);
+
+    visible.forEach(p => {
+        container.appendChild(createParticipantAvatarEl(p));
+    });
+
+    if (hidden.length > 0) {
+        const moreBtn = document.createElement('button');
+        moreBtn.type = 'button';
+        moreBtn.className = 'trip-participant-more';
+        moreBtn.textContent = `+${hidden.length}`;
+        moreBtn.title = hidden.map(getParticipantDisplayName).join('\n');
+        moreBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const pop = document.getElementById('trip-participant-popover');
+            if (pop) pop.classList.toggle('hidden');
+        });
+
+        const popover = document.createElement('div');
+        popover.id = 'trip-participant-popover';
+        popover.className = 'trip-participant-popover hidden';
+        popover.addEventListener('click', (e) => e.stopPropagation());
+
+        hidden.forEach(p => {
+            const row = document.createElement('div');
+            row.className = 'trip-participant-row';
+            row.appendChild(createParticipantAvatarEl(p));
+
+            const name = document.createElement('div');
+            name.className = 'trip-participant-name';
+            name.textContent = getParticipantDisplayName(p);
+
+            row.appendChild(name);
+            popover.appendChild(row);
+        });
+
+        container.appendChild(moreBtn);
+        container.appendChild(popover);
     }
 }
 
@@ -64,6 +195,7 @@ function renderItinerary() {
     sortables.forEach(s => s.destroy ? s.destroy() : null);
     sortables = [];
 
+    const readOnly = tripExpired;
     container.innerHTML = currentTripData.days.map((day, index) => {
         const isActive = activeDayIndex === index;
         return `
@@ -79,15 +211,15 @@ function renderItinerary() {
                                 <div class="location-item" 
                                      onclick="focusLocation(${loc.lat}, ${loc.lng})"
                                      style="background:#fff; border:1px solid #eee; padding:10px; margin:5px 0; display:flex; align-items:center; border-radius:5px; cursor:pointer;">
-                                    <span class="drag-handle" style="margin-right:10px; cursor:grab; color:#ccc;" onclick="event.stopPropagation()">☰</span>
+                                    ${readOnly ? '' : '<span class="drag-handle" style="margin-right:10px; cursor:grab; color:#ccc;" onclick="event.stopPropagation()">☰</span>'}
                                     <div style="flex:1; overflow:hidden;">
                                         <div style="font-size:0.9rem; font-weight:bold; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">${loc.name}</div>
                                     </div>
                                     <div style="display:flex; gap:5px;">
                                         <button onclick="event.stopPropagation(); startNavigation(${loc.lat}, ${loc.lng})" 
                                                 style="padding:4px 8px; background:#f5f2ed; border:1px solid #d2b48c; border-radius:4px; cursor:pointer;">🚗</button>
-                                        <button onclick="event.stopPropagation(); deleteLocation(${index}, ${locIdx})" 
-                                                style="padding:4px 8px; background:none; border:none; color:#ccc; cursor:pointer;">×</button>
+                                        ${readOnly ? '' : `<button onclick="event.stopPropagation(); deleteLocation(${index}, ${locIdx})" 
+                                                style="padding:4px 8px; background:none; border:none; color:#ccc; cursor:pointer;">×</button>`}
                                     </div>
                                 </div>
                             `).join('')
@@ -98,7 +230,7 @@ function renderItinerary() {
         `;
     }).join('');
 
-    if (typeof Sortable !== 'undefined') {
+    if (typeof Sortable !== 'undefined' && !readOnly) {
         currentTripData.days.forEach((_, index) => {
             const el = document.getElementById(`list-${index}`);
             if (el) {
@@ -130,18 +262,19 @@ function initMap() {
     searchBox = new google.maps.places.SearchBox(input);
 
     searchBox.addListener("places_changed", () => {
+        if (tripExpired) return;
         const places = searchBox.getPlaces();
         if (places.length == 0) return;
         const place = places[0];
         if (!place.geometry) return;
-
         showPreview(place.geometry.location, place.name, place.formatted_address || "");
         map.panTo(place.geometry.location);
         map.setZoom(17);
-        input.value = ""; 
+        input.value = "";
     });
 
     map.addListener("click", (e) => {
+        if (tripExpired) return;
         if (e.placeId) {
             e.stop();
             placesService.getDetails({ placeId: e.placeId }, (place, status) => {

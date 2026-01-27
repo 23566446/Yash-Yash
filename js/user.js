@@ -3,6 +3,7 @@ const userData = localStorage.getItem('yashyash_user');
 if (!userData) { window.location.href = 'login.html'; }
 let currentUser = JSON.parse(userData);
 let currentAvatarBase64 = currentUser.avatar || "";
+let isUploadingAvatar = false;
 
 window.onload = () => { initPage(); };
 
@@ -49,12 +50,12 @@ async function loadAllUsers(isSuperAdmin) {
                 <div class="user-item-row" style="padding: 15px; background: #fff; margin-bottom: 10px; border-radius: 12px; border: 1px solid #eee;">
                     <div class="user-info-text">
                         <strong style="font-size: 1.1rem;">${u.nickname}</strong>
-                        <span style="color: #888; font-size: 0.85rem;">帳號: ${u.account}</span>
+                        <span style="color: #888; font-size: 0.85rem;">帳號: ${u.account} (${u.role})</span>
                     </div>
                     <div class="user-actions" style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap;">
                         <button onclick="adminResetPassword('${u._id}', '${u.nickname}')" class="btn-small">改密碼</button>
                         ${isSuperAdmin ? `
-                            <button onclick="changeRole('${u._id}', '${u.role === 'manager' ? 'user' : 'manager'}')" class="btn-small">設權限</button>
+                            <button onclick="changeRole('${u._id}', '${u.role === 'manager' ? 'user' : 'manager'}')" class="btn-small">${u.role === 'manager' ? '設為一般使用者' : '設為管理員'}</button>
                             <button onclick="deleteUser('${u._id}')" class="btn-small" style="color:red; border-color:red;">刪除</button>
                         ` : ''}
                     </div>
@@ -176,10 +177,61 @@ async function updateMarquee() {
 function previewAvatar(event) {
     const file = event.target.files[0];
     if (file) {
-        if (file.size > 512 * 1024) return alert("圖片太大了！請上傳小於 500KB 的圖片。");
+        if (file.size > 5 * 1024 * 1024) return alert("圖片太大了！請上傳小於 5MB 的圖片。");
         const reader = new FileReader();
-        reader.onload = (e) => { document.getElementById('avatar-preview').src = e.target.result; currentAvatarBase64 = e.target.result; };
+        reader.onload = (e) => {
+            const base64 = e.target.result;
+            document.getElementById('avatar-preview').src = base64;
+            currentAvatarBase64 = base64;
+            // 圖片選取成功後，直接自動更新到資料庫（不需再按「更新資料」）
+            updateAvatarOnly(base64);
+        };
         reader.readAsDataURL(file);
+    }
+}
+
+async function updateAvatarOnly(avatarBase64) {
+    if (isUploadingAvatar) return;
+    isUploadingAvatar = true;
+
+    // 以目前輸入框為準，避免把使用者剛改的暱稱/性別覆蓋掉
+    const nicknameInput = document.getElementById('edit-nick');
+    const genderInput = document.getElementById('edit-gen');
+    const nickname = (nicknameInput?.value || currentUser.nickname || "").trim();
+    const gender = genderInput?.value || currentUser.gender || 'male';
+
+    if (!nickname) {
+        isUploadingAvatar = false;
+        return alert("暱稱不能為空（請先填寫暱稱再上傳頭像）");
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/api/users/update`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: currentUser._id,
+                nickname,
+                gender,
+                avatar: avatarBase64
+            })
+        });
+
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(result?.message || "頭像更新失敗");
+        }
+
+        // 同步本機登入資訊，讓聊天室等頁面立即吃到新頭像
+        if (result.user) {
+            currentUser = result.user;
+            currentAvatarBase64 = result.user.avatar || avatarBase64;
+            localStorage.setItem('yashyash_user', JSON.stringify(result.user));
+        }
+    } catch (err) {
+        alert(err?.message || "連線失敗");
+    } finally {
+        isUploadingAvatar = false;
     }
 }
 
