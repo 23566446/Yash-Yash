@@ -1,15 +1,15 @@
 const CACHE_NAME = 'yashyash-v1';
 const ASSETS = [
-    '/',
-    '/index.html',
-    '/login.html',
-    '/register.html',
-    '/css/style.css',
-    '/css/style-login.css',
-    '/js/main.js',
-    '/js/auth.js',
-    '/manifest.json',
-    '/calendar.png'
+    './',
+    './index.html',
+    './login.html',
+    './register.html',
+    './css/style.css',
+    './css/style-login.css',
+    './js/main.js',
+    './js/auth.js',
+    './manifest.json',
+    './calendar.png'
 ];
 
 // 1. 安裝 Service Worker 並快取基本靜態資源
