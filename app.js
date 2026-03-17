@@ -158,3 +158,12 @@ window.onload = () => {
         console.log("PWA Ready");
     }
 };
+
+// ===== PWA Service Worker 註冊 =====
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('PWA Ready! Scope:', reg.scope))
+            .catch(err => console.log('PWA Error:', err));
+    });
+}
