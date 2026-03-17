@@ -1,7 +1,7 @@
 {
   "name": "YashYash Travel",
   "short_name": "YashYash",
-  "start_url": "/index.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f5f2ed",
   "theme_color": "#8a9a5b",
