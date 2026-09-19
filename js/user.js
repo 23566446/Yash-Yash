@@ -1,4 +1,4 @@
-const API_URL = 'https://yash-yash.onrender.com';
+const API_URL = window.YashYashConfig.API_URL;
 const userData = localStorage.getItem('yashyash_user');
 if (!userData) { window.location.href = 'login.html'; }
 let currentUser = JSON.parse(userData);
@@ -237,11 +237,3 @@ async function updateAvatarOnly(avatarBase64) {
 
 function logout() { localStorage.removeItem('yashyash_user'); window.location.href = 'login.html'; }
 
-// ===== PWA Service Worker 註冊 =====
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('PWA Ready! Scope:', reg.scope))
-            .catch(err => console.log('PWA Error:', err));
-    });
-}

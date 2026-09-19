@@ -1,5 +1,5 @@
 // main.js - 首頁核心功能
-const API_URL = 'https://yash-yash.onrender.com';
+const API_URL = window.YashYashConfig.API_URL;
 let currentUser = null;
 
 // ===== 初始化載入 =====
@@ -332,11 +332,3 @@ function formatDate(dateString) {
     return `${year}/${month}/${day} (${weekday})`;
 }
 
-// ===== PWA Service Worker 註冊 =====
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('PWA Ready! Scope:', reg.scope))
-            .catch(err => console.log('PWA Error:', err));
-    });
-}

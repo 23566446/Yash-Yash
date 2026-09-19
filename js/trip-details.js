@@ -1,4 +1,4 @@
-const API_URL = 'https://yash-yash.onrender.com';
+const API_URL = window.YashYashConfig.API_URL;
 const urlParams = new URLSearchParams(window.location.search);
 const tripId = urlParams.get('id');
 
@@ -623,11 +623,3 @@ async function deleteTrip() {
     }
 }
 
-// ===== PWA Service Worker 註冊 =====
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('PWA Ready! Scope:', reg.scope))
-            .catch(err => console.log('PWA Error:', err));
-    });
-}
