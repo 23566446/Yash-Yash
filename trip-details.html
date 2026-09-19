@@ -104,6 +104,11 @@
             font-size: 15px;
             margin: 0;
         }
+
+        #pac-input gmp-place-autocomplete {
+            display: block;
+            width: 100%;
+        }
         
         /* 行程列表容器 */
         #days-container {
@@ -141,7 +146,7 @@
         <!-- 行程側邊欄 -->
         <aside class="itinerary-sidebar">
             <div class="search-box-container">
-                <input id="pac-input" type="text" placeholder="🔍 搜尋地點或在地圖點擊...">
+                <div id="pac-input" aria-label="搜尋地點"></div>
             </div>
             <div id="days-container">
                 <!-- 由 JS 渲染 -->

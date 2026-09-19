@@ -2,7 +2,7 @@ const API_URL = window.YashYashConfig.API_URL;
 const urlParams = new URLSearchParams(window.location.search);
 const tripId = urlParams.get('id');
 
-let map, searchBox, markers = [];
+let map, markers = [];
 let currentTripData = null;
 let activeDayIndex = 0; 
 let sortables = [];
@@ -12,7 +12,7 @@ let tripExpired = false;
 let tempMarker = null;
 let infoWindow = new google.maps.InfoWindow();
 let geocoder = new google.maps.Geocoder();
-let placesService;
+let PlaceClass;
 let polyline = null; 
 
 let participantsPopoverBound = false;
@@ -28,7 +28,7 @@ window.onload = async () => {
     await fetchTripDetails(); 
     
     // 第二步：資料抓完後，才初始化地圖
-    initMap(); 
+    await initMap();
 };
 
 async function fetchTripDetails() {
@@ -245,7 +245,7 @@ function renderItinerary() {
     }
 }
 
-function initMap() {
+async function initMap() {
     const mapEl = document.getElementById("map");
     if (!mapEl) return;
 
@@ -257,33 +257,43 @@ function initMap() {
         clickableIcons: true
     });
 
-    placesService = new google.maps.places.PlacesService(map);
     const input = document.getElementById("pac-input");
-    searchBox = new google.maps.places.SearchBox(input);
+    const { Place, PlaceAutocompleteElement } = await google.maps.importLibrary('places');
+    PlaceClass = Place;
+    const placeAutocomplete = new PlaceAutocompleteElement();
+    placeAutocomplete.placeholder = '🔍 搜尋地點或在地圖點擊...';
+    input.replaceChildren(placeAutocomplete);
 
-    searchBox.addListener("places_changed", () => {
+    placeAutocomplete.addEventListener('gmp-select', async ({ placePrediction }) => {
         if (tripExpired) return;
-        const places = searchBox.getPlaces();
-        if (places.length == 0) return;
-        const place = places[0];
-        if (!place.geometry) return;
-        showPreview(place.geometry.location, place.name, place.formatted_address || "");
-        map.panTo(place.geometry.location);
-        map.setZoom(17);
-        input.value = "";
+        try {
+            const place = placePrediction.toPlace();
+            await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location'] });
+            if (!place.location) return;
+            const name = place.displayName?.text || place.displayName || '選定地點';
+            showPreview(place.location, name, place.formattedAddress || '');
+            map.panTo(place.location);
+            map.setZoom(17);
+        } catch (error) {
+            console.error('地點搜尋失敗:', error);
+        }
     });
 
-    map.addListener("click", (e) => {
+    map.addListener("click", async (e) => {
         if (tripExpired) return;
         if (e.placeId) {
             e.stop();
-            placesService.getDetails({ placeId: e.placeId }, (place, status) => {
-                if (status === google.maps.places.PlacesServiceStatus.OK) {
-                    showPreview(e.latLng, place.name, place.formatted_address);
-                }
-            });
+            try {
+                const place = new PlaceClass({ id: e.placeId });
+                await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location'] });
+                if (!place.location) return;
+                const name = place.displayName?.text || place.displayName || '選定地點';
+                showPreview(place.location, name, place.formattedAddress || '');
+            } catch (error) {
+                console.error('地點詳細資料讀取失敗:', error);
+            }
         } else {
-            findNearbyPlace(e.latLng);
+            findPlaceAddress(e.latLng);
         }
     });
 
@@ -296,18 +306,11 @@ function initMap() {
     });
 }
 
-function findNearbyPlace(latLng) {
-    const request = { location: latLng, radius: '20', rankBy: google.maps.places.RankBy.PROMINENCE };
-    placesService.nearbySearch(request, (results, status) => {
-        if (status === google.maps.places.PlacesServiceStatus.OK && results.length > 0) {
-            showPreview(latLng, results[0].name, results[0].vicinity || "選定地點");
-        } else {
-            geocoder.geocode({ location: latLng }, (results, status) => {
-                if (status === "OK" && results[0]) {
-                    const simplifiedName = results[0].address_components[0].long_name;
-                    showPreview(latLng, simplifiedName, results[0].formatted_address);
-                }
-            });
+function findPlaceAddress(latLng) {
+    geocoder.geocode({ location: latLng }, (results, status) => {
+        if (status === "OK" && results[0]) {
+            const simplifiedName = results[0].address_components[0].long_name;
+            showPreview(latLng, simplifiedName, results[0].formatted_address);
         }
     });
 }
