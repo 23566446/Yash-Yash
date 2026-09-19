@@ -506,7 +506,9 @@ async function handleReorder(dayIdx, oldIdx, newIdx) {
         });
         
         if(response.ok) {
-            currentTripData = await response.json();
+            const result = await response.json();
+            if (!result.trip) throw new Error('排序回應格式不正確');
+            currentTripData = result.trip;
             renderMarkers();
         }
     } catch (e) {
