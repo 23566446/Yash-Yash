@@ -34,9 +34,10 @@
         </section>
     </main>
 
+    <script src="js/config.js"></script>
+    <script src="js/pwa.js"></script>
     <script>
-        // 修正：確保 API_URL 與後端一致
-        const API_URL = 'https://yash-yash.onrender.com';
+        const API_URL = window.YashYashConfig.API_URL;
 
         window.onload = function() {
             console.log("頁面載入，開始讀取許可證...");

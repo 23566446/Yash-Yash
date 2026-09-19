@@ -87,6 +87,15 @@ const Photo = mongoose.model('Photo', PhotoSchema);
 
 // ========== API 路由 ==========
 
+// Lightweight readiness endpoint used by the login page to wake Render.
+app.get('/api/health', (req, res) => {
+    const database = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+    res.status(database === 'connected' ? 200 : 503).json({
+        status: database === 'connected' ? 'ok' : 'unavailable',
+        database
+    });
+});
+
 // [註冊]
 app.post('/api/register', async (req, res) => {
     try {
@@ -318,6 +327,31 @@ app.post('/api/trips/:id/location/delete', async (req, res) => {
     } catch (e) { res.status(500).json({ message: "刪除地點失敗" }); }
 });
 
+app.post('/api/trips/:id/location/reorder', async (req, res) => {
+    try {
+        const { dayIndex, oldIndex, newIndex } = req.body;
+        if (![dayIndex, oldIndex, newIndex].every(Number.isInteger) || dayIndex < 0 || oldIndex < 0 || newIndex < 0) {
+            return res.status(400).json({ message: "排序資料不合法" });
+        }
+
+        const trip = await Trip.findById(req.params.id);
+        if (!trip) return res.status(404).json({ message: "找不到該行程" });
+        if (isTripExpired(trip)) return res.status(403).json({ message: "此行程已結束，僅供檢視，無法調整排序。" });
+        const locations = trip.days?.[dayIndex]?.locations;
+        if (!Array.isArray(locations) || oldIndex >= locations.length || newIndex >= locations.length) {
+            return res.status(400).json({ message: "排序索引不合法" });
+        }
+
+        const [location] = locations.splice(oldIndex, 1);
+        locations.splice(newIndex, 0, location);
+        await trip.save();
+        res.json({ message: "景點排序已更新", trip });
+    } catch (error) {
+        console.error('Location reorder failed:', error);
+        res.status(500).json({ message: "更新景點排序失敗" });
+    }
+});
+
 // ========== 【新增】修改行程日期 API ==========
 app.put('/api/trips/:id/dates', async (req, res) => {
     try {
@@ -473,6 +507,20 @@ app.put('/api/photos/reorder', async (req, res) => {
         }
         res.json({ message: "排序與分類已更新" });
     } catch (e) { res.status(500).send("更新失敗"); }
+});
+
+app.delete('/api/photos/:id', async (req, res) => {
+    try {
+        const photo = await Photo.findById(req.params.id);
+        if (!photo) return res.status(404).json({ message: "找不到照片" });
+        const trip = await Trip.findById(photo.tripId);
+        if (trip && isTripExpired(trip)) return res.status(403).json({ message: "此行程已結束，僅供檢視，無法刪除照片。" });
+        await Photo.findByIdAndDelete(req.params.id);
+        res.json({ message: "照片已刪除" });
+    } catch (error) {
+        console.error('Photo delete failed:', error);
+        res.status(500).json({ message: "刪除照片失敗" });
+    }
 });
 
 // [跑馬燈 API]

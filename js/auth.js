@@ -1,4 +1,65 @@
-const API_URL = 'https://yash-yash.onrender.com';
+const API_URL = window.YashYashConfig.API_URL;
+const HEALTH_RETRY_DELAYS = [0, 3000, 6000, 10000, 15000];
+let backendReady = false;
+let readinessRequest = null;
+
+function updateServerStatus(message, showRetry = false) {
+    const status = document.getElementById('server-status');
+    const retryButton = document.getElementById('retry-server-btn');
+    if (status) status.textContent = message;
+    if (retryButton) retryButton.classList.toggle('hidden', !showRetry);
+}
+
+function wait(milliseconds) {
+    return new Promise(resolve => setTimeout(resolve, milliseconds));
+}
+
+async function wakeBackend() {
+    if (readinessRequest) return readinessRequest;
+
+    const loginButton = document.getElementById('login-btn');
+    if (loginButton) loginButton.disabled = true;
+    updateServerStatus('正在連線伺服器…');
+
+    readinessRequest = (async () => {
+        for (let attempt = 0; attempt < HEALTH_RETRY_DELAYS.length; attempt += 1) {
+            if (attempt > 0) {
+                updateServerStatus('正在啟動伺服器…');
+                await wait(HEALTH_RETRY_DELAYS[attempt]);
+            }
+
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 8000);
+            try {
+                const response = await fetch(`${API_URL}/api/health`, { signal: controller.signal });
+                if (response.ok) {
+                    backendReady = true;
+                    updateServerStatus('伺服器已連線');
+                    if (loginButton) loginButton.disabled = false;
+                    return true;
+                }
+            } catch (error) {
+                console.info('Backend is still waking up');
+            } finally {
+                clearTimeout(timeout);
+            }
+        }
+
+        updateServerStatus('暫時無法連線伺服器', true);
+        return false;
+    })();
+
+    try {
+        return await readinessRequest;
+    } finally {
+        readinessRequest = null;
+    }
+}
+
+if (document.getElementById('acc')) {
+    document.getElementById('retry-server-btn')?.addEventListener('click', wakeBackend);
+    wakeBackend();
+}
 
 // --- 註冊功能 ---
 async function register() {
@@ -43,6 +104,8 @@ async function login() {
 
     if (!account || !password) return alert("請輸入帳號密碼");
 
+    if (!backendReady && !await wakeBackend()) return;
+
     try {
         const response = await fetch(`${API_URL}/api/login`, {
             method: 'POST',
@@ -50,24 +113,16 @@ async function login() {
             body: JSON.stringify({ account, password })
         });
 
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
 
         if (response.ok) {
             localStorage.setItem('yashyash_user', JSON.stringify(data.user));
             window.location.href = 'index.html';
         } else {
-            alert(data.message);
+            alert(data.message || "登入失敗，請稍後再試");
         }
     } catch (err) {
         alert("伺服器連線失敗");
     }
 }
 
-// ===== PWA Service Worker 註冊 =====
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('PWA Ready! Scope:', reg.scope))
-            .catch(err => console.log('PWA Error:', err));
-    });
-}

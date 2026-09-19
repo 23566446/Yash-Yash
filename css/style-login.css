@@ -100,6 +100,18 @@ button {
     text-align: center;
 }
 
+.server-status {
+    min-height: 1.4em;
+    margin: 12px 0 4px;
+    color: #777;
+    font-size: 0.85rem;
+}
+
+.btn-primary:disabled {
+    cursor: wait;
+    opacity: 0.55;
+}
+
 .label-text {
     display: block;
     text-align: left;

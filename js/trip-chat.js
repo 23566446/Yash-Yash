@@ -1,4 +1,4 @@
-const API_URL = 'https://yash-yash.onrender.com';
+const API_URL = window.YashYashConfig.API_URL;
 const urlParams = new URLSearchParams(window.location.search);
 const tripId = urlParams.get('id');
 
@@ -58,7 +58,7 @@ function renderMessages(messages) {
     windowEl.innerHTML = messages.map(m => {
         const isMe = m.sender === currentUser.nickname;
         const timeStr = new Date(m.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const avatarSrc = m.avatar || 'img/default-avatar.png';
+        const avatarSrc = m.avatar || 'img/default-avatar.svg';
 
         return `
             <div class="msg ${isMe ? 'me' : 'others'}">
@@ -106,11 +106,3 @@ function scrollToBottom() {
     windowEl.scrollTop = windowEl.scrollHeight;
 }
 
-// ===== PWA Service Worker 註冊 =====
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('PWA Ready! Scope:', reg.scope))
-            .catch(err => console.log('PWA Error:', err));
-    });
-}

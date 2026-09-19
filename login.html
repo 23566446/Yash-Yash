@@ -12,9 +12,13 @@
         <h1 class="brand">耍耍</h1>
         <input type="text" id="acc" placeholder="帳號">
         <input type="password" id="pw" placeholder="密碼">
-        <button onclick="login()" class="btn-primary">進入專案</button>
+        <button id="login-btn" onclick="login()" class="btn-primary" disabled>進入專案</button>
+        <p id="server-status" class="server-status" role="status" aria-live="polite">正在連線伺服器…</p>
+        <button id="retry-server-btn" type="button" class="btn-text hidden">重新連線</button>
         <p>還沒有帳號？ <a href="register.html">前往註冊</a></p>
     </div>
+    <script src="js/config.js"></script>
+    <script src="js/pwa.js"></script>
     <script src="js/auth.js"></script>
 </body>
 </html>
