@@ -5,7 +5,6 @@ const currentUser = JSON.parse(localStorage.getItem('yashyash_user'));
 
 let tripParticipants = []; // 行程成員
 let selectedSplit = [];    // 目前選中要分攤的人
-let tripExpired = false;
 
 window.onload = async () => {
     await fetchTripInfo();
@@ -16,11 +15,6 @@ async function fetchTripInfo() {
     const res = await fetch(`${API_URL}/api/trips/${tripId}`);
     const trip = await res.json();
     tripParticipants = trip.participants;
-    const today = new Date().toISOString().split('T')[0];
-    const end = (trip.endDate || '').split('T')[0];
-    tripExpired = !!end && end < today;
-    const addBtn = document.getElementById('add-expense-btn');
-    if (addBtn) addBtn.style.display = tripExpired ? 'none' : '';
     renderSplitList();
 }
 
@@ -109,7 +103,7 @@ function renderExpenses(expenses) {
 
     list.innerHTML = expenses.map(e => `
         <div class="expense-card">
-            ${tripExpired ? '' : `<button onclick="deleteExpense('${e._id}')" class="btn-delete-exp">×</button>`}
+            <button onclick="deleteExpense('${e._id}')" class="btn-delete-exp">×</button>
             <div class="expense-header">
                 <span class="category-tag">${e.category}</span>
             </div>
@@ -161,7 +155,6 @@ function calculateBalances(expenses) {
 }
 
 async function deleteExpense(id) {
-    if (tripExpired) return;
     if (!confirm("確定刪除此筆支出？")) return;
     await fetch(`${API_URL}/api/expenses/${id}`, { method: 'DELETE' });
     fetchExpenses();

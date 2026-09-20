@@ -6,12 +6,11 @@ let map, markers = [];
 let currentTripData = null;
 let activeDayIndex = 0; 
 let sortables = [];
-let tripExpired = false; 
 
 // 地圖輔助變數
 let tempMarker = null;
-let infoWindow = new google.maps.InfoWindow();
-let geocoder = new google.maps.Geocoder();
+let infoWindow;
+let geocoder;
 let PlaceClass;
 let polyline = null; 
 
@@ -41,10 +40,6 @@ async function fetchTripDetails() {
         currentTripData = await response.json();
         console.log("✅ 行程資料載入成功:", currentTripData);
 
-        const today = new Date().toISOString().split('T')[0];
-        const end = (currentTripData.endDate || '').split('T')[0];
-        tripExpired = !!end && end < today;
-
         const titleTextEl = document.getElementById('trip-title-text');
         if (titleTextEl) titleTextEl.innerText = currentTripData.title;
         else document.getElementById('trip-title').innerText = currentTripData.title;
@@ -54,15 +49,12 @@ async function fetchTripDetails() {
         const user = JSON.parse(localStorage.getItem('yashyash_user'));
         const isOwner = currentTripData.creator === user.nickname;
         const isAdmin = user.account === 'admin';
-        const canEdit = (isOwner || isAdmin) && !tripExpired;
+        const canEdit = isOwner || isAdmin;
 
         if (canEdit) {
             document.getElementById('edit-date-btn').classList.remove('hidden');
             document.getElementById('delete-trip-btn').classList.remove('hidden');
         }
-        const searchBoxEl = document.querySelector('.search-box-container');
-        if (searchBoxEl) searchBoxEl.style.display = tripExpired ? 'none' : '';
-
         renderItinerary();
     } catch (err) {
         console.error("❌ 載入詳情失敗:", err);
@@ -195,7 +187,7 @@ function renderItinerary() {
     sortables.forEach(s => s.destroy ? s.destroy() : null);
     sortables = [];
 
-    const readOnly = tripExpired;
+    const readOnly = false;
     container.innerHTML = currentTripData.days.map((day, index) => {
         const isActive = activeDayIndex === index;
         return `
@@ -248,6 +240,10 @@ function renderItinerary() {
 async function initMap() {
     const mapEl = document.getElementById("map");
     if (!mapEl) return;
+    if (!window.google?.maps) {
+        showMapError();
+        return;
+    }
 
     map = new google.maps.Map(mapEl, {
         center: { lat: 25.0339, lng: 121.5644 },
@@ -257,15 +253,24 @@ async function initMap() {
         clickableIcons: true
     });
 
+    infoWindow = new google.maps.InfoWindow();
+    geocoder = new google.maps.Geocoder();
+
     const input = document.getElementById("pac-input");
-    const { Place, PlaceAutocompleteElement } = await google.maps.importLibrary('places');
+    let Place, PlaceAutocompleteElement;
+    try {
+        ({ Place, PlaceAutocompleteElement } = await google.maps.importLibrary('places'));
+    } catch (error) {
+        console.error('Google Maps Places 載入失敗:', error);
+        showMapError('地點搜尋暫時無法使用，但行程清單仍可編輯。');
+        return;
+    }
     PlaceClass = Place;
     const placeAutocomplete = new PlaceAutocompleteElement();
     placeAutocomplete.placeholder = '🔍 搜尋地點或在地圖點擊...';
     input.replaceChildren(placeAutocomplete);
 
     placeAutocomplete.addEventListener('gmp-select', async ({ placePrediction }) => {
-        if (tripExpired) return;
         try {
             const place = placePrediction.toPlace();
             await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location'] });
@@ -280,7 +285,6 @@ async function initMap() {
     });
 
     map.addListener("click", async (e) => {
-        if (tripExpired) return;
         if (e.placeId) {
             e.stop();
             try {
@@ -313,6 +317,11 @@ function findPlaceAddress(latLng) {
             showPreview(latLng, simplifiedName, results[0].formatted_address);
         }
     });
+}
+
+function showMapError(message = '地圖暫時無法載入，但行程清單仍可使用。') {
+    const mapEl = document.getElementById('map');
+    if (mapEl) mapEl.innerHTML = `<p class="empty-text" style="padding:20px;">${message}</p>`;
 }
 
 function showPreview(latLng, name, address) {
@@ -513,9 +522,13 @@ async function handleReorder(dayIdx, oldIdx, newIdx) {
             if (!result.trip) throw new Error('排序回應格式不正確');
             currentTripData = result.trip;
             renderMarkers();
+        } else {
+            throw new Error(`排序失敗 (${response.status})`);
         }
     } catch (e) {
         console.error("重新排序錯誤:", e);
+        renderItinerary();
+        alert("排序失敗，已還原原本順序");
     }
 }
 
