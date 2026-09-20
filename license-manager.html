@@ -36,10 +36,16 @@
 
     <script src="js/config.js"></script>
     <script src="js/pwa.js"></script>
+    <script src="js/api.js"></script>
     <script>
         const API_URL = window.YashYashConfig.API_URL;
 
         window.onload = function() {
+            const user = JSON.parse(localStorage.getItem('yashyash_user') || 'null');
+            if (!user || user.role !== 'admin') {
+                window.location.href = 'login.html';
+                return;
+            }
             console.log("頁面載入，開始讀取許可證...");
             loadLicenses();
         };
@@ -50,7 +56,7 @@
             
             try {
                 console.log("正在請求:", `${API_URL}/api/admin/licenses`);
-                const res = await fetch(`${API_URL}/api/admin/licenses`);
+                const res = await apiFetch(`${API_URL}/api/admin/licenses`);
                 
                 if (!res.ok) {
                     throw new Error(`HTTP ${res.status}: ${res.statusText}`);
@@ -97,7 +103,7 @@
             }
 
             try {
-                const res = await fetch(`${API_URL}/api/admin/licenses/${id}`, { 
+                const res = await apiFetch(`${API_URL}/api/admin/licenses/${id}`, {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' }
                 });
@@ -124,7 +130,7 @@
             }
 
             try {
-                const res = await fetch(`${API_URL}/api/admin/licenses`, {
+                const res = await apiFetch(`${API_URL}/api/admin/licenses`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ limit: limitValue })

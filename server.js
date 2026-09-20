@@ -1,6 +1,8 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 const app = express();
@@ -9,7 +11,7 @@ const app = express();
 app.use(cors({
     origin: ['https://23566446.github.io', 'http://127.0.0.1:5500', 'http://localhost:5500'],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type']
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
@@ -21,12 +23,53 @@ mongoose.connect(MONGO_URI).then(() => console.log("✅ 成功連上 MongoDB!"))
 // 資料模型
 const User = mongoose.model('User', new mongoose.Schema({
     account: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
+    password: { type: String, required: true, select: false },
     nickname: String,
     gender: String,
     role: { type: String, default: 'user' },
     avatar: { type: String, default: "" }
 }));
+
+const JWT_SECRET = process.env.JWT_SECRET;
+const BCRYPT_ROUNDS = 12;
+
+function toPublicUser(user) {
+    return {
+        _id: user._id,
+        account: user.account,
+        nickname: user.nickname,
+        gender: user.gender,
+        role: user.role,
+        avatar: user.avatar || ''
+    };
+}
+
+function createToken(user) {
+    if (!JWT_SECRET) throw new Error('JWT_SECRET is not configured');
+    return jwt.sign({ sub: user._id.toString(), account: user.account, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+}
+
+async function authenticateToken(req, res, next) {
+    const authorization = req.headers.authorization || '';
+    const token = authorization.startsWith('Bearer ') ? authorization.slice(7) : null;
+    if (!token) return res.status(401).json({ message: '需要登入驗證' });
+    if (!JWT_SECRET) return res.status(500).json({ message: '伺服器驗證設定未完成' });
+
+    try {
+        const payload = jwt.verify(token, JWT_SECRET);
+        const user = await User.findById(payload.sub);
+        if (!user) return res.status(401).json({ message: '驗證已失效，請重新登入' });
+        req.user = user;
+        next();
+    } catch (error) {
+        return res.status(401).json({ message: '驗證已失效，請重新登入' });
+    }
+}
+
+function requireAdmin(req, res, next) {
+    if (req.user?.role !== 'admin') return res.status(403).json({ message: '需要管理員權限' });
+    next();
+}
 
 const Proposal = mongoose.model('Proposal', new mongoose.Schema({
     creator: String,
@@ -100,20 +143,22 @@ app.get('/api/health', (req, res) => {
 app.post('/api/register', async (req, res) => {
     try {
         const { account, password, nickname, gender, licenseKey } = req.body;
+        if (!JWT_SECRET) return res.status(500).json({ message: '伺服器驗證設定未完成' });
+        if (!account || !password || !nickname) return res.status(400).json({ message: '帳號、密碼與暱稱為必填' });
         const license = await License.findOne({ key: licenseKey?.trim() });
         if (!license || license.used >= license.limit) return res.status(403).json({ message: "金鑰無效或已達使用上限" });
 
         const existingUser = await User.findOne({ account });
         if (existingUser) return res.status(400).json({ message: "帳號已存在" });
 
-        const finalRole = (account === 'admin') ? 'admin' : 'user';
-        const newUser = new User({ account, password, nickname, gender, role: finalRole });
+        const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+        const newUser = new User({ account, password: passwordHash, nickname, gender, role: 'user' });
         await newUser.save();
 
         license.used += 1;
         await license.save();
 
-        res.status(201).json({ message: "註冊成功", user: newUser });
+        res.status(201).json({ message: "註冊成功", user: toPublicUser(newUser), token: createToken(newUser) });
     } catch (error) { res.status(500).json({ message: "伺服器錯誤" }); }
 });
 
@@ -121,35 +166,49 @@ app.post('/api/register', async (req, res) => {
 app.post('/api/login', async (req, res) => {
     try {
         const { account, password } = req.body;
-        const user = await User.findOne({ account, password });
-        if (user) res.json({ message: "登入成功", user });
-        else res.status(401).json({ message: "帳號或密碼錯誤" });
+        if (!JWT_SECRET) return res.status(500).json({ message: '伺服器驗證設定未完成' });
+        const user = await User.findOne({ account }).select('+password');
+        if (!user) return res.status(401).json({ message: "帳號或密碼錯誤" });
+
+        const isBcryptHash = /^\$2[aby]\$\d{2}\$/.test(user.password);
+        const passwordMatches = isBcryptHash
+            ? await bcrypt.compare(password || '', user.password)
+            : password === user.password;
+        if (!passwordMatches) return res.status(401).json({ message: "帳號或密碼錯誤" });
+
+        if (!isBcryptHash) {
+            user.password = await bcrypt.hash(password, BCRYPT_ROUNDS);
+            await user.save();
+        }
+        res.json({ message: "登入成功", user: toPublicUser(user), token: createToken(user) });
     } catch (error) { res.status(500).json({ message: "伺服器錯誤" }); }
 });
 
 // [變更角色權限]
-app.put('/api/admin/change-role', async (req, res) => {
+app.put('/api/admin/change-role', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { targetUserId, newRole } = req.body;
         const target = await User.findById(targetUserId);
+        if (!target) return res.status(404).json({ message: "找不到使用者" });
         if (target.account === 'admin') return res.status(403).json({ message: "不可更動超級管理員權限" });
+        if (!['user', 'admin'].includes(newRole)) return res.status(400).json({ message: "權限資料不合法" });
         const updatedUser = await User.findByIdAndUpdate(targetUserId, { role: newRole }, { new: true });
-        res.json({ message: "權限更新成功", user: updatedUser });
+        res.json({ message: "權限更新成功", user: toPublicUser(updatedUser) });
     } catch (e) { res.status(500).json({ message: "更新失敗" }); }
 });
 
 // [更新個人資料]
-app.put('/api/users/update', async (req, res) => {
+app.put('/api/users/update', authenticateToken, async (req, res) => {
     try {
-        const { userId, nickname, password, gender, avatar } = req.body;
+        const { nickname, password, gender, avatar } = req.body;
         let updateData = { nickname, gender, avatar };
         let passwordChanged = false;
         if (password && password.trim() !== "") {
-            updateData.password = password;
+            updateData.password = await bcrypt.hash(password, BCRYPT_ROUNDS);
             passwordChanged = true; 
         }
-        const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
-        res.json({ message: "更新成功", user, logoutRequired: passwordChanged });
+        const user = await User.findByIdAndUpdate(req.user._id, updateData, { new: true });
+        res.json({ message: "更新成功", user: toPublicUser(user), logoutRequired: passwordChanged });
     } catch (error) { res.status(500).json({ message: "更新失敗" }); }
 });
 
@@ -179,29 +238,52 @@ app.get('/api/users/by-accounts', async (req, res) => {
 });
 
 // [管理員 API：獲取使用者、金鑰、重設密碼、刪除]
-app.get('/api/admin/users', async (req, res) => { res.json(await User.find({}, '-password')); });
-app.get('/api/admin/licenses', async (req, res) => { res.json(await License.find().sort({ createdAt: -1 })); });
-app.post('/api/admin/licenses', async (req, res) => {
-    const key = "YASH-" + Math.random().toString(36).substring(2, 6).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
-    const newL = new License({ key, limit: parseInt(req.body.limit) });
-    await newL.save(); res.json(newL);
+app.get('/api/admin/users', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        res.json((await User.find()).map(toPublicUser));
+    } catch (error) { res.status(500).json({ message: '讀取使用者失敗' }); }
 });
-app.delete('/api/admin/licenses/:id', async (req, res) => {
+app.get('/api/admin/licenses', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        res.json(await License.find().sort({ createdAt: -1 }));
+    } catch (error) { res.status(500).json({ message: '讀取金鑰失敗' }); }
+});
+app.post('/api/admin/licenses', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const limit = parseInt(req.body.limit, 10);
+        if (!Number.isInteger(limit) || limit < 1) return res.status(400).json({ message: '使用次數不合法' });
+        const key = "YASH-" + Math.random().toString(36).substring(2, 6).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
+        const newL = new License({ key, limit });
+        await newL.save();
+        res.json(newL);
+    } catch (error) { res.status(500).json({ message: '建立金鑰失敗' }); }
+});
+app.delete('/api/admin/licenses/:id', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const result = await License.findByIdAndDelete(req.params.id);
         if (!result) return res.status(404).json({ message: "找不到該金鑰" });
         res.json({ message: "金鑰已刪除" });
     } catch (e) { res.status(500).json({ message: "伺服器刪除出錯" }); }
 });
-app.put('/api/admin/reset-password', async (req, res) => {
-    await User.findByIdAndUpdate(req.body.targetUserId, { password: req.body.newPassword });
-    res.json({ message: "密碼重設成功" });
+app.put('/api/admin/reset-password', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { targetUserId, newPassword } = req.body;
+        if (!newPassword || newPassword.trim().length < 8) return res.status(400).json({ message: '新密碼至少需 8 個字元' });
+        const target = await User.findById(targetUserId);
+        if (!target) return res.status(404).json({ message: '找不到使用者' });
+        target.password = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+        await target.save();
+        res.json({ message: "密碼重設成功" });
+    } catch (error) { res.status(500).json({ message: '密碼重設失敗' }); }
 });
-app.delete('/api/admin/users/:id', async (req, res) => {
-    const target = await User.findById(req.params.id);
-    if (target.account === 'admin') return res.status(403).json({ message: "不可刪除管理員" });
-    await User.findByIdAndDelete(req.params.id);
-    res.json({ message: "已移除使用者" });
+app.delete('/api/admin/users/:id', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const target = await User.findById(req.params.id);
+        if (!target) return res.status(404).json({ message: '找不到使用者' });
+        if (target.account === 'admin') return res.status(403).json({ message: "不可刪除管理員" });
+        await User.findByIdAndDelete(req.params.id);
+        res.json({ message: "已移除使用者" });
+    } catch (error) { res.status(500).json({ message: '刪除使用者失敗' }); }
 });
 
 // [公告欄與行程 API]
@@ -505,10 +587,13 @@ app.get('/api/settings/marquee', async (req, res) => {
     res.json({ text: marquee ? marquee.value : "歡迎來到 YashYash，祝您旅途愉快！" });
 });
 
-app.put('/api/settings/marquee', async (req, res) => {
-    const { text } = req.body;
-    await Setting.findOneAndUpdate({ key: 'marquee' }, { value: text }, { upsert: true });
-    res.json({ message: "跑馬燈更新成功" });
+app.put('/api/settings/marquee', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { text } = req.body;
+        if (typeof text !== 'string' || !text.trim()) return res.status(400).json({ message: '公告內容不可為空白' });
+        await Setting.findOneAndUpdate({ key: 'marquee' }, { value: text }, { upsert: true });
+        res.json({ message: "跑馬燈更新成功" });
+    } catch (error) { res.status(500).json({ message: '跑馬燈更新失敗' }); }
 });
 
 const PORT = process.env.PORT || 3000;
