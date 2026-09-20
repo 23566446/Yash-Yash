@@ -302,11 +302,11 @@ app.delete('/api/admin/licenses/:id', authenticateToken, requireAdmin, async (re
 app.put('/api/admin/reset-password', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { targetUserId, newPassword } = req.body;
-        if (!newPassword || newPassword.trim().length < 8) return res.status(400).json({ message: '新密碼至少需 8 個字元' });
+        if (!targetUserId || !mongoose.isValidObjectId(targetUserId)) return res.status(400).json({ message: '使用者資料不合法' });
+        if (typeof newPassword !== 'string' || newPassword.length === 0) return res.status(400).json({ message: '密碼不能為空' });
         const target = await User.findById(targetUserId);
         if (!target) return res.status(404).json({ message: '找不到使用者' });
-        target.password = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
-        await target.save();
+        await User.findByIdAndUpdate(targetUserId, { password: await bcrypt.hash(newPassword, BCRYPT_ROUNDS) });
         res.json({ message: "密碼重設成功" });
     } catch (error) { res.status(500).json({ message: '密碼重設失敗' }); }
 });

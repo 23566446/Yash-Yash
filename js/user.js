@@ -135,14 +135,18 @@ async function handleTripDecision(id, action) {
 
 async function adminResetPassword(id, nick) {
     const newPassword = prompt(`請輸入「${nick}」的新密碼:`);
-    if (!newPassword) return;
+    if (newPassword === null) return;
+    if (newPassword.length === 0) return alert("密碼不能為空");
     const response = await apiFetch(`${API_URL}/api/admin/reset-password`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ targetUserId: id, newPassword })
     });
     if (response.ok) alert(`已成功將 ${nick} 的密碼重設！`);
-    else alert("密碼重設失敗");
+    else {
+        const result = await response.json().catch(() => ({}));
+        alert(`密碼重設失敗：${result.message || '伺服器錯誤'}`);
+    }
 }
 
 async function deleteUser(id) {
