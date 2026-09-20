@@ -1,6 +1,7 @@
 const API_URL = window.YashYashConfig.API_URL;
 const urlParams = new URLSearchParams(window.location.search);
 const tripId = urlParams.get('id');
+if (!localStorage.getItem('yashyash_token')) window.location.href = 'login.html';
 const currentUser = JSON.parse(localStorage.getItem('yashyash_user'));
 
 let tripParticipants = []; // 行程成員
@@ -12,7 +13,7 @@ window.onload = async () => {
 };
 
 async function fetchTripInfo() {
-    const res = await fetch(`${API_URL}/api/trips/${tripId}`);
+    const res = await apiFetch(`${API_URL}/api/trips/${tripId}`);
     const trip = await res.json();
     tripParticipants = trip.participants;
     renderSplitList();
@@ -76,7 +77,7 @@ async function submitExpense() {
     };
 
     try {
-        const res = await fetch(`${API_URL}/api/trips/${tripId}/expenses`, {
+        const res = await apiFetch(`${API_URL}/api/trips/${tripId}/expenses`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -95,7 +96,7 @@ async function submitExpense() {
 }
 
 async function fetchExpenses() {
-    const res = await fetch(`${API_URL}/api/trips/${tripId}/expenses`);
+    const res = await apiFetch(`${API_URL}/api/trips/${tripId}/expenses`);
     const expenses = await res.json();
     renderExpenses(expenses);
     calculateBalances(expenses);
@@ -164,7 +165,7 @@ function calculateBalances(expenses) {
 async function deleteExpense(id) {
     if (!confirm("確定刪除此筆支出？")) return;
     try {
-        const res = await fetch(`${API_URL}/api/expenses/${id}`, { method: 'DELETE' });
+        const res = await apiFetch(`${API_URL}/api/expenses/${id}`, { method: 'DELETE' });
         if (!res.ok) {
             alert("刪除支出失敗");
             return;

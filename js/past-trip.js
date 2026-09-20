@@ -1,5 +1,6 @@
 const API_URL = window.YashYashConfig.API_URL;
 const userData = localStorage.getItem('yashyash_user');
+if (!localStorage.getItem('yashyash_token')) window.location.href = 'login.html';
 if (!userData) { window.location.href = 'login.html'; }
 const currentUser = JSON.parse(userData);
 
@@ -15,7 +16,7 @@ window.onload = () => {
 
 async function loadPastTrips() {
     try {
-        const response = await fetch(`${API_URL}/api/my-trips/${currentUser.account}`);
+        const response = await apiFetch(`${API_URL}/api/my-trips`);
         const trips = await response.json();
         const pastList = document.getElementById('past-trip-list');
         

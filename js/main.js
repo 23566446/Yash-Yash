@@ -1,6 +1,7 @@
 // main.js - 首頁核心功能
 const API_URL = window.YashYashConfig.API_URL;
 let currentUser = null;
+if (!localStorage.getItem('yashyash_token')) location.href = 'login.html';
 
 // ===== 初始化載入 =====
 window.onload = async function() {
@@ -145,7 +146,7 @@ async function editProposal(proposalId) {
         }
         
         // 送出修改
-        const updateRes = await fetch(`${API_URL}/api/proposals/${proposalId}`, {
+        const updateRes = await apiFetch(`${API_URL}/api/proposals/${proposalId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -172,7 +173,7 @@ async function editProposal(proposalId) {
 // ===== 投票功能 =====
 async function vote(proposalId) {
     try {
-        const res = await fetch(`${API_URL}/api/proposals/vote`, {
+        const res = await apiFetch(`${API_URL}/api/proposals/vote`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -206,7 +207,7 @@ async function deleteProposal(proposalId) {
     if (!confirm("確定要刪除這個提案嗎？此操作無法復原。")) return;
     
     try {
-        const res = await fetch(`${API_URL}/api/proposals/${proposalId}`, {
+        const res = await apiFetch(`${API_URL}/api/proposals/${proposalId}`, {
             method: 'DELETE'
         });
         
@@ -224,7 +225,7 @@ async function loadMyTrips() {
     const tripList = document.getElementById('trip-list');
     
     try {
-        const res = await fetch(`${API_URL}/api/my-trips/${currentUser.account}`);
+        const res = await apiFetch(`${API_URL}/api/my-trips`);
         const trips = await res.json();
         
         // 取得今天的日期（格式：YYYY-MM-DD）
@@ -281,7 +282,7 @@ async function loadMyTrips() {
 // ===== 檢查通知 =====
 async function checkNotifications() {
     try {
-        const res = await fetch(`${API_URL}/api/notifications/${currentUser.nickname}`);
+        const res = await apiFetch(`${API_URL}/api/notifications`);
         const notifications = await res.json();
         
         if (notifications.length > 0) {

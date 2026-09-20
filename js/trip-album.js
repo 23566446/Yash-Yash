@@ -1,6 +1,7 @@
 const API_URL = window.YashYashConfig.API_URL;
 const urlParams = new URLSearchParams(window.location.search);
 const tripId = urlParams.get('id');
+if (!localStorage.getItem('yashyash_token')) window.location.href = 'login.html';
 const userData = localStorage.getItem('yashyash_user');
 
 if (!userData || !tripId) {
@@ -18,7 +19,7 @@ window.onload = async () => {
     if (backBtn) backBtn.onclick = () => { window.location.href = `trip-details.html?id=${tripId}`; };
 
     try {
-        const tripRes = await fetch(`${API_URL}/api/trips/${tripId}`);
+        const tripRes = await apiFetch(`${API_URL}/api/trips/${tripId}`);
         tripData = await tripRes.json();
         await loadPhotos();
     } catch (err) {
@@ -29,7 +30,7 @@ window.onload = async () => {
 // --- 2. 載入照片資料 ---
 async function loadPhotos() {
     try {
-        const res = await fetch(`${API_URL}/api/trips/${tripId}/photos`);
+        const res = await apiFetch(`${API_URL}/api/trips/${tripId}/photos`);
         allPhotos = await res.json();
         renderAlbum();
     } catch (err) {
@@ -119,7 +120,7 @@ async function handleFileUpload(event) {
 
         try {
             const base64 = await toBase64(file);
-            const response = await fetch(`${API_URL}/api/trips/${tripId}/photos`, {
+            const response = await apiFetch(`${API_URL}/api/trips/${tripId}/photos`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -182,7 +183,7 @@ function closeLightbox() {
 async function deletePhoto(id) {
     if (!confirm("確定要刪除這張照片嗎？")) return;
     try {
-        const res = await fetch(`${API_URL}/api/photos/${id}`, { method: 'DELETE' });
+        const res = await apiFetch(`${API_URL}/api/photos/${id}`, { method: 'DELETE' });
         if (res.ok) {
             closeLightbox();
             loadPhotos();
@@ -203,7 +204,7 @@ async function handleReorder(dayIdx, gridElement) {
         order: index
     }));
 
-    const response = await fetch(`${API_URL}/api/photos/reorder`, {
+    const response = await apiFetch(`${API_URL}/api/photos/reorder`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ photoOrders })

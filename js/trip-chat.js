@@ -1,6 +1,7 @@
 const API_URL = window.YashYashConfig.API_URL;
 const urlParams = new URLSearchParams(window.location.search);
 const tripId = urlParams.get('id');
+if (!localStorage.getItem('yashyash_token')) window.location.href = 'login.html';
 
 const userData = localStorage.getItem('yashyash_user');
 const currentUser = JSON.parse(userData);
@@ -23,14 +24,14 @@ window.onload = async () => {
 };
 
 async function fetchTripInfo() {
-    const res = await fetch(`${API_URL}/api/trips/${tripId}`);
+    const res = await apiFetch(`${API_URL}/api/trips/${tripId}`);
     const trip = await res.json();
     document.getElementById('chat-trip-title').innerText = trip.title;
 }
 
 async function fetchMessages() {
     try {
-        const res = await fetch(`${API_URL}/api/trips/${tripId}/chat`);
+        const res = await apiFetch(`${API_URL}/api/trips/${tripId}/chat`);
         const messages = await res.json();
 
         // 只有在訊息數量有變時才重新渲染，避免閃爍
@@ -82,7 +83,7 @@ async function handleSend(e) {
     input.value = ""; // 立即清空
 
     try {
-        const res = await fetch(`${API_URL}/api/trips/${tripId}/chat`, {
+        const res = await apiFetch(`${API_URL}/api/trips/${tripId}/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)

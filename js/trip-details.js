@@ -1,6 +1,7 @@
 const API_URL = window.YashYashConfig.API_URL;
 const urlParams = new URLSearchParams(window.location.search);
 const tripId = urlParams.get('id');
+if (!localStorage.getItem('yashyash_token')) window.location.href = 'login.html';
 
 let map, markers = [];
 let currentTripData = null;
@@ -32,7 +33,7 @@ window.onload = async () => {
 
 async function fetchTripDetails() {
     try {
-        const response = await fetch(`${API_URL}/api/trips/${tripId}`);
+        const response = await apiFetch(`${API_URL}/api/trips/${tripId}`);
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
@@ -473,7 +474,7 @@ function setActiveDay(index) {
 
 async function addLocationToDB(locationObj) {
     try {
-        const response = await fetch(`${API_URL}/api/trips/${tripId}/location`, {
+        const response = await apiFetch(`${API_URL}/api/trips/${tripId}/location`, {
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ dayIndex: activeDayIndex, location: locationObj })
@@ -496,7 +497,7 @@ async function deleteLocation(dayIdx, locIdx) {
     if(!confirm("確定移除此地點嗎？")) return;
     
     try {
-        const response = await fetch(`${API_URL}/api/trips/${tripId}/location/delete`, {
+        const response = await apiFetch(`${API_URL}/api/trips/${tripId}/location/delete`, {
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ dayIndex: dayIdx, locationIndex: locIdx })
@@ -517,7 +518,7 @@ async function deleteLocation(dayIdx, locIdx) {
 
 async function handleReorder(dayIdx, oldIdx, newIdx) {
     try {
-        const response = await fetch(`${API_URL}/api/trips/${tripId}/location/reorder`, {
+        const response = await apiFetch(`${API_URL}/api/trips/${tripId}/location/reorder`, {
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ dayIndex: dayIdx, oldIndex: oldIdx, newIndex: newIdx })
@@ -589,7 +590,7 @@ async function editTripDates() {
     
     try {
         console.log("📤 發送 API 請求...");
-        const response = await fetch(`${API_URL}/api/trips/${tripId}/dates`, {
+        const response = await apiFetch(`${API_URL}/api/trips/${tripId}/dates`, {
             method: 'PUT', 
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
@@ -631,7 +632,7 @@ async function deleteTrip() {
     }
     
     try {
-        const response = await fetch(`${API_URL}/api/trips/${tripId}`, { 
+        const response = await apiFetch(`${API_URL}/api/trips/${tripId}`, {
             method: 'DELETE' 
         });
         

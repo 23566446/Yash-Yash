@@ -71,6 +71,23 @@ function requireAdmin(req, res, next) {
     next();
 }
 
+function isTripParticipant(trip, user) {
+    return trip.participants.includes(user.account);
+}
+
+function isTripCreatorOrAdmin(trip, user) {
+    return trip.creator === user.nickname || user.role === 'admin';
+}
+
+async function getAuthorizedTrip(req, res, creatorOnly = false) {
+    let trip;
+    try { trip = await Trip.findById(req.params.id); } catch (error) { return res.status(404).json({ message: '找不到該行程' }), null; }
+    if (!trip) return res.status(404).json({ message: '找不到該行程' }), null;
+    const allowed = creatorOnly ? isTripCreatorOrAdmin(trip, req.user) : isTripParticipant(trip, req.user) || req.user.role === 'admin';
+    if (!allowed) return res.status(403).json({ message: '你沒有權限存取這個內容' }), null;
+    return trip;
+}
+
 const Proposal = mongoose.model('Proposal', new mongoose.Schema({
     creator: String,
     start: String,
@@ -121,6 +138,7 @@ const Expense = mongoose.model('Expense', ExpenseSchema);
 const PhotoSchema = new mongoose.Schema({
     tripId: String,
     uploader: String,
+    uploaderAccount: String,
     imageData: String,
     dayIndex: Number,
     order: Number,
@@ -288,18 +306,19 @@ app.delete('/api/admin/users/:id', authenticateToken, requireAdmin, async (req, 
 
 // [公告欄與行程 API]
 app.get('/api/proposals', async (req, res) => res.json(await Proposal.find()));
-app.post('/api/proposals', async (req, res) => {
+app.post('/api/proposals', authenticateToken, async (req, res) => {
     if (!req.body.start || !req.body.end) return res.status(400).json({ message: "日期必填" });
-    const newP = new Proposal(req.body); 
+    const newP = new Proposal({ start: req.body.start, end: req.body.end, min: req.body.min, creator: req.user.nickname, votes: [req.user.account], status: 'voting' });
     await newP.save(); 
     res.status(201).json(newP);
 });
 
-app.put('/api/proposals/:id', async (req, res) => {
+app.put('/api/proposals/:id', authenticateToken, async (req, res) => {
     try {
         const { start, end, min } = req.body;
         const prop = await Proposal.findById(req.params.id);
         if (!prop) return res.status(404).json({ message: "找不到該提案" });
+        if (prop.creator !== req.user.nickname && req.user.role !== 'admin') return res.status(403).json({ message: '你沒有權限存取這個內容' });
 
         if (start) prop.start = start;
         if (end) prop.end = end;
@@ -319,17 +338,20 @@ app.put('/api/proposals/:id', async (req, res) => {
     }
 });
 
-app.delete('/api/proposals/:id', async (req, res) => { 
-    await Proposal.findByIdAndDelete(req.params.id); 
-    res.json({ message: "OK" }); 
+app.delete('/api/proposals/:id', authenticateToken, async (req, res) => {
+    const prop = await Proposal.findById(req.params.id);
+    if (!prop) return res.status(404).json({ message: '找不到提案' });
+    if (prop.creator !== req.user.nickname && req.user.role !== 'admin') return res.status(403).json({ message: '你沒有權限存取這個內容' });
+    await prop.deleteOne();
+    res.json({ message: "OK" });
 });
 
-app.post('/api/proposals/vote', async (req, res) => {
-    const { proposalId, account } = req.body;
+app.post('/api/proposals/vote', authenticateToken, async (req, res) => {
+    const { proposalId } = req.body;
     const prop = await Proposal.findById(proposalId);
-    
-    if (!prop.votes.includes(account)) {
-        prop.votes.push(account);
+    if (!prop) return res.status(404).json({ message: '找不到提案' });
+    if (!prop.votes.includes(req.user.account)) {
+        prop.votes.push(req.user.account);
         if (prop.votes.length >= prop.min) {
             prop.status = 'pending'; 
         }
@@ -340,11 +362,12 @@ app.post('/api/proposals/vote', async (req, res) => {
     }
 });
 
-app.post('/api/trips/confirm', async (req, res) => {
+app.post('/api/trips/confirm', authenticateToken, async (req, res) => {
     try {
         const { proposalId, action, title } = req.body;
         const prop = await Proposal.findById(proposalId);
         if (!prop) return res.status(404).json({ message: "找不到提案" });
+        if (prop.creator !== req.user.nickname && req.user.role !== 'admin') return res.status(403).json({ message: '你沒有權限存取這個內容' });
 
         if (action === 'confirm') {
             const today = new Date().toISOString().split('T')[0];
@@ -370,44 +393,49 @@ app.post('/api/trips/confirm', async (req, res) => {
     } catch (e) { res.status(500).json({ message: "建立失敗" }); }
 });
 
-app.get('/api/my-trips/:account', async (req, res) => {
+app.get('/api/my-trips', authenticateToken, async (req, res) => {
     try {
-        const trips = await Trip.find({ participants: req.params.account });
+        const trips = await Trip.find({ participants: req.user.account });
         res.json(trips);
     } catch (e) { res.status(500).send("讀取失敗"); }
 });
 
-app.get('/api/trips/:id', async (req, res) => res.json(await Trip.findById(req.params.id)));
+app.get('/api/trips/:id', authenticateToken, async (req, res) => {
+    const trip = await getAuthorizedTrip(req, res);
+    if (trip) res.json(trip);
+});
 
-app.post('/api/trips/:id/location', async (req, res) => {
+app.post('/api/trips/:id/location', authenticateToken, async (req, res) => {
     try {
-        const t = await Trip.findById(req.params.id);
-        if (!t) return res.status(404).json({ message: "找不到該行程" });
+        const t = await getAuthorizedTrip(req, res);
+        if (!t) return;
+        if (!Number.isInteger(req.body.dayIndex) || !t.days[req.body.dayIndex]) return res.status(400).json({ message: '日期資料不合法' });
         t.days[req.body.dayIndex].locations.push(req.body.location);
         await t.save();
         res.json(t);
     } catch (e) { res.status(500).json({ message: "新增地點失敗" }); }
 });
 
-app.post('/api/trips/:id/location/delete', async (req, res) => {
+app.post('/api/trips/:id/location/delete', authenticateToken, async (req, res) => {
     try {
-        const t = await Trip.findById(req.params.id);
-        if (!t) return res.status(404).json({ message: "找不到該行程" });
+        const t = await getAuthorizedTrip(req, res);
+        if (!t) return;
+        if (!Number.isInteger(req.body.dayIndex) || !Number.isInteger(req.body.locationIndex) || !t.days[req.body.dayIndex]?.locations[req.body.locationIndex]) return res.status(400).json({ message: '景點資料不合法' });
         t.days[req.body.dayIndex].locations.splice(req.body.locationIndex, 1);
         await t.save();
         res.json(t);
     } catch (e) { res.status(500).json({ message: "刪除地點失敗" }); }
 });
 
-app.post('/api/trips/:id/location/reorder', async (req, res) => {
+app.post('/api/trips/:id/location/reorder', authenticateToken, async (req, res) => {
     try {
         const { dayIndex, oldIndex, newIndex } = req.body;
         if (![dayIndex, oldIndex, newIndex].every(Number.isInteger) || dayIndex < 0 || oldIndex < 0 || newIndex < 0) {
             return res.status(400).json({ message: "排序資料不合法" });
         }
 
-        const trip = await Trip.findById(req.params.id);
-        if (!trip) return res.status(404).json({ message: "找不到該行程" });
+        const trip = await getAuthorizedTrip(req, res);
+        if (!trip) return;
         const locations = trip.days?.[dayIndex]?.locations;
         if (!Array.isArray(locations) || oldIndex >= locations.length || newIndex >= locations.length) {
             return res.status(400).json({ message: "排序索引不合法" });
@@ -424,7 +452,7 @@ app.post('/api/trips/:id/location/reorder', async (req, res) => {
 });
 
 // ========== 【新增】修改行程日期 API ==========
-app.put('/api/trips/:id/dates', async (req, res) => {
+app.put('/api/trips/:id/dates', authenticateToken, async (req, res) => {
     try {
         const { startDate, endDate } = req.body;
         
@@ -436,8 +464,8 @@ app.put('/api/trips/:id/dates', async (req, res) => {
             return res.status(400).json({ message: "開始日期和結束日期都必填" });
         }
         
-        const trip = await Trip.findById(req.params.id);
-        if (!trip) return res.status(404).json({ message: "找不到該行程" });
+        const trip = await getAuthorizedTrip(req, res, true);
+        if (!trip) return;
         // 計算新的天數
         const start = new Date(startDate);
         const end = new Date(endDate);
@@ -478,33 +506,33 @@ app.put('/api/trips/:id/dates', async (req, res) => {
     }
 });
 
-app.delete('/api/trips/:id', async (req, res) => {
+app.delete('/api/trips/:id', authenticateToken, async (req, res) => {
     try {
-        const trip = await Trip.findById(req.params.id);
-        if (!trip) return res.status(404).json({ message: "找不到該行程" });
+        const trip = await getAuthorizedTrip(req, res, true);
+        if (!trip) return;
         await Trip.findByIdAndDelete(req.params.id);
         res.json({ message: "OK" });
     } catch (e) { res.status(500).json({ message: "刪除失敗" }); }
 });
 
-app.get('/api/notifications/:nickname', async (req, res) => {
-    res.json(await Proposal.find({ creator: req.params.nickname, status: 'pending' }));
+app.get('/api/notifications', authenticateToken, async (req, res) => {
+    res.json(await Proposal.find({ creator: req.user.nickname, status: 'pending' }));
 });
 
 // [聊天室 API]
-app.get('/api/trips/:id/chat', async (req, res) => {
+app.get('/api/trips/:id/chat', authenticateToken, async (req, res) => {
     try {
-        const trip = await Trip.findById(req.params.id);
+        const trip = await getAuthorizedTrip(req, res);
+        if (!trip) return;
         res.json(trip.chatMessages || []);
     } catch (e) { res.status(500).send("讀取聊天紀錄失敗"); }
 });
 
-app.post('/api/trips/:id/chat', async (req, res) => {
+app.post('/api/trips/:id/chat', authenticateToken, async (req, res) => {
     try {
-        const { sender, text, avatar } = req.body;
-        const trip = await Trip.findById(req.params.id);
-        if (!trip) return res.status(404).json({ message: "找不到該行程" });
-        const newMessage = { sender, text, avatar, time: new Date() };
+        const trip = await getAuthorizedTrip(req, res);
+        if (!trip) return;
+        const newMessage = { sender: req.user.nickname || req.user.account, text: req.body.text, avatar: req.user.avatar || '', time: new Date() };
         trip.chatMessages.push(newMessage);
         await trip.save();
         res.status(201).json(newMessage);
@@ -512,56 +540,68 @@ app.post('/api/trips/:id/chat', async (req, res) => {
 });
 
 // [支出記帳 API]
-app.get('/api/trips/:id/expenses', async (req, res) => {
+app.get('/api/trips/:id/expenses', authenticateToken, async (req, res) => {
     try {
+        if (!await getAuthorizedTrip(req, res)) return;
         const expenses = await Expense.find({ tripId: req.params.id }).sort({ createdAt: -1 });
         res.json(expenses);
     } catch (e) { res.status(500).send("讀取失敗"); }
 });
 
-app.post('/api/trips/:id/expenses', async (req, res) => {
+app.post('/api/trips/:id/expenses', authenticateToken, async (req, res) => {
     try {
-        const trip = await Trip.findById(req.params.id);
-        if (!trip) return res.status(404).json({ message: "找不到該行程" });
-        const newExpense = new Expense({ tripId: req.params.id, ...req.body });
+        const trip = await getAuthorizedTrip(req, res);
+        if (!trip) return;
+        const newExpense = new Expense({ tripId: req.params.id, ...req.body, payer: req.user.account, payerName: req.user.nickname });
         await newExpense.save();
         res.status(201).json(newExpense);
     } catch (e) { res.status(500).send("儲存失敗"); }
 });
 
-app.delete('/api/expenses/:id', async (req, res) => {
+app.delete('/api/expenses/:id', authenticateToken, async (req, res) => {
     try {
         const exp = await Expense.findById(req.params.id);
         if (!exp) return res.status(404).json({ message: "找不到該支出" });
+        const trip = await Trip.findById(exp.tripId);
+        if (!trip) return res.status(404).json({ message: '找不到該行程' });
+        if (exp.payer !== req.user.account && !isTripCreatorOrAdmin(trip, req.user)) return res.status(403).json({ message: '你沒有權限存取這個內容' });
         await Expense.findByIdAndDelete(req.params.id);
         res.json({ message: "已刪除" });
     } catch (e) { res.status(500).json({ message: "刪除失敗" }); }
 });
 
 // [相簿 API]
-app.get('/api/trips/:id/photos', async (req, res) => {
+app.get('/api/trips/:id/photos', authenticateToken, async (req, res) => {
     try {
+        if (!await getAuthorizedTrip(req, res)) return;
         const photos = await Photo.find({ tripId: req.params.id }).sort({ dayIndex: 1, order: 1 });
         res.json(photos);
     } catch (e) { res.status(500).send("讀取失敗"); }
 });
 
-app.post('/api/trips/:id/photos', async (req, res) => {
+app.post('/api/trips/:id/photos', authenticateToken, async (req, res) => {
     try {
-        const trip = await Trip.findById(req.params.id);
-        if (!trip) return res.status(404).json({ message: "找不到該行程" });
-        const newPhoto = new Photo({ tripId: req.params.id, ...req.body });
+        const trip = await getAuthorizedTrip(req, res);
+        if (!trip) return;
+        const newPhoto = new Photo({ tripId: req.params.id, ...req.body, uploader: req.user.nickname || req.user.account, uploaderAccount: req.user.account });
         await newPhoto.save();
         res.status(201).json(newPhoto);
     } catch (e) { res.status(500).send("儲存失敗"); }
 });
 
-app.put('/api/photos/reorder', async (req, res) => {
+app.put('/api/photos/reorder', authenticateToken, async (req, res) => {
     try {
         const { photoOrders } = req.body;
         if (!photoOrders || photoOrders.length === 0) return res.json({ message: "排序與分類已更新" });
         const first = await Photo.findById(photoOrders[0].id);
         if (!first) return res.status(404).json({ message: "找不到照片" });
+        const trip = await Trip.findById(first.tripId);
+        if (!trip) return res.status(404).json({ message: '找不到該行程' });
+        if (!isTripParticipant(trip, req.user) && req.user.role !== 'admin') return res.status(403).json({ message: '你沒有權限存取這個內容' });
+        for (const item of photoOrders) {
+            const photo = await Photo.findById(item.id);
+            if (!photo || photo.tripId !== first.tripId) return res.status(400).json({ message: '照片資料不合法' });
+        }
         for (const item of photoOrders) {
             await Photo.findByIdAndUpdate(item.id, { order: item.order, dayIndex: item.dayIndex });
         }
@@ -569,10 +609,14 @@ app.put('/api/photos/reorder', async (req, res) => {
     } catch (e) { res.status(500).send("更新失敗"); }
 });
 
-app.delete('/api/photos/:id', async (req, res) => {
+app.delete('/api/photos/:id', authenticateToken, async (req, res) => {
     try {
         const photo = await Photo.findById(req.params.id);
         if (!photo) return res.status(404).json({ message: "找不到照片" });
+        const trip = await Trip.findById(photo.tripId);
+        if (!trip) return res.status(404).json({ message: '找不到該行程' });
+        const legacyOwner = !photo.uploaderAccount && photo.uploader === req.user.nickname;
+        if (photo.uploaderAccount !== req.user.account && !legacyOwner && !isTripCreatorOrAdmin(trip, req.user)) return res.status(403).json({ message: '你沒有權限存取這個內容' });
         await Photo.findByIdAndDelete(req.params.id);
         res.json({ message: "照片已刪除" });
     } catch (error) {
