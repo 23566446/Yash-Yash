@@ -20,7 +20,9 @@ function initPage() {
 
     if (isSuperAdmin) {
         document.getElementById('super-user-section').classList.remove('hidden');
+        document.getElementById('marquee-admin-section').classList.remove('hidden');
         loadAllUsers(isSuperAdmin); 
+        loadMarqueeSetting();
     }
 
     // 只有真正的 Super Admin 才能管理金鑰

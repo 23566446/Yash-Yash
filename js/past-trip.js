@@ -62,6 +62,7 @@ function toggleMenu() {
 
 function logout() {
     localStorage.removeItem('yashyash_user');
+    localStorage.removeItem('yashyash_token');
     window.location.href = 'login.html';
 }
 
