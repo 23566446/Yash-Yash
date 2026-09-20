@@ -34,6 +34,11 @@ window.onload = async () => {
 async function fetchTripDetails() {
     try {
         const response = await apiFetch(`${API_URL}/api/trips/${tripId}`);
+        if (response.status === 403) {
+            alert('你沒有權限存取這個內容');
+            window.location.href = 'index.html';
+            return;
+        }
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }

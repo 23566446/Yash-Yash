@@ -423,7 +423,7 @@ app.get('/api/my-trips', authenticateToken, async (req, res) => {
 
 app.get('/api/trips/:id', authenticateToken, async (req, res) => {
     const trip = await getAuthorizedTrip(req, res, false, false);
-    if (trip) res.json(trip);
+    if (trip) { await getTripCreatorAccount(trip); res.json(trip); }
 });
 
 app.post('/api/trips/:id/location', authenticateToken, async (req, res) => {
@@ -576,8 +576,9 @@ app.post('/api/trips/:id/expenses', authenticateToken, async (req, res) => {
     try {
         const trip = await getAuthorizedTrip(req, res);
         if (!trip) return;
-        if (!Number.isFinite(Number(req.body.amount)) || Number(req.body.amount) <= 0 || !Array.isArray(req.body.splitWith) || req.body.splitWith.length === 0 || req.body.splitWith.some(account => !trip.participants.includes(account))) return res.status(400).json({ message: '支出資料不合法' });
-        const newExpense = new Expense({ tripId: req.params.id, ...req.body, payer: req.user.account, payerName: req.user.nickname });
+        const { amount, currency, category, note, splitWith } = req.body;
+        if (!Number.isFinite(Number(amount)) || Number(amount) <= 0 || !Array.isArray(splitWith) || splitWith.length === 0 || new Set(splitWith).size !== splitWith.length || splitWith.some(account => !trip.participants.includes(account))) return res.status(400).json({ message: '支出資料不合法' });
+        const newExpense = new Expense({ tripId: req.params.id, amount: Number(amount), currency, category, note, splitWith, payer: req.user.account, payerName: req.user.nickname || req.user.account });
         await newExpense.save();
         res.status(201).json(newExpense);
     } catch (e) { res.status(500).send("儲存失敗"); }
@@ -608,7 +609,9 @@ app.post('/api/trips/:id/photos', authenticateToken, async (req, res) => {
     try {
         const trip = await getAuthorizedTrip(req, res);
         if (!trip) return;
-        const newPhoto = new Photo({ tripId: req.params.id, ...req.body, uploader: req.user.nickname || req.user.account, uploaderAccount: req.user.account });
+        const { imageData, dayIndex, order } = req.body;
+        if (typeof imageData !== 'string' || !imageData.trim() || !Number.isInteger(dayIndex) || dayIndex < 0 || dayIndex >= trip.days.length || (order !== undefined && (!Number.isInteger(order) || order < 0))) return res.status(400).json({ message: '照片資料不合法' });
+        const newPhoto = new Photo({ tripId: req.params.id, imageData, dayIndex, order: order === undefined ? 999 : order, uploader: req.user.nickname || req.user.account, uploaderAccount: req.user.account });
         await newPhoto.save();
         res.status(201).json(newPhoto);
     } catch (e) { res.status(500).send("儲存失敗"); }

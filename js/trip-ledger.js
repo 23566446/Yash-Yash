@@ -6,6 +6,7 @@ const currentUser = JSON.parse(localStorage.getItem('yashyash_user'));
 
 let tripParticipants = []; // 行程成員
 let selectedSplit = [];    // 目前選中要分攤的人
+function denyAccess() { alert('你沒有權限存取這個內容'); window.location.href = 'index.html'; }
 
 window.onload = async () => {
     await fetchTripInfo();
@@ -14,6 +15,8 @@ window.onload = async () => {
 
 async function fetchTripInfo() {
     const res = await apiFetch(`${API_URL}/api/trips/${tripId}`);
+    if (res.status === 403) return denyAccess();
+    if (!res.ok) return alert('載入行程失敗');
     const trip = await res.json();
     tripParticipants = trip.participants;
     renderSplitList();
@@ -97,6 +100,8 @@ async function submitExpense() {
 
 async function fetchExpenses() {
     const res = await apiFetch(`${API_URL}/api/trips/${tripId}/expenses`);
+    if (res.status === 403) return denyAccess();
+    if (!res.ok) return alert('載入支出失敗');
     const expenses = await res.json();
     renderExpenses(expenses);
     calculateBalances(expenses);
