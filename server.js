@@ -180,7 +180,7 @@ app.post('/api/register', async (req, res) => {
     try {
         const { account, password, nickname, gender, licenseKey } = req.body;
         if (!JWT_SECRET) return res.status(500).json({ message: '伺服器驗證設定未完成' });
-        if (!account || !password || !nickname) return res.status(400).json({ message: '帳號、密碼與暱稱為必填' });
+        if (!account || !password || typeof nickname !== 'string' || !nickname.trim() || nickname.length > 50) return res.status(400).json({ message: '帳號、密碼與暱稱為必填' });
         const license = await License.findOne({ key: licenseKey?.trim() });
         if (!license || license.used >= license.limit) return res.status(403).json({ message: "金鑰無效或已達使用上限" });
 
