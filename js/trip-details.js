@@ -1,7 +1,7 @@
 const API_URL = window.YashYashConfig.API_URL;
 const urlParams = new URLSearchParams(window.location.search);
 const tripId = urlParams.get('id');
-if (!localStorage.getItem('yashyash_token')) window.location.href = 'login.html';
+if (!localStorage.getItem('yashyash_user') || !localStorage.getItem('yashyash_token')) { localStorage.removeItem('yashyash_user'); localStorage.removeItem('yashyash_token'); window.location.href = 'login.html'; }
 
 let map, markers = [];
 let currentTripData = null;
@@ -48,8 +48,8 @@ async function fetchTripDetails() {
         await renderTripParticipants(currentTripData.participants || []);
 
         const user = JSON.parse(localStorage.getItem('yashyash_user'));
-        const isOwner = currentTripData.creator === user.nickname;
-        const isAdmin = user.account === 'admin';
+        const isOwner = currentTripData.creatorAccount === user.account;
+        const isAdmin = user.role === 'admin';
         const canEdit = isOwner || isAdmin;
 
         if (canEdit) {

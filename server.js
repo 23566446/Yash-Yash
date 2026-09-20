@@ -75,21 +75,36 @@ function isTripParticipant(trip, user) {
     return trip.participants.includes(user.account);
 }
 
-function isTripCreatorOrAdmin(trip, user) {
-    return trip.creator === user.nickname || user.role === 'admin';
+async function getProposalCreatorAccount(proposal) {
+    if (proposal.creatorAccount) return proposal.creatorAccount;
+    const account = proposal.votes?.[0];
+    if (account) { proposal.creatorAccount = account; await proposal.save(); }
+    return account;
 }
 
-async function getAuthorizedTrip(req, res, creatorOnly = false) {
+async function getTripCreatorAccount(trip) {
+    if (trip.creatorAccount) return trip.creatorAccount;
+    const account = trip.participants?.[0];
+    if (account) { trip.creatorAccount = account; await trip.save(); }
+    return account;
+}
+
+async function isTripCreatorOrAdmin(trip, user) {
+    return user.role === 'admin' || await getTripCreatorAccount(trip) === user.account;
+}
+
+async function getAuthorizedTrip(req, res, creatorOnly = false, participantOnly = true) {
     let trip;
     try { trip = await Trip.findById(req.params.id); } catch (error) { return res.status(404).json({ message: '找不到該行程' }), null; }
     if (!trip) return res.status(404).json({ message: '找不到該行程' }), null;
-    const allowed = creatorOnly ? isTripCreatorOrAdmin(trip, req.user) : isTripParticipant(trip, req.user) || req.user.role === 'admin';
+    const allowed = creatorOnly ? await isTripCreatorOrAdmin(trip, req.user) : participantOnly ? isTripParticipant(trip, req.user) : isTripParticipant(trip, req.user) || await isTripCreatorOrAdmin(trip, req.user);
     if (!allowed) return res.status(403).json({ message: '你沒有權限存取這個內容' }), null;
     return trip;
 }
 
 const Proposal = mongoose.model('Proposal', new mongoose.Schema({
     creator: String,
+    creatorAccount: String,
     start: String,
     end: String,
     min: Number,
@@ -103,6 +118,7 @@ const Trip = mongoose.model('Trip', new mongoose.Schema({
     endDate: String,
     participants: [String],
     creator: String,
+    creatorAccount: String,
     days: [{
         dayNumber: Number,
         locations: [{ name: String, addr: String, lat: Number, lng: Number, note: String, time: String }]
@@ -305,10 +321,14 @@ app.delete('/api/admin/users/:id', authenticateToken, requireAdmin, async (req, 
 });
 
 // [公告欄與行程 API]
-app.get('/api/proposals', async (req, res) => res.json(await Proposal.find()));
+app.get('/api/proposals', authenticateToken, async (req, res) => {
+    const proposals = await Proposal.find();
+    for (const proposal of proposals) await getProposalCreatorAccount(proposal);
+    res.json(proposals);
+});
 app.post('/api/proposals', authenticateToken, async (req, res) => {
     if (!req.body.start || !req.body.end) return res.status(400).json({ message: "日期必填" });
-    const newP = new Proposal({ start: req.body.start, end: req.body.end, min: req.body.min, creator: req.user.nickname, votes: [req.user.account], status: 'voting' });
+    const newP = new Proposal({ start: req.body.start, end: req.body.end, min: req.body.min, creator: req.user.nickname || req.user.account, creatorAccount: req.user.account, votes: [req.user.account], status: 'voting' });
     await newP.save(); 
     res.status(201).json(newP);
 });
@@ -318,7 +338,7 @@ app.put('/api/proposals/:id', authenticateToken, async (req, res) => {
         const { start, end, min } = req.body;
         const prop = await Proposal.findById(req.params.id);
         if (!prop) return res.status(404).json({ message: "找不到該提案" });
-        if (prop.creator !== req.user.nickname && req.user.role !== 'admin') return res.status(403).json({ message: '你沒有權限存取這個內容' });
+        if (req.user.role !== 'admin' && await getProposalCreatorAccount(prop) !== req.user.account) return res.status(403).json({ message: '你沒有權限存取這個內容' });
 
         if (start) prop.start = start;
         if (end) prop.end = end;
@@ -341,7 +361,7 @@ app.put('/api/proposals/:id', authenticateToken, async (req, res) => {
 app.delete('/api/proposals/:id', authenticateToken, async (req, res) => {
     const prop = await Proposal.findById(req.params.id);
     if (!prop) return res.status(404).json({ message: '找不到提案' });
-    if (prop.creator !== req.user.nickname && req.user.role !== 'admin') return res.status(403).json({ message: '你沒有權限存取這個內容' });
+    if (req.user.role !== 'admin' && await getProposalCreatorAccount(prop) !== req.user.account) return res.status(403).json({ message: '你沒有權限存取這個內容' });
     await prop.deleteOne();
     res.json({ message: "OK" });
 });
@@ -367,7 +387,7 @@ app.post('/api/trips/confirm', authenticateToken, async (req, res) => {
         const { proposalId, action, title } = req.body;
         const prop = await Proposal.findById(proposalId);
         if (!prop) return res.status(404).json({ message: "找不到提案" });
-        if (prop.creator !== req.user.nickname && req.user.role !== 'admin') return res.status(403).json({ message: '你沒有權限存取這個內容' });
+        if (req.user.role !== 'admin' && await getProposalCreatorAccount(prop) !== req.user.account) return res.status(403).json({ message: '你沒有權限存取這個內容' });
 
         if (action === 'confirm') {
             const today = new Date().toISOString().split('T')[0];
@@ -384,6 +404,7 @@ app.post('/api/trips/confirm', authenticateToken, async (req, res) => {
                 endDate: prop.end,
                 participants: prop.votes,
                 creator: prop.creator,
+                creatorAccount: await getProposalCreatorAccount(prop),
                 days: Array.from({ length: diff }, (_, i) => ({ dayNumber: i + 1, locations: [] }))
             });
             await t.save();
@@ -401,7 +422,7 @@ app.get('/api/my-trips', authenticateToken, async (req, res) => {
 });
 
 app.get('/api/trips/:id', authenticateToken, async (req, res) => {
-    const trip = await getAuthorizedTrip(req, res);
+    const trip = await getAuthorizedTrip(req, res, false, false);
     if (trip) res.json(trip);
 });
 
@@ -516,7 +537,10 @@ app.delete('/api/trips/:id', authenticateToken, async (req, res) => {
 });
 
 app.get('/api/notifications', authenticateToken, async (req, res) => {
-    res.json(await Proposal.find({ creator: req.user.nickname, status: 'pending' }));
+    const proposals = await Proposal.find({ status: 'pending' });
+    const mine = [];
+    for (const proposal of proposals) if (await getProposalCreatorAccount(proposal) === req.user.account) mine.push(proposal);
+    res.json(mine);
 });
 
 // [聊天室 API]
@@ -552,6 +576,7 @@ app.post('/api/trips/:id/expenses', authenticateToken, async (req, res) => {
     try {
         const trip = await getAuthorizedTrip(req, res);
         if (!trip) return;
+        if (!Number.isFinite(Number(req.body.amount)) || Number(req.body.amount) <= 0 || !Array.isArray(req.body.splitWith) || req.body.splitWith.length === 0 || req.body.splitWith.some(account => !trip.participants.includes(account))) return res.status(400).json({ message: '支出資料不合法' });
         const newExpense = new Expense({ tripId: req.params.id, ...req.body, payer: req.user.account, payerName: req.user.nickname });
         await newExpense.save();
         res.status(201).json(newExpense);
@@ -564,7 +589,7 @@ app.delete('/api/expenses/:id', authenticateToken, async (req, res) => {
         if (!exp) return res.status(404).json({ message: "找不到該支出" });
         const trip = await Trip.findById(exp.tripId);
         if (!trip) return res.status(404).json({ message: '找不到該行程' });
-        if (exp.payer !== req.user.account && !isTripCreatorOrAdmin(trip, req.user)) return res.status(403).json({ message: '你沒有權限存取這個內容' });
+        if (exp.payer !== req.user.account && !await isTripCreatorOrAdmin(trip, req.user)) return res.status(403).json({ message: '你沒有權限存取這個內容' });
         await Expense.findByIdAndDelete(req.params.id);
         res.json({ message: "已刪除" });
     } catch (e) { res.status(500).json({ message: "刪除失敗" }); }
@@ -592,13 +617,14 @@ app.post('/api/trips/:id/photos', authenticateToken, async (req, res) => {
 app.put('/api/photos/reorder', authenticateToken, async (req, res) => {
     try {
         const { photoOrders } = req.body;
-        if (!photoOrders || photoOrders.length === 0) return res.json({ message: "排序與分類已更新" });
+        if (!Array.isArray(photoOrders) || photoOrders.length === 0) return res.status(400).json({ message: '照片資料不合法' });
         const first = await Photo.findById(photoOrders[0].id);
         if (!first) return res.status(404).json({ message: "找不到照片" });
         const trip = await Trip.findById(first.tripId);
         if (!trip) return res.status(404).json({ message: '找不到該行程' });
-        if (!isTripParticipant(trip, req.user) && req.user.role !== 'admin') return res.status(403).json({ message: '你沒有權限存取這個內容' });
+        if (!isTripParticipant(trip, req.user)) return res.status(403).json({ message: '你沒有權限存取這個內容' });
         for (const item of photoOrders) {
+            if (!Number.isInteger(item.order) || item.order < 0 || !Number.isInteger(item.dayIndex) || item.dayIndex < 0 || item.dayIndex >= trip.days.length) return res.status(400).json({ message: '照片排序資料不合法' });
             const photo = await Photo.findById(item.id);
             if (!photo || photo.tripId !== first.tripId) return res.status(400).json({ message: '照片資料不合法' });
         }
@@ -615,8 +641,7 @@ app.delete('/api/photos/:id', authenticateToken, async (req, res) => {
         if (!photo) return res.status(404).json({ message: "找不到照片" });
         const trip = await Trip.findById(photo.tripId);
         if (!trip) return res.status(404).json({ message: '找不到該行程' });
-        const legacyOwner = !photo.uploaderAccount && photo.uploader === req.user.nickname;
-        if (photo.uploaderAccount !== req.user.account && !legacyOwner && !isTripCreatorOrAdmin(trip, req.user)) return res.status(403).json({ message: '你沒有權限存取這個內容' });
+        if (photo.uploaderAccount !== req.user.account && !await isTripCreatorOrAdmin(trip, req.user)) return res.status(403).json({ message: '你沒有權限存取這個內容' });
         await Photo.findByIdAndDelete(req.params.id);
         res.json({ message: "照片已刪除" });
     } catch (error) {

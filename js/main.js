@@ -1,7 +1,7 @@
 // main.js - 首頁核心功能
 const API_URL = window.YashYashConfig.API_URL;
 let currentUser = null;
-if (!localStorage.getItem('yashyash_token')) location.href = 'login.html';
+if (!localStorage.getItem('yashyash_user') || !localStorage.getItem('yashyash_token')) { localStorage.removeItem('yashyash_user'); localStorage.removeItem('yashyash_token'); location.href = 'login.html'; }
 
 // ===== 初始化載入 =====
 window.onload = async function() {
@@ -45,7 +45,7 @@ async function loadProposals() {
     const board = document.getElementById('announcement-board');
     
     try {
-        const res = await fetch(`${API_URL}/api/proposals`);
+        const res = await apiFetch(`${API_URL}/api/proposals`);
         const proposals = await res.json();
         
         if (proposals.length === 0) {
@@ -54,7 +54,7 @@ async function loadProposals() {
         }
         
         board.innerHTML = proposals.map(p => {
-            const isCreator = p.creator === currentUser.nickname;
+            const isCreator = p.creatorAccount === currentUser.account;
             const hasVoted = p.votes.includes(currentUser.account);
             const progress = Math.min((p.votes.length / p.min) * 100, 100);
             const isPending = p.status === 'pending';
@@ -120,7 +120,7 @@ async function loadProposals() {
 async function editProposal(proposalId) {
     try {
         // 取得目前提案資料
-        const res = await fetch(`${API_URL}/api/proposals`);
+        const res = await apiFetch(`${API_URL}/api/proposals`);
         const proposals = await res.json();
         const proposal = proposals.find(p => p._id === proposalId);
         

@@ -43,7 +43,7 @@
     <script src="js/api.js"></script>
     <script>
     const API_URL = window.YashYashConfig.API_URL;
-    if (!localStorage.getItem('yashyash_token')) location.href = 'login.html';
+    if (!localStorage.getItem('yashyash_user') || !localStorage.getItem('yashyash_token')) { localStorage.removeItem('yashyash_user'); localStorage.removeItem('yashyash_token'); location.href = 'login.html'; }
     
     async function submitProposal() {
         const startDate = document.getElementById('start-date').value;
@@ -60,15 +60,10 @@
             return;
         }
 
-        const user = JSON.parse(localStorage.getItem('yashyash_user'));
-        
         const payload = {
-            creator: user.nickname,
             start: startDate,
             end: endDate,
-            min: parseInt(minPpl),
-            votes: [user.account], 
-            status: 'voting'
+            min: parseInt(minPpl)
         };
 
         try {
