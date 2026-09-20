@@ -46,6 +46,7 @@ async function loadProposals() {
     
     try {
         const res = await apiFetch(`${API_URL}/api/proposals`);
+        if (!res.ok) throw new Error('載入失敗');
         const proposals = await res.json();
         
         if (proposals.length === 0) {
@@ -53,13 +54,22 @@ async function loadProposals() {
             return;
         }
         
-        board.innerHTML = proposals.map(p => {
+        board.replaceChildren();
+        proposals.forEach(p => {
             const isCreator = p.creatorAccount === currentUser.account;
             const hasVoted = p.votes.includes(currentUser.account);
             const progress = Math.min((p.votes.length / p.min) * 100, 100);
             const isPending = p.status === 'pending';
             
-            return `
+            const card=document.createElement('div'); card.className='proposal-card wabi-card';
+            const title=document.createElement('strong'); title.style.cssText='font-size:1.1rem;color:var(--text-color);'; title.textContent=`${p.creator} 發起的旅行`; card.appendChild(title);
+            const date=document.createElement('div'); date.style.cssText='margin:12px 0;color:#666;'; date.textContent=`📅 ${formatDate(p.start)} ~ ${formatDate(p.end)}`; card.appendChild(date);
+            const progressText=document.createElement('div'); progressText.textContent=`參加人數 ${p.votes.length} / ${p.min}`; card.appendChild(progressText);
+            const actions=document.createElement('div'); actions.style.cssText='display:flex;gap:8px;margin-top:15px;';
+            if (isCreator) { const edit=document.createElement('button'); edit.className='btn-small'; edit.textContent='✏️ 編輯'; edit.addEventListener('click',()=>editProposal(p._id)); actions.appendChild(edit); }
+            const voteBtn=document.createElement('button'); voteBtn.className='btn-primary'; voteBtn.style.flex='1'; voteBtn.textContent=hasVoted?'✓ 已報名':'✋ 我要參加'; voteBtn.disabled=hasVoted; if(!hasVoted)voteBtn.addEventListener('click',()=>vote(p._id)); actions.appendChild(voteBtn);
+            if(isCreator){const del=document.createElement('button');del.className='btn-small';del.textContent='🗑️';del.addEventListener('click',()=>deleteProposal(p._id));actions.appendChild(del);} card.appendChild(actions); board.appendChild(card);
+            /*
                 <div class="proposal-card wabi-card">
                     <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
                         <strong style="font-size: 1.1rem; color: var(--text-color);">${p.creator} 發起的旅行</strong>
@@ -108,7 +118,7 @@ async function loadProposals() {
                     </div>
                 </div>
             `;
-        }).join('');
+        */ });
         
     } catch (e) {
         console.error("載入提案失敗:", e);
@@ -226,6 +236,7 @@ async function loadMyTrips() {
     
     try {
         const res = await apiFetch(`${API_URL}/api/my-trips`);
+        if (!res.ok) throw new Error('載入失敗');
         const trips = await res.json();
         
         // 取得今天的日期（格式：YYYY-MM-DD）
@@ -239,11 +250,16 @@ async function loadMyTrips() {
             return;
         }
         
-        tripList.innerHTML = upcomingTrips.map(t => {
+        tripList.replaceChildren();
+        upcomingTrips.forEach(t => {
             const dayCount = Math.ceil((new Date(t.endDate) - new Date(t.startDate)) / (1000 * 60 * 60 * 24)) + 1;
             const daysLeft = Math.ceil((new Date(t.startDate) - new Date()) / (1000 * 60 * 60 * 24));
             
-            return `
+            const card=document.createElement('div'); card.className='trip-card wabi-card'; card.addEventListener('click',()=>{location.href=`trip-details.html?id=${encodeURIComponent(t._id)}`;});
+            const title=document.createElement('strong'); title.style.cssText='font-size:1.2rem;color:var(--accent-color);'; title.textContent=t.title; card.appendChild(title);
+            if(daysLeft>=0){const badge=document.createElement('span'); badge.textContent=daysLeft>0?`還有 ${daysLeft} 天`:'今天出發！'; card.appendChild(badge);}
+            const date=document.createElement('div'); date.textContent=`📅 ${formatDate(t.startDate)} ~ ${formatDate(t.endDate)} (${dayCount} 天)`; card.appendChild(date); const people=document.createElement('div');people.textContent=`👥 ${t.participants.length} 位夥伴`;card.appendChild(people);tripList.appendChild(card);
+            /*
                 <div class="trip-card wabi-card" onclick="location.href='trip-details.html?id=${t._id}'">
                     <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
                         <strong style="font-size: 1.2rem; color: var(--accent-color);">${t.title}</strong>
@@ -271,7 +287,7 @@ async function loadMyTrips() {
                     </div>
                 </div>
             `;
-        }).join('');
+        */ });
         
     } catch (e) {
         console.error("載入行程失敗:", e);
