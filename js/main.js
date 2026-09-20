@@ -62,13 +62,15 @@ async function loadProposals() {
             const isPending = p.status === 'pending';
             
             const card=document.createElement('div'); card.className='proposal-card wabi-card';
-            const title=document.createElement('strong'); title.style.cssText='font-size:1.1rem;color:var(--text-color);'; title.textContent=`${p.creator} 發起的旅行`; card.appendChild(title);
+            const header=document.createElement('div'); header.style.cssText='display:flex;justify-content:space-between;align-items:start;margin-bottom:15px;';
+            const title=document.createElement('strong'); title.style.cssText='font-size:1.1rem;color:var(--text-color);'; title.textContent=`${p.creator} 發起的旅行`; header.appendChild(title); card.appendChild(header);
             const date=document.createElement('div'); date.style.cssText='margin:12px 0;color:#666;'; date.textContent=`📅 ${formatDate(p.start)} ~ ${formatDate(p.end)}`; card.appendChild(date);
-            const progressText=document.createElement('div'); progressText.textContent=`參加人數 ${p.votes.length} / ${p.min}`; card.appendChild(progressText);
+            const summary=document.createElement('div'); summary.style.cssText='background:var(--bg-color);padding:12px;border-radius:8px;margin:12px 0;'; const progressText=document.createElement('div'); progressText.style.cssText='font-weight:bold;color:var(--accent-color);'; progressText.textContent=`參加人數 ${p.votes.length} / ${p.min}`; const track=document.createElement('div'); track.style.cssText='background:#ddd;height:8px;border-radius:10px;overflow:hidden;'; const bar=document.createElement('div'); bar.style.cssText=`background:var(--accent-color);height:100%;width:${progress}%;transition:width .3s;`; track.appendChild(bar); summary.append(progressText,track); card.appendChild(summary);
+            if(isPending){const pending=document.createElement('div');pending.style.cssText='background:#fff3cd;padding:10px;border-radius:8px;margin:10px 0;border-left:3px solid var(--clay);';const strong=document.createElement('strong');strong.textContent='🎉 人數已達標！';const small=document.createElement('small');small.textContent='等待發起人確認建立正式行程';pending.append(strong,document.createElement('br'),small);card.appendChild(pending);}
             const actions=document.createElement('div'); actions.style.cssText='display:flex;gap:8px;margin-top:15px;';
-            if (isCreator) { const edit=document.createElement('button'); edit.className='btn-small'; edit.textContent='✏️ 編輯'; edit.addEventListener('click',()=>editProposal(p._id)); actions.appendChild(edit); }
+            if (isCreator) { const edit=document.createElement('button'); edit.className='btn-small'; edit.style.fontSize='.7rem'; edit.textContent='✏️ 編輯'; edit.addEventListener('click',()=>editProposal(p._id)); header.appendChild(edit); }
             const voteBtn=document.createElement('button'); voteBtn.className='btn-primary'; voteBtn.style.flex='1'; voteBtn.textContent=hasVoted?'✓ 已報名':'✋ 我要參加'; voteBtn.disabled=hasVoted; if(!hasVoted)voteBtn.addEventListener('click',()=>vote(p._id)); actions.appendChild(voteBtn);
-            if(isCreator){const del=document.createElement('button');del.className='btn-small';del.textContent='🗑️';del.addEventListener('click',()=>deleteProposal(p._id));actions.appendChild(del);} card.appendChild(actions); board.appendChild(card);
+            if(isCreator){const del=document.createElement('button');del.className='btn-small';del.style.cssText='color:var(--danger);border-color:var(--danger);';del.textContent='🗑️';del.addEventListener('click',()=>deleteProposal(p._id));actions.appendChild(del);} card.appendChild(actions); board.appendChild(card);
             /*
                 <div class="proposal-card wabi-card">
                     <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
@@ -257,8 +259,8 @@ async function loadMyTrips() {
             
             const card=document.createElement('div'); card.className='trip-card wabi-card'; card.addEventListener('click',()=>{location.href=`trip-details.html?id=${encodeURIComponent(t._id)}`;});
             const title=document.createElement('strong'); title.style.cssText='font-size:1.2rem;color:var(--accent-color);'; title.textContent=t.title; card.appendChild(title);
-            if(daysLeft>=0){const badge=document.createElement('span'); badge.textContent=daysLeft>0?`還有 ${daysLeft} 天`:'今天出發！'; card.appendChild(badge);}
-            const date=document.createElement('div'); date.textContent=`📅 ${formatDate(t.startDate)} ~ ${formatDate(t.endDate)} (${dayCount} 天)`; card.appendChild(date); const people=document.createElement('div');people.textContent=`👥 ${t.participants.length} 位夥伴`;card.appendChild(people);tripList.appendChild(card);
+            if(daysLeft>=0){const badge=document.createElement('span'); badge.style.cssText=`background:${daysLeft>0?'var(--clay)':'var(--danger)'};color:white;padding:4px 10px;border-radius:20px;font-size:.75rem;`; badge.textContent=daysLeft>0?`還有 ${daysLeft} 天`:'今天出發！'; card.appendChild(badge);}
+            const date=document.createElement('div'); date.style.cssText='color:#666;margin:8px 0;'; date.textContent=`📅 ${formatDate(t.startDate)} ~ ${formatDate(t.endDate)} (${dayCount} 天)`; card.appendChild(date); const people=document.createElement('div');people.style.cssText='color:#666;margin:8px 0;';people.textContent=`👥 ${t.participants.length} 位夥伴`;card.appendChild(people);const footer=document.createElement('div');footer.style.cssText='margin-top:12px;padding-top:12px;border-top:1px dashed #ddd;font-size:.85rem;color:#999;';footer.textContent='點擊查看詳情 →';card.appendChild(footer);tripList.appendChild(card);
             /*
                 <div class="trip-card wabi-card" onclick="location.href='trip-details.html?id=${t._id}'">
                     <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
