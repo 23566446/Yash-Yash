@@ -1,10 +1,12 @@
 const API_URL = window.YashYashConfig.API_URL;
 const urlParams = new URLSearchParams(window.location.search);
 const tripId = urlParams.get('id');
+if (!localStorage.getItem('yashyash_user') || !localStorage.getItem('yashyash_token')) { localStorage.removeItem('yashyash_user'); localStorage.removeItem('yashyash_token'); window.location.href = 'login.html'; }
 const currentUser = JSON.parse(localStorage.getItem('yashyash_user'));
 
 let tripParticipants = []; // 行程成員
 let selectedSplit = [];    // 目前選中要分攤的人
+function denyAccess() { alert('你沒有權限存取這個內容'); window.location.href = 'index.html'; }
 
 window.onload = async () => {
     await fetchTripInfo();
@@ -12,7 +14,9 @@ window.onload = async () => {
 };
 
 async function fetchTripInfo() {
-    const res = await fetch(`${API_URL}/api/trips/${tripId}`);
+    const res = await apiFetch(`${API_URL}/api/trips/${tripId}`);
+    if (res.status === 403) return denyAccess();
+    if (!res.ok) return alert('載入行程失敗');
     const trip = await res.json();
     tripParticipants = trip.participants;
     renderSplitList();
@@ -76,7 +80,7 @@ async function submitExpense() {
     };
 
     try {
-        const res = await fetch(`${API_URL}/api/trips/${tripId}/expenses`, {
+        const res = await apiFetch(`${API_URL}/api/trips/${tripId}/expenses`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -95,7 +99,9 @@ async function submitExpense() {
 }
 
 async function fetchExpenses() {
-    const res = await fetch(`${API_URL}/api/trips/${tripId}/expenses`);
+    const res = await apiFetch(`${API_URL}/api/trips/${tripId}/expenses`);
+    if (res.status === 403) return denyAccess();
+    if (!res.ok) return alert('載入支出失敗');
     const expenses = await res.json();
     renderExpenses(expenses);
     calculateBalances(expenses);
@@ -164,7 +170,7 @@ function calculateBalances(expenses) {
 async function deleteExpense(id) {
     if (!confirm("確定刪除此筆支出？")) return;
     try {
-        const res = await fetch(`${API_URL}/api/expenses/${id}`, { method: 'DELETE' });
+        const res = await apiFetch(`${API_URL}/api/expenses/${id}`, { method: 'DELETE' });
         if (!res.ok) {
             alert("刪除支出失敗");
             return;

@@ -69,18 +69,13 @@
 
     <script src="js/config.js"></script>
     <script src="js/pwa.js"></script>
+    <script src="js/api.js"></script>
     <script src="js/past-trip.js"></script>
     <script>
         function toggleMenu() {
             document.getElementById('side-menu').classList.toggle('active');
         }
         
-        function logout() {
-            if (confirm("確定要登出嗎？")) {
-                localStorage.removeItem('yashyash_user');
-                location.href = 'login.html';
-            }
-        }
     </script>
 </body>
 </html>

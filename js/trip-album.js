@@ -1,6 +1,7 @@
 const API_URL = window.YashYashConfig.API_URL;
 const urlParams = new URLSearchParams(window.location.search);
 const tripId = urlParams.get('id');
+if (!localStorage.getItem('yashyash_user') || !localStorage.getItem('yashyash_token')) { localStorage.removeItem('yashyash_user'); localStorage.removeItem('yashyash_token'); window.location.href = 'login.html'; }
 const userData = localStorage.getItem('yashyash_user');
 
 if (!userData || !tripId) {
@@ -12,13 +13,16 @@ let tripData = null;
 let allPhotos = [];
 let sortables = [];
 let currentUploadDay = 0;
+function denyAccess() { alert('你沒有權限存取這個內容'); window.location.href = 'index.html'; }
 
 window.onload = async () => {
     const backBtn = document.getElementById('back-to-details');
     if (backBtn) backBtn.onclick = () => { window.location.href = `trip-details.html?id=${tripId}`; };
 
     try {
-        const tripRes = await fetch(`${API_URL}/api/trips/${tripId}`);
+        const tripRes = await apiFetch(`${API_URL}/api/trips/${tripId}`);
+        if (tripRes.status === 403) return denyAccess();
+        if (!tripRes.ok) throw new Error('載入行程失敗');
         tripData = await tripRes.json();
         await loadPhotos();
     } catch (err) {
@@ -29,7 +33,9 @@ window.onload = async () => {
 // --- 2. 載入照片資料 ---
 async function loadPhotos() {
     try {
-        const res = await fetch(`${API_URL}/api/trips/${tripId}/photos`);
+        const res = await apiFetch(`${API_URL}/api/trips/${tripId}/photos`);
+        if (res.status === 403) return denyAccess();
+        if (!res.ok) throw new Error('載入照片失敗');
         allPhotos = await res.json();
         renderAlbum();
     } catch (err) {
@@ -119,7 +125,7 @@ async function handleFileUpload(event) {
 
         try {
             const base64 = await toBase64(file);
-            const response = await fetch(`${API_URL}/api/trips/${tripId}/photos`, {
+            const response = await apiFetch(`${API_URL}/api/trips/${tripId}/photos`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -161,9 +167,11 @@ function viewPhoto(id, src, uploader) {
     lbText.innerText = `由 ${uploader} 分享`;
     lb.classList.remove('hidden');
 
-    const isAdmin = (currentUser.account === 'admin');
-    const isOwner = (uploader === currentUser.nickname);
-    delBtn.style.display = (isAdmin || isOwner) ? 'block' : 'none';
+    const photo = allPhotos.find(p => p._id === id);
+    const isAdmin = currentUser.role === 'admin';
+    const isOwner = photo?.uploaderAccount === currentUser.account;
+    const isCreator = tripData?.creatorAccount === currentUser.account;
+    delBtn.style.display = (isAdmin || isOwner || isCreator) ? 'block' : 'none';
     
     delBtn.onclick = (e) => {
         e.stopPropagation();
@@ -182,7 +190,7 @@ function closeLightbox() {
 async function deletePhoto(id) {
     if (!confirm("確定要刪除這張照片嗎？")) return;
     try {
-        const res = await fetch(`${API_URL}/api/photos/${id}`, { method: 'DELETE' });
+        const res = await apiFetch(`${API_URL}/api/photos/${id}`, { method: 'DELETE' });
         if (res.ok) {
             closeLightbox();
             loadPhotos();
@@ -203,7 +211,7 @@ async function handleReorder(dayIdx, gridElement) {
         order: index
     }));
 
-    const response = await fetch(`${API_URL}/api/photos/reorder`, {
+    const response = await apiFetch(`${API_URL}/api/photos/reorder`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ photoOrders })

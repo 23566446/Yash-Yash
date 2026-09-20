@@ -1,11 +1,14 @@
 const API_URL = window.YashYashConfig.API_URL;
 const urlParams = new URLSearchParams(window.location.search);
 const tripId = urlParams.get('id');
+if (!localStorage.getItem('yashyash_user') || !localStorage.getItem('yashyash_token')) { localStorage.removeItem('yashyash_user'); localStorage.removeItem('yashyash_token'); window.location.href = 'login.html'; }
 
 const userData = localStorage.getItem('yashyash_user');
 const currentUser = JSON.parse(userData);
 
 let lastMessageCount = 0;
+let pollTimer = null;
+function denyAccess() { if (pollTimer) clearInterval(pollTimer); alert('你沒有權限存取這個內容'); window.location.href = 'index.html'; }
 
 window.onload = async () => {
     if (!tripId || !currentUser) {
@@ -17,20 +20,25 @@ window.onload = async () => {
         window.location.href = `trip-details.html?id=${tripId}`;
     };
 
-    await fetchTripInfo();
+    if (!await fetchTripInfo()) return;
     fetchMessages();
-    setInterval(fetchMessages, 3000);
+    pollTimer = setInterval(fetchMessages, 3000);
 };
 
 async function fetchTripInfo() {
-    const res = await fetch(`${API_URL}/api/trips/${tripId}`);
+    const res = await apiFetch(`${API_URL}/api/trips/${tripId}`);
+    if (res.status === 403) { denyAccess(); return false; }
+    if (!res.ok) { alert('載入行程失敗'); return false; }
     const trip = await res.json();
     document.getElementById('chat-trip-title').innerText = trip.title;
+    return true;
 }
 
 async function fetchMessages() {
     try {
-        const res = await fetch(`${API_URL}/api/trips/${tripId}/chat`);
+        const res = await apiFetch(`${API_URL}/api/trips/${tripId}/chat`);
+        if (res.status === 403) return denyAccess();
+        if (!res.ok) throw new Error('訊息讀取失敗');
         const messages = await res.json();
 
         // 只有在訊息數量有變時才重新渲染，避免閃爍
@@ -82,7 +90,7 @@ async function handleSend(e) {
     input.value = ""; // 立即清空
 
     try {
-        const res = await fetch(`${API_URL}/api/trips/${tripId}/chat`, {
+        const res = await apiFetch(`${API_URL}/api/trips/${tripId}/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)

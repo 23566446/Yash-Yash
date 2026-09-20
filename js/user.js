@@ -97,7 +97,7 @@ async function updateMyInfo() {
 }
 
 async function checkNotifications() {
-    const res = await fetch(`${API_URL}/api/notifications/${currentUser.nickname}`);
+    const res = await apiFetch(`${API_URL}/api/notifications`);
     const pendings = await res.json();
     const section = document.getElementById('notification-section');
     if (pendings.length > 0) {
@@ -118,7 +118,7 @@ async function handleTripDecision(id, action) {
         title = prompt("請輸入旅行名稱：", "我們的旅行");
         if (!title) return;
     }
-    const response = await fetch(`${API_URL}/api/trips/confirm`, {
+    const response = await apiFetch(`${API_URL}/api/trips/confirm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ proposalId: id, action, title })
