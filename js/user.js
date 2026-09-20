@@ -16,13 +16,13 @@ function initPage() {
 
     checkNotifications();
 
-    const isSuperAdmin = (currentUser.account === 'admin' || currentUser.role === 'admin');
-    const isManager = (currentUser.role === 'manager');
+    const isSuperAdmin = currentUser.role === 'admin';
 
-    // Admin 與 Manager 都能看到管理清單
-    if (isSuperAdmin || isManager) {
+    if (isSuperAdmin) {
         document.getElementById('super-user-section').classList.remove('hidden');
+        document.getElementById('marquee-admin-section').classList.remove('hidden');
         loadAllUsers(isSuperAdmin); 
+        loadMarqueeSetting();
     }
 
     // 只有真正的 Super Admin 才能管理金鑰
@@ -34,7 +34,7 @@ function initPage() {
 
 async function loadAllUsers(isSuperAdmin) {
     try {
-        const response = await fetch(`${API_URL}/api/admin/users`);
+        const response = await apiFetch(`${API_URL}/api/admin/users`);
         const users = await response.json();
         const listContainer = document.getElementById('all-users-list');
         
@@ -55,7 +55,7 @@ async function loadAllUsers(isSuperAdmin) {
                     <div class="user-actions" style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap;">
                         <button onclick="adminResetPassword('${u._id}', '${u.nickname}')" class="btn-small">改密碼</button>
                         ${isSuperAdmin ? `
-                            <button onclick="changeRole('${u._id}', '${u.role === 'manager' ? 'user' : 'manager'}')" class="btn-small">${u.role === 'manager' ? '設為一般使用者' : '設為管理員'}</button>
+                            <button onclick="changeRole('${u._id}', '${u.role === 'admin' ? 'user' : 'admin'}')" class="btn-small">${u.role === 'admin' ? '設為一般使用者' : '設為管理員'}</button>
                             <button onclick="deleteUser('${u._id}')" class="btn-small" style="color:red; border-color:red;">刪除</button>
                         ` : ''}
                     </div>
@@ -66,7 +66,7 @@ async function loadAllUsers(isSuperAdmin) {
 }
 
 async function changeRole(id, newRole) {
-    const res = await fetch(`${API_URL}/api/admin/change-role`, {
+    const res = await apiFetch(`${API_URL}/api/admin/change-role`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ targetUserId: id, newRole })
@@ -81,7 +81,7 @@ async function updateMyInfo() {
     if (!newNick) return alert("暱稱不能為空");
 
     try {
-        const response = await fetch(`${API_URL}/api/users/update`, {
+        const response = await apiFetch(`${API_URL}/api/users/update`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: currentUser._id, nickname: newNick, password: newPw, gender: newGen, avatar: currentAvatarBase64 })
@@ -136,17 +136,18 @@ async function handleTripDecision(id, action) {
 async function adminResetPassword(id, nick) {
     const newPassword = prompt(`請輸入「${nick}」的新密碼:`);
     if (!newPassword) return;
-    await fetch(`${API_URL}/api/admin/reset-password`, {
+    const response = await apiFetch(`${API_URL}/api/admin/reset-password`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ targetUserId: id, newPassword })
     });
-    alert(`已成功將 ${nick} 的密碼重設！`);
+    if (response.ok) alert(`已成功將 ${nick} 的密碼重設！`);
+    else alert("密碼重設失敗");
 }
 
 async function deleteUser(id) {
     if (!confirm("確定要永久移除此使用者嗎？")) return;
-    const response = await fetch(`${API_URL}/api/admin/users/${id}`, { method: 'DELETE' });
+    const response = await apiFetch(`${API_URL}/api/admin/users/${id}`, { method: 'DELETE' });
     if (response.ok) { alert("已移除使用者"); loadAllUsers(true); }
 }
 
@@ -163,7 +164,7 @@ async function updateMarquee() {
     const text = document.getElementById('marquee-input').value;
     if(!text) return alert("請輸入公告內容");
 
-    const res = await fetch(`${API_URL}/api/settings/marquee`, {
+    const res = await apiFetch(`${API_URL}/api/settings/marquee`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text })
@@ -206,7 +207,7 @@ async function updateAvatarOnly(avatarBase64) {
     }
 
     try {
-        const response = await fetch(`${API_URL}/api/users/update`, {
+        const response = await apiFetch(`${API_URL}/api/users/update`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -235,5 +236,9 @@ async function updateAvatarOnly(avatarBase64) {
     }
 }
 
-function logout() { localStorage.removeItem('yashyash_user'); window.location.href = 'login.html'; }
+function logout() {
+    localStorage.removeItem('yashyash_user');
+    localStorage.removeItem('yashyash_token');
+    window.location.href = 'login.html';
+}
 

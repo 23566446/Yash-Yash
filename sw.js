@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yashyash-v3';
+const CACHE_NAME = 'yashyash-v4';
 const ASSETS = [
     './',
     './index.html',
@@ -8,6 +8,7 @@ const ASSETS = [
     './css/style-login.css',
     './js/main.js',
     './js/auth.js',
+    './js/api.js',
     './js/config.js',
     './js/maps-loader.js',
     './js/pwa.js',

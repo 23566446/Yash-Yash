@@ -88,6 +88,7 @@ async function register() {
         if (response.ok) {
             alert("註冊成功！");
             localStorage.setItem('yashyash_user', JSON.stringify(data.user));
+            localStorage.setItem('yashyash_token', data.token);
             window.location.href = 'index.html';
         } else {
             alert(data.message); // 這裡會顯示「無效的金鑰」或「使用次數已滿」
@@ -117,6 +118,7 @@ async function login() {
 
         if (response.ok) {
             localStorage.setItem('yashyash_user', JSON.stringify(data.user));
+            localStorage.setItem('yashyash_token', data.token);
             window.location.href = 'index.html';
         } else {
             alert(data.message || "登入失敗，請稍後再試");

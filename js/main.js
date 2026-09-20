@@ -315,6 +315,7 @@ document.addEventListener('click', function(e) {
 function logout() {
     if (confirm("確定要登出嗎？")) {
         localStorage.removeItem('yashyash_user');
+        localStorage.removeItem('yashyash_token');
         location.href = 'login.html';
     }
 }
