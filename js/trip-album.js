@@ -80,11 +80,17 @@ function renderAlbum() {
             group: 'shared-album',
             animation: 150,
             onEnd: async (evt) => {
-                const targetDayIdx = parseInt(evt.to.getAttribute('data-day'));
-                await handleReorder(targetDayIdx, evt.to);
-                if (evt.from !== evt.to) {
-                    const fromDayIdx = parseInt(evt.from.getAttribute('data-day'));
-                    await handleReorder(fromDayIdx, evt.from);
+                try {
+                    const targetDayIdx = parseInt(evt.to.getAttribute('data-day'));
+                    await handleReorder(targetDayIdx, evt.to);
+                    if (evt.from !== evt.to) {
+                        const fromDayIdx = parseInt(evt.from.getAttribute('data-day'));
+                        await handleReorder(fromDayIdx, evt.from);
+                    }
+                } catch (error) {
+                    console.error('照片排序失敗:', error);
+                    await loadPhotos();
+                    alert('照片排序失敗，已還原目前儲存的順序');
                 }
             }
         }));
@@ -103,15 +109,17 @@ async function handleFileUpload(event) {
 
     alert(`正在準備上傳 ${files.length} 張照片...`);
 
+    let failedUploads = 0;
     for (const file of files) {
         if (file.size > 2 * 1024 * 1024) {
             console.warn(`跳過大檔案: ${file.name}`);
+            failedUploads++;
             continue;
         }
 
-        const base64 = await toBase64(file);
         try {
-            await fetch(`${API_URL}/api/trips/${tripId}/photos`, {
+            const base64 = await toBase64(file);
+            const response = await fetch(`${API_URL}/api/trips/${tripId}/photos`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -121,13 +129,16 @@ async function handleFileUpload(event) {
                     order: 999
                 })
             });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
         } catch (e) {
             console.error("上傳失敗", e);
+            failedUploads++;
         }
     }
     // 清空 input 讓同檔案可重複觸發
     event.target.value = "";
     loadPhotos();
+    if (failedUploads) alert(`${failedUploads} 張照片上傳失敗`);
 }
 
 const toBase64 = file => new Promise((resolve, reject) => {
@@ -175,6 +186,8 @@ async function deletePhoto(id) {
         if (res.ok) {
             closeLightbox();
             loadPhotos();
+        } else {
+            alert("刪除失敗");
         }
     } catch (e) {
         alert("刪除失敗");
@@ -190,11 +203,12 @@ async function handleReorder(dayIdx, gridElement) {
         order: index
     }));
 
-    await fetch(`${API_URL}/api/photos/reorder`, {
+    const response = await fetch(`${API_URL}/api/photos/reorder`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ photoOrders })
     });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
 }
 
 // --- 7. 打包下載 ---

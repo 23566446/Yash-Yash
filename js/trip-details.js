@@ -245,13 +245,19 @@ async function initMap() {
         return;
     }
 
-    map = new google.maps.Map(mapEl, {
-        center: { lat: 25.0339, lng: 121.5644 },
-        zoom: 13,
-        mapTypeControl: false,
-        streetViewControl: false,
-        clickableIcons: true
-    });
+    try {
+        map = new google.maps.Map(mapEl, {
+            center: { lat: 25.0339, lng: 121.5644 },
+            zoom: 13,
+            mapTypeControl: false,
+            streetViewControl: false,
+            clickableIcons: true
+        });
+    } catch (error) {
+        console.error('Google Maps 載入失敗:', error);
+        showMapError();
+        return;
+    }
 
     infoWindow = new google.maps.InfoWindow();
     geocoder = new google.maps.Geocoder();

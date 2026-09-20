@@ -75,15 +75,22 @@ async function submitExpense() {
         splitWith: selectedSplit
     };
 
-    const res = await fetch(`${API_URL}/api/trips/${tripId}/expenses`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    });
+    try {
+        const res = await fetch(`${API_URL}/api/trips/${tripId}/expenses`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
 
-    if (res.ok) {
-        closeAddModal();
-        fetchExpenses();
+        if (res.ok) {
+            closeAddModal();
+            fetchExpenses();
+        } else {
+            alert("新增支出失敗");
+        }
+    } catch (error) {
+        console.error("新增支出失敗", error);
+        alert("新增支出失敗");
     }
 }
 
@@ -156,8 +163,17 @@ function calculateBalances(expenses) {
 
 async function deleteExpense(id) {
     if (!confirm("確定刪除此筆支出？")) return;
-    await fetch(`${API_URL}/api/expenses/${id}`, { method: 'DELETE' });
-    fetchExpenses();
+    try {
+        const res = await fetch(`${API_URL}/api/expenses/${id}`, { method: 'DELETE' });
+        if (!res.ok) {
+            alert("刪除支出失敗");
+            return;
+        }
+        fetchExpenses();
+    } catch (error) {
+        console.error("刪除支出失敗", error);
+        alert("刪除支出失敗");
+    }
 }
 
 document.getElementById('back-to-details').onclick = () => window.location.href = `trip-details.html?id=${tripId}`;

@@ -90,8 +90,14 @@ async function handleSend(e) {
 
         if (res.ok) {
             fetchMessages(); // 傳送後立即刷新一次
+        } else {
+            input.value = text;
+            alert("傳送失敗，請再試一次");
         }
-    } catch (e) { alert("傳送失敗"); }
+    } catch (e) {
+        input.value = text;
+        alert("傳送失敗，請再試一次");
+    }
 }
 
 function scrollToBottom() {
