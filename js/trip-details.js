@@ -333,7 +333,7 @@ function findPlaceAddress(latLng) {
 
 function showMapError(message = '地圖暫時無法載入，但行程清單仍可使用。') {
     const mapEl = document.getElementById('map');
-    if (mapEl) mapEl.innerHTML = `<p class="empty-text" style="padding:20px;">${message}</p>`;
+    if (mapEl) { mapEl.replaceChildren(); const text = document.createElement('p'); text.className = 'empty-text'; text.style.padding = '20px'; text.textContent = message; mapEl.appendChild(text); }
 }
 
 function showPreview(latLng, name, address) {
