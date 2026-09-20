@@ -49,3 +49,117 @@ End each phase with: Summary, Files Changed, Tests Performed, Test Results, Manu
 ## Future Architecture
 
 Authentication hardening, authorization, password hashing, TypeScript, React/Vite, real-time transport, offline architecture, cloud photo storage, multi-currency accounting, and AI features require an explicitly requested future phase.
+
+## Automated Handoff
+
+When a development phase or requested task is complete:
+
+1. Commit all completed work.
+2. Push the feature branch.
+3. Create or update a Draft Pull Request targeting `main`.
+4. Include a concise summary of:
+   - implemented changes
+   - actual tests performed
+   - test results
+   - manual verification still required
+5. Do not merge into `main`.
+6. Stop after the Pull Request is created or updated.
+7. Wait for automated review.
+
+When addressing automated review feedback:
+
+- Fix only blocking issues explicitly identified by the review.
+- Do not expand scope.
+- Do not perform unrelated refactors.
+- Run targeted validation for the affected code.
+- Commit and push fixes to the same Pull Request branch.
+- Do not create another branch unless explicitly requested.
+- Do not merge into `main`.
+
+## Automated Review Rules
+
+When reviewing a Pull Request:
+
+Prioritize:
+
+- Functional correctness
+- Regression risk
+- Frontend/backend API contract mismatches
+- Broken GitHub Pages `/Yash-Yash/` paths
+- PWA / Service Worker regressions
+- Render / MongoDB integration regressions
+- Silent API failures
+- Incorrect or misleading UI state
+- Secrets or credentials accidentally committed
+- Features that no longer work on completed/past trips
+- UI/UX problems that prevent users from discovering or using existing functionality
+
+Do not block a Pull Request only for:
+
+- Formatting preferences
+- Naming preferences
+- Style-only refactors
+- Optional architecture improvements
+- Unrelated future-phase work
+
+If a blocking issue is found:
+
+- Give a concise explanation.
+- Identify the affected file or behavior.
+- Give clear acceptance criteria for the fix.
+- Do not request unrelated changes.
+
+## Automated Fix Loop
+
+Automated review/fix iterations should be limited.
+
+For the same Pull Request:
+
+- Maximum automatic fix rounds: 2.
+- Round 1 review should use:
+  `[YashYash Auto Review Round 1]`
+- Round 2 review should use:
+  `[YashYash Auto Review Round 2]`
+
+After two failed automatic fix rounds:
+
+- Stop requesting additional automated fixes.
+- Mark the Pull Request as requiring human review.
+- Do not continue consuming tokens indefinitely.
+
+When no blocking issues remain:
+
+Use:
+
+`[YashYash Auto Review PASS]`
+
+Then stop modifying the Pull Request and wait for human smoke testing / merge approval.
+
+## Token Efficiency for Automated Review
+
+For Pull Request review:
+
+1. Read `AGENTS.md`.
+2. Read the Pull Request description and test results.
+3. Inspect the PR diff first.
+4. Read only files directly related to changed code.
+5. Do not repeatedly inspect unchanged files.
+6. Do not output full diffs or source files.
+7. Do not trigger automated fixes for non-blocking style suggestions.
+8. Prefer targeted tests over repeated full-repository analysis.
+
+Functionality and correctness take priority over token savings, but avoid unnecessary context usage.
+
+## Merge Safety
+
+Never automatically merge into `main`.
+
+The final flow must remain:
+
+Development
+→ Pull Request
+→ Automated Review
+→ Automated Fix if required
+→ Review PASS
+→ Human smoke test
+→ Human merge approval
