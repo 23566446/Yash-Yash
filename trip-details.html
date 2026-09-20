@@ -104,6 +104,11 @@
             font-size: 15px;
             margin: 0;
         }
+
+        #pac-input gmp-place-autocomplete {
+            display: block;
+            width: 100%;
+        }
         
         /* 行程列表容器 */
         #days-container {
@@ -141,7 +146,7 @@
         <!-- 行程側邊欄 -->
         <aside class="itinerary-sidebar">
             <div class="search-box-container">
-                <input id="pac-input" type="text" placeholder="🔍 搜尋地點或在地圖點擊...">
+                <div id="pac-input" aria-label="搜尋地點"></div>
             </div>
             <div id="days-container">
                 <!-- 由 JS 渲染 -->
@@ -150,8 +155,8 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyByHmLJTyobrL2u8kjPmK-mDtD2JqR2Elc&libraries=places"></script>
     <script src="js/config.js"></script>
+    <script src="js/maps-loader.js"></script>
     <script src="js/pwa.js"></script>
     <script src="js/trip-details.js"></script>
     

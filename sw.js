@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yashyash-v2';
+const CACHE_NAME = 'yashyash-v3';
 const ASSETS = [
     './',
     './index.html',
@@ -9,6 +9,7 @@ const ASSETS = [
     './js/main.js',
     './js/auth.js',
     './js/config.js',
+    './js/maps-loader.js',
     './js/pwa.js',
     './manifest.json',
     './calendar.png',
@@ -18,9 +19,9 @@ const ASSETS = [
 // 1. 安裝 Service Worker 並快取基本靜態資源
 self.addEventListener('install', (event) => {
     event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(ASSETS);
-        })
+        caches.open(CACHE_NAME)
+            .then((cache) => cache.addAll(ASSETS))
+            .then(() => self.skipWaiting())
     );
 });
 
@@ -49,6 +50,6 @@ self.addEventListener('activate', (event) => {
                     }
                 })
             );
-        })
+        }).then(() => self.clients.claim())
     );
 });

@@ -6,7 +6,6 @@ const userData = localStorage.getItem('yashyash_user');
 const currentUser = JSON.parse(userData);
 
 let lastMessageCount = 0;
-let tripExpired = false;
 
 window.onload = async () => {
     if (!tripId || !currentUser) {
@@ -27,11 +26,6 @@ async function fetchTripInfo() {
     const res = await fetch(`${API_URL}/api/trips/${tripId}`);
     const trip = await res.json();
     document.getElementById('chat-trip-title').innerText = trip.title;
-    const today = new Date().toISOString().split('T')[0];
-    const end = (trip.endDate || '').split('T')[0];
-    tripExpired = !!end && end < today;
-    const inputArea = document.querySelector('.chat-input-area');
-    if (inputArea) inputArea.style.display = tripExpired ? 'none' : '';
 }
 
 async function fetchMessages() {
@@ -75,7 +69,6 @@ function renderMessages(messages) {
 
 async function handleSend(e) {
     e.preventDefault();
-    if (tripExpired) return;
     const input = document.getElementById('message-input');
     const text = input.value.trim();
     if (!text) return;
@@ -97,8 +90,14 @@ async function handleSend(e) {
 
         if (res.ok) {
             fetchMessages(); // 傳送後立即刷新一次
+        } else {
+            input.value = text;
+            alert("傳送失敗，請再試一次");
         }
-    } catch (e) { alert("傳送失敗"); }
+    } catch (e) {
+        input.value = text;
+        alert("傳送失敗，請再試一次");
+    }
 }
 
 function scrollToBottom() {

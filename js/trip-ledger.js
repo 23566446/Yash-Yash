@@ -5,7 +5,6 @@ const currentUser = JSON.parse(localStorage.getItem('yashyash_user'));
 
 let tripParticipants = []; // 行程成員
 let selectedSplit = [];    // 目前選中要分攤的人
-let tripExpired = false;
 
 window.onload = async () => {
     await fetchTripInfo();
@@ -16,11 +15,6 @@ async function fetchTripInfo() {
     const res = await fetch(`${API_URL}/api/trips/${tripId}`);
     const trip = await res.json();
     tripParticipants = trip.participants;
-    const today = new Date().toISOString().split('T')[0];
-    const end = (trip.endDate || '').split('T')[0];
-    tripExpired = !!end && end < today;
-    const addBtn = document.getElementById('add-expense-btn');
-    if (addBtn) addBtn.style.display = tripExpired ? 'none' : '';
     renderSplitList();
 }
 
@@ -81,15 +75,22 @@ async function submitExpense() {
         splitWith: selectedSplit
     };
 
-    const res = await fetch(`${API_URL}/api/trips/${tripId}/expenses`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    });
+    try {
+        const res = await fetch(`${API_URL}/api/trips/${tripId}/expenses`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
 
-    if (res.ok) {
-        closeAddModal();
-        fetchExpenses();
+        if (res.ok) {
+            closeAddModal();
+            fetchExpenses();
+        } else {
+            alert("新增支出失敗");
+        }
+    } catch (error) {
+        console.error("新增支出失敗", error);
+        alert("新增支出失敗");
     }
 }
 
@@ -109,7 +110,7 @@ function renderExpenses(expenses) {
 
     list.innerHTML = expenses.map(e => `
         <div class="expense-card">
-            ${tripExpired ? '' : `<button onclick="deleteExpense('${e._id}')" class="btn-delete-exp">×</button>`}
+            <button onclick="deleteExpense('${e._id}')" class="btn-delete-exp">×</button>
             <div class="expense-header">
                 <span class="category-tag">${e.category}</span>
             </div>
@@ -161,10 +162,18 @@ function calculateBalances(expenses) {
 }
 
 async function deleteExpense(id) {
-    if (tripExpired) return;
     if (!confirm("確定刪除此筆支出？")) return;
-    await fetch(`${API_URL}/api/expenses/${id}`, { method: 'DELETE' });
-    fetchExpenses();
+    try {
+        const res = await fetch(`${API_URL}/api/expenses/${id}`, { method: 'DELETE' });
+        if (!res.ok) {
+            alert("刪除支出失敗");
+            return;
+        }
+        fetchExpenses();
+    } catch (error) {
+        console.error("刪除支出失敗", error);
+        alert("刪除支出失敗");
+    }
 }
 
 document.getElementById('back-to-details').onclick = () => window.location.href = `trip-details.html?id=${tripId}`;

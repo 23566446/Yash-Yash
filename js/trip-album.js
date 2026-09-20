@@ -12,7 +12,6 @@ let tripData = null;
 let allPhotos = [];
 let sortables = [];
 let currentUploadDay = 0;
-let tripExpired = false;
 
 window.onload = async () => {
     const backBtn = document.getElementById('back-to-details');
@@ -21,9 +20,6 @@ window.onload = async () => {
     try {
         const tripRes = await fetch(`${API_URL}/api/trips/${tripId}`);
         tripData = await tripRes.json();
-        const today = new Date().toISOString().split('T')[0];
-        const end = (tripData.endDate || '').split('T')[0];
-        tripExpired = !!end && end < today;
         await loadPhotos();
     } catch (err) {
         console.error("初始化失敗", err);
@@ -67,7 +63,7 @@ function renderAlbum() {
                     <span class="day-title" style="font-weight:bold; font-size:1.2rem;">Day ${i + 1}</span>
                     <span class="day-date" style="margin-left:10px; color:#888;">${dateStr}</span>
                 </div>
-                ${tripExpired ? '' : `<button class="btn-upload-day" onclick="openUpload(${i})" style="background:var(--accent-color); color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">＋ 上傳</button>`}
+                <button class="btn-upload-day" onclick="openUpload(${i})" style="background:var(--accent-color); color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">＋ 上傳</button>
             </div>
             <div class="photo-grid" id="grid-day-${i}" data-day="${i}" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:5px; padding:10px; min-height:50px;">
                 ${dayPhotos.map(p => `
@@ -79,27 +75,30 @@ function renderAlbum() {
         `;
         wrapper.appendChild(daySection);
 
-        if (!tripExpired) {
-            const el = document.getElementById(`grid-day-${i}`);
-            sortables.push(new Sortable(el, {
-                group: 'shared-album',
-                animation: 150,
-                onEnd: async (evt) => {
+        const el = document.getElementById(`grid-day-${i}`);
+        sortables.push(new Sortable(el, {
+            group: 'shared-album',
+            animation: 150,
+            onEnd: async (evt) => {
+                try {
                     const targetDayIdx = parseInt(evt.to.getAttribute('data-day'));
                     await handleReorder(targetDayIdx, evt.to);
                     if (evt.from !== evt.to) {
                         const fromDayIdx = parseInt(evt.from.getAttribute('data-day'));
                         await handleReorder(fromDayIdx, evt.from);
                     }
+                } catch (error) {
+                    console.error('照片排序失敗:', error);
+                    await loadPhotos();
+                    alert('照片排序失敗，已還原目前儲存的順序');
                 }
-            }));
-        }
+            }
+        }));
     }
 }
 
 // --- 4. 上傳邏輯 (批量上傳) ---
 function openUpload(dayIdx) {
-    if (tripExpired) return;
     currentUploadDay = dayIdx;
     document.getElementById('photo-input').click();
 }
@@ -110,15 +109,17 @@ async function handleFileUpload(event) {
 
     alert(`正在準備上傳 ${files.length} 張照片...`);
 
+    let failedUploads = 0;
     for (const file of files) {
         if (file.size > 2 * 1024 * 1024) {
             console.warn(`跳過大檔案: ${file.name}`);
+            failedUploads++;
             continue;
         }
 
-        const base64 = await toBase64(file);
         try {
-            await fetch(`${API_URL}/api/trips/${tripId}/photos`, {
+            const base64 = await toBase64(file);
+            const response = await fetch(`${API_URL}/api/trips/${tripId}/photos`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -128,13 +129,16 @@ async function handleFileUpload(event) {
                     order: 999
                 })
             });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
         } catch (e) {
             console.error("上傳失敗", e);
+            failedUploads++;
         }
     }
     // 清空 input 讓同檔案可重複觸發
     event.target.value = "";
     loadPhotos();
+    if (failedUploads) alert(`${failedUploads} 張照片上傳失敗`);
 }
 
 const toBase64 = file => new Promise((resolve, reject) => {
@@ -159,7 +163,7 @@ function viewPhoto(id, src, uploader) {
 
     const isAdmin = (currentUser.account === 'admin');
     const isOwner = (uploader === currentUser.nickname);
-    delBtn.style.display = (!tripExpired && (isAdmin || isOwner)) ? 'block' : 'none';
+    delBtn.style.display = (isAdmin || isOwner) ? 'block' : 'none';
     
     delBtn.onclick = (e) => {
         e.stopPropagation();
@@ -182,6 +186,8 @@ async function deletePhoto(id) {
         if (res.ok) {
             closeLightbox();
             loadPhotos();
+        } else {
+            alert("刪除失敗");
         }
     } catch (e) {
         alert("刪除失敗");
@@ -197,11 +203,12 @@ async function handleReorder(dayIdx, gridElement) {
         order: index
     }));
 
-    await fetch(`${API_URL}/api/photos/reorder`, {
+    const response = await fetch(`${API_URL}/api/photos/reorder`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ photoOrders })
     });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
 }
 
 // --- 7. 打包下載 ---
