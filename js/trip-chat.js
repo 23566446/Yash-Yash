@@ -52,27 +52,12 @@ async function fetchMessages() {
 
 function renderMessages(messages) {
     const windowEl = document.getElementById('chat-window');
+    windowEl.replaceChildren();
     if (messages.length === 0) {
-        windowEl.innerHTML = '<p class="empty-text">這裡還沒有訊息，開始聊天吧！</p>';
+        const empty = document.createElement('p'); empty.className = 'empty-text'; empty.textContent = '這裡還沒有訊息，開始聊天吧！'; windowEl.appendChild(empty);
         return;
     }
-
-    windowEl.innerHTML = messages.map(m => {
-        const isMe = m.sender === currentUser.nickname;
-        const timeStr = new Date(m.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const avatarSrc = m.avatar || 'img/default-avatar.svg';
-
-        return `
-            <div class="msg ${isMe ? 'me' : 'others'}">
-                <img src="${avatarSrc}" class="msg-avatar">
-                <div>
-                    <div style="font-size: 0.7rem; color: #888; margin-bottom: 2px;">${m.sender}</div>
-                    <div class="msg-content">${m.text}</div>
-                    <div class="msg-info">${timeStr}</div>
-                </div>
-            </div>
-        `;
-    }).join('');
+    messages.forEach(m => { const row=document.createElement('div'); row.className=`msg ${m.sender===currentUser.nickname?'me':'others'}`; const img=document.createElement('img'); img.className='msg-avatar'; img.src=window.safeImageSource ? safeImageSource(m.avatar) : 'img/default-avatar.svg'; img.onerror=()=>{img.src='img/default-avatar.svg';}; const body=document.createElement('div'); const sender=document.createElement('div'); sender.style.cssText='font-size:0.7rem;color:#888;margin-bottom:2px;'; sender.textContent=m.sender||''; const text=document.createElement('div'); text.className='msg-content'; text.textContent=m.text||''; const time=document.createElement('div'); time.className='msg-info'; time.textContent=new Date(m.time).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); body.append(sender,text,time); row.append(img,body); windowEl.appendChild(row); });
 }
 
 async function handleSend(e) {

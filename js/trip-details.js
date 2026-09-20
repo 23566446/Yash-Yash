@@ -333,7 +333,7 @@ function findPlaceAddress(latLng) {
 
 function showMapError(message = '地圖暫時無法載入，但行程清單仍可使用。') {
     const mapEl = document.getElementById('map');
-    if (mapEl) mapEl.innerHTML = `<p class="empty-text" style="padding:20px;">${message}</p>`;
+    if (mapEl) { mapEl.replaceChildren(); const text = document.createElement('p'); text.className = 'empty-text'; text.style.padding = '20px'; text.textContent = message; mapEl.appendChild(text); }
 }
 
 function showPreview(latLng, name, address) {
@@ -346,21 +346,12 @@ function showPreview(latLng, name, address) {
         animation: google.maps.Animation.DROP
     });
 
-    const safeName = name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-    const safeAddr = address.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-
-    const contentString = `
-        <div style="padding:10px; font-family:sans-serif; max-width:200px;">
-            <strong style="font-size:14px; display:block; margin-bottom:5px;">${name}</strong>
-            <span style="font-size:11px; color:#666; display:block; margin-bottom:10px;">${address}</span>
-            <button onclick="confirmAdd('${safeName}', '${safeAddr}', ${latLng.lat()}, ${latLng.lng()})" 
-                style="background:#8a9a5b; color:white; border:none; padding:8px; border-radius:4px; cursor:pointer; width:100%; font-weight:bold;">
-                確認加入 Day ${activeDayIndex + 1}
-            </button>
-        </div>
-    `;
-
-    infoWindow.setContent(contentString);
+    const wrapper = document.createElement('div'); wrapper.style.cssText='padding:10px;font-family:sans-serif;max-width:200px;';
+    const title = document.createElement('strong'); title.style.cssText='font-size:14px;display:block;margin-bottom:5px;'; title.textContent=name;
+    const addressEl = document.createElement('span'); addressEl.style.cssText='font-size:11px;color:#666;display:block;margin-bottom:10px;'; addressEl.textContent=address;
+    const button = document.createElement('button'); button.style.cssText='background:#8a9a5b;color:white;border:none;padding:8px;border-radius:4px;cursor:pointer;width:100%;font-weight:bold;'; button.textContent=`確認加入 Day ${activeDayIndex + 1}`;
+    button.addEventListener('click', () => confirmAdd(name, address, latLng.lat(), latLng.lng())); wrapper.append(title,addressEl,button);
+    infoWindow.setContent(wrapper);
     infoWindow.open(map, tempMarker);
 }
 

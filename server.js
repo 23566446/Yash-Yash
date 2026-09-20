@@ -32,6 +32,8 @@ const User = mongoose.model('User', new mongoose.Schema({
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const BCRYPT_ROUNDS = 12;
+const RASTER_DATA_URL = /^data:image\/(jpeg|png|webp|gif|heic|heif|avif);base64,[A-Za-z0-9+/=\s]+$/i;
+function validImageData(value, maxLength) { return typeof value === 'string' && value.length <= maxLength && RASTER_DATA_URL.test(value); }
 
 function toPublicUser(user) {
     return {
@@ -178,7 +180,7 @@ app.post('/api/register', async (req, res) => {
     try {
         const { account, password, nickname, gender, licenseKey } = req.body;
         if (!JWT_SECRET) return res.status(500).json({ message: '伺服器驗證設定未完成' });
-        if (!account || !password || !nickname) return res.status(400).json({ message: '帳號、密碼與暱稱為必填' });
+        if (!account || !password || typeof nickname !== 'string' || !nickname.trim() || nickname.length > 50) return res.status(400).json({ message: '帳號、密碼與暱稱為必填' });
         const license = await License.findOne({ key: licenseKey?.trim() });
         if (!license || license.used >= license.limit) return res.status(403).json({ message: "金鑰無效或已達使用上限" });
 
@@ -235,6 +237,7 @@ app.put('/api/admin/change-role', authenticateToken, requireAdmin, async (req, r
 app.put('/api/users/update', authenticateToken, async (req, res) => {
     try {
         const { nickname, password, gender, avatar } = req.body;
+        if (typeof nickname !== 'string' || !nickname.trim() || nickname.length > 50 || (avatar !== undefined && avatar !== '' && !validImageData(avatar, 7 * 1024 * 1024))) return res.status(400).json({ message: '個人資料不合法' });
         let updateData = { nickname, gender, avatar };
         let passwordChanged = false;
         if (password && password.trim() !== "") {
@@ -327,7 +330,7 @@ app.get('/api/proposals', authenticateToken, async (req, res) => {
     res.json(proposals);
 });
 app.post('/api/proposals', authenticateToken, async (req, res) => {
-    if (!req.body.start || !req.body.end) return res.status(400).json({ message: "日期必填" });
+    if (!req.body.start || !req.body.end || Number.isNaN(Date.parse(req.body.start)) || Number.isNaN(Date.parse(req.body.end)) || new Date(req.body.end) < new Date(req.body.start) || !Number.isInteger(req.body.min) || req.body.min < 1) return res.status(400).json({ message: "提案資料不合法" });
     const newP = new Proposal({ start: req.body.start, end: req.body.end, min: req.body.min, creator: req.user.nickname || req.user.account, creatorAccount: req.user.account, votes: [req.user.account], status: 'voting' });
     await newP.save(); 
     res.status(201).json(newP);
@@ -390,6 +393,7 @@ app.post('/api/trips/confirm', authenticateToken, async (req, res) => {
         if (req.user.role !== 'admin' && await getProposalCreatorAccount(prop) !== req.user.account) return res.status(403).json({ message: '你沒有權限存取這個內容' });
 
         if (action === 'confirm') {
+            if (typeof title !== 'string' || !title.trim() || title.length > 100) return res.status(400).json({ message: '行程名稱不合法' });
             const today = new Date().toISOString().split('T')[0];
             const exist = await Trip.findOne({ title, endDate: { $gte: today } });
             if (exist) return res.status(400).json({ message: `名稱「${title}」已被使用，請換一個名字。` });
@@ -431,7 +435,9 @@ app.post('/api/trips/:id/location', authenticateToken, async (req, res) => {
         const t = await getAuthorizedTrip(req, res);
         if (!t) return;
         if (!Number.isInteger(req.body.dayIndex) || !t.days[req.body.dayIndex]) return res.status(400).json({ message: '日期資料不合法' });
-        t.days[req.body.dayIndex].locations.push(req.body.location);
+        const l = req.body.location;
+        if (!l || typeof l.name !== 'string' || !l.name.trim() || l.name.length > 200 || typeof l.addr !== 'string' || l.addr.length > 500 || !Number.isFinite(l.lat) || !Number.isFinite(l.lng) || l.lat < -90 || l.lat > 90 || l.lng < -180 || l.lng > 180) return res.status(400).json({ message: '地點資料不合法' });
+        t.days[req.body.dayIndex].locations.push({ name: l.name, addr: l.addr, lat: l.lat, lng: l.lng, note: typeof l.note === 'string' ? l.note.slice(0, 500) : '', time: typeof l.time === 'string' ? l.time.slice(0, 50) : '' });
         await t.save();
         res.json(t);
     } catch (e) { res.status(500).json({ message: "新增地點失敗" }); }
@@ -556,6 +562,7 @@ app.post('/api/trips/:id/chat', authenticateToken, async (req, res) => {
     try {
         const trip = await getAuthorizedTrip(req, res);
         if (!trip) return;
+        if (typeof req.body.text !== 'string' || !req.body.text.trim() || req.body.text.length > 500) return res.status(400).json({ message: '訊息資料不合法' });
         const newMessage = { sender: req.user.nickname || req.user.account, text: req.body.text, avatar: req.user.avatar || '', time: new Date() };
         trip.chatMessages.push(newMessage);
         await trip.save();
@@ -577,7 +584,7 @@ app.post('/api/trips/:id/expenses', authenticateToken, async (req, res) => {
         const trip = await getAuthorizedTrip(req, res);
         if (!trip) return;
         const { amount, currency, category, note, splitWith } = req.body;
-        if (!Number.isFinite(Number(amount)) || Number(amount) <= 0 || !Array.isArray(splitWith) || splitWith.length === 0 || new Set(splitWith).size !== splitWith.length || splitWith.some(account => !trip.participants.includes(account))) return res.status(400).json({ message: '支出資料不合法' });
+        if (!Number.isFinite(Number(amount)) || Number(amount) <= 0 || !Array.isArray(splitWith) || splitWith.length === 0 || new Set(splitWith).size !== splitWith.length || splitWith.some(account => !trip.participants.includes(account)) || typeof currency !== 'string' || currency.length < 1 || currency.length > 10 || (typeof category !== 'string' && category !== undefined) || (category?.length || 0) > 50 || (typeof note !== 'string' && note !== undefined) || (note?.length || 0) > 500) return res.status(400).json({ message: '支出資料不合法' });
         const newExpense = new Expense({ tripId: req.params.id, amount: Number(amount), currency, category, note, splitWith, payer: req.user.account, payerName: req.user.nickname || req.user.account });
         await newExpense.save();
         res.status(201).json(newExpense);
@@ -610,7 +617,7 @@ app.post('/api/trips/:id/photos', authenticateToken, async (req, res) => {
         const trip = await getAuthorizedTrip(req, res);
         if (!trip) return;
         const { imageData, dayIndex, order } = req.body;
-        if (typeof imageData !== 'string' || !imageData.trim() || !Number.isInteger(dayIndex) || dayIndex < 0 || dayIndex >= trip.days.length || (order !== undefined && (!Number.isInteger(order) || order < 0))) return res.status(400).json({ message: '照片資料不合法' });
+        if (!validImageData(imageData, 3 * 1024 * 1024) || !Number.isInteger(dayIndex) || dayIndex < 0 || dayIndex >= trip.days.length || (order !== undefined && (!Number.isInteger(order) || order < 0))) return res.status(400).json({ message: '照片資料不合法' });
         const newPhoto = new Photo({ tripId: req.params.id, imageData, dayIndex, order: order === undefined ? 999 : order, uploader: req.user.nickname || req.user.account, uploaderAccount: req.user.account });
         await newPhoto.save();
         res.status(201).json(newPhoto);
@@ -662,7 +669,7 @@ app.get('/api/settings/marquee', async (req, res) => {
 app.put('/api/settings/marquee', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { text } = req.body;
-        if (typeof text !== 'string' || !text.trim()) return res.status(400).json({ message: '公告內容不可為空白' });
+        if (typeof text !== 'string' || !text.trim() || text.length > 500) return res.status(400).json({ message: '公告內容不合法' });
         await Setting.findOneAndUpdate({ key: 'marquee' }, { value: text }, { upsert: true });
         res.json({ message: "跑馬燈更新成功" });
     } catch (error) { res.status(500).json({ message: '跑馬燈更新失敗' }); }

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yashyash-v6';
+const CACHE_NAME = 'yashyash-v7';
 const ASSETS = [
     './',
     './index.html',
