@@ -1,15 +1,33 @@
 const API_URL = window.YashYashConfig.API_URL;
 const userData = localStorage.getItem('yashyash_user');
-if (!userData) { window.location.href = 'login.html'; }
-let currentUser = JSON.parse(userData);
-let currentAvatarBase64 = currentUser.avatar || "";
+const authToken = localStorage.getItem('yashyash_token');
+let currentUser = null;
+
+if (!userData || !authToken) {
+    localStorage.removeItem('yashyash_user');
+    localStorage.removeItem('yashyash_token');
+    window.location.href = 'login.html';
+} else {
+    try {
+        currentUser = JSON.parse(userData);
+    } catch (err) {
+        localStorage.removeItem('yashyash_user');
+        localStorage.removeItem('yashyash_token');
+        window.location.href = 'login.html';
+    }
+}
+
+let currentAvatarBase64 = currentUser?.avatar || "";
 let isUploadingAvatar = false;
 
-window.onload = () => { initPage(); };
+window.onload = () => {
+    if (!currentUser) return;
+    initPage();
+};
 
 function initPage() {
-    document.getElementById('header-nickname').innerText = `${currentUser.nickname} 的後台`;
-    document.getElementById('display-account').innerText = currentUser.account;
+    document.getElementById('header-nickname').textContent = `${currentUser.nickname} 的後台`;
+    document.getElementById('display-account').textContent = currentUser.account;
     document.getElementById('edit-nick').value = currentUser.nickname;
     document.getElementById('edit-gen').value = currentUser.gender || 'male';
     if (currentUser.avatar) { document.getElementById('avatar-preview').src = currentUser.avatar; }
@@ -33,36 +51,81 @@ function initPage() {
 }
 
 async function loadAllUsers(isSuperAdmin) {
+    const listContainer = document.getElementById('all-users-list');
     try {
         const response = await apiFetch(`${API_URL}/api/admin/users`);
+        if (!response.ok) {
+            const errorMessage = document.createElement('p');
+            errorMessage.className = 'empty-text';
+            errorMessage.textContent = '載入成員名單失敗，請稍後再試。';
+            listContainer.replaceChildren(errorMessage);
+            return;
+        }
+
         const users = await response.json();
-        const listContainer = document.getElementById('all-users-list');
-        
-        listContainer.innerHTML = users.map(u => {
-            // 1. 隱藏自己
-            if (u.account === currentUser.account) return ""; 
+        if (!Array.isArray(users)) {
+            const errorMessage = document.createElement('p');
+            errorMessage.className = 'empty-text';
+            errorMessage.textContent = '載入成員名單失敗，請稍後再試。';
+            listContainer.replaceChildren(errorMessage);
+            return;
+        }
 
-            // 2. 核心修正：如果目標是 admin (超級管理員)，且目前登入者不是超級管理員，則隱藏該筆資料
+        const userRows = [];
+        users.forEach(u => {
+            if (u.account === currentUser.account) return;
+
             const isTargetAdmin = (u.account === 'admin' || u.role === 'admin');
-            if (isTargetAdmin && !isSuperAdmin) return "";
+            if (isTargetAdmin && !isSuperAdmin) return;
 
-            return `
-                <div class="user-item-row" style="padding: 15px; background: #fff; margin-bottom: 10px; border-radius: 12px; border: 1px solid #eee;">
-                    <div class="user-info-text">
-                        <strong style="font-size: 1.1rem;">${u.nickname}</strong>
-                        <span style="color: #888; font-size: 0.85rem;">帳號: ${u.account} (${u.role})</span>
-                    </div>
-                    <div class="user-actions" style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap;">
-                        <button onclick="adminResetPassword('${u._id}', '${u.nickname}')" class="btn-small">改密碼</button>
-                        ${isSuperAdmin ? `
-                            <button onclick="changeRole('${u._id}', '${u.role === 'admin' ? 'user' : 'admin'}')" class="btn-small">${u.role === 'admin' ? '設為一般使用者' : '設為管理員'}</button>
-                            <button onclick="deleteUser('${u._id}')" class="btn-small" style="color:red; border-color:red;">刪除</button>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-        }).join('');
-    } catch (err) { console.error("載入使用者列表失敗:", err); }
+            const row = document.createElement('div');
+            row.className = 'user-item-row';
+            row.style.cssText = 'padding: 15px; background: #fff; margin-bottom: 10px; border-radius: 12px; border: 1px solid #eee;';
+
+            const info = document.createElement('div');
+            info.className = 'user-info-text';
+            const nickname = document.createElement('strong');
+            nickname.style.fontSize = '1.1rem';
+            nickname.textContent = u.nickname;
+            const account = document.createElement('span');
+            account.style.cssText = 'color: #888; font-size: 0.85rem;';
+            account.textContent = `帳號: ${u.account} (${u.role})`;
+            info.append(nickname, account);
+
+            const actions = document.createElement('div');
+            actions.className = 'user-actions';
+            actions.style.cssText = 'margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap;';
+            const resetButton = document.createElement('button');
+            resetButton.className = 'btn-small';
+            resetButton.textContent = '改密碼';
+            resetButton.addEventListener('click', () => adminResetPassword(u._id, u.nickname));
+            actions.appendChild(resetButton);
+
+            if (isSuperAdmin) {
+                const roleButton = document.createElement('button');
+                roleButton.className = 'btn-small';
+                roleButton.textContent = u.role === 'admin' ? '設為一般使用者' : '設為管理員';
+                roleButton.addEventListener('click', () => changeRole(u._id, u.role === 'admin' ? 'user' : 'admin'));
+
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'btn-small';
+                deleteButton.style.cssText = 'color:red; border-color:red;';
+                deleteButton.textContent = '刪除';
+                deleteButton.addEventListener('click', () => deleteUser(u._id));
+                actions.append(roleButton, deleteButton);
+            }
+
+            row.append(info, actions);
+            userRows.push(row);
+        });
+        listContainer.replaceChildren(...userRows);
+    } catch (err) {
+        console.error("載入使用者列表失敗:", err);
+        const errorMessage = document.createElement('p');
+        errorMessage.className = 'empty-text';
+        errorMessage.textContent = '載入成員名單失敗，請稍後再試。';
+        listContainer.replaceChildren(errorMessage);
+    }
 }
 
 async function changeRole(id, newRole) {
@@ -97,18 +160,48 @@ async function updateMyInfo() {
 }
 
 async function checkNotifications() {
-    const res = await apiFetch(`${API_URL}/api/notifications`);
-    const pendings = await res.json();
     const section = document.getElementById('notification-section');
-    if (pendings.length > 0) {
+    const listContainer = document.getElementById('notification-list');
+    section.classList.add('hidden');
+    listContainer.replaceChildren();
+
+    try {
+        const res = await apiFetch(`${API_URL}/api/notifications`);
+        if (!res.ok) return;
+
+        const pendings = await res.json();
+        if (!Array.isArray(pendings) || pendings.length === 0) return;
+
+        const notifications = pendings.map(p => {
+            const item = document.createElement('div');
+            item.className = 'notif-item';
+            item.style.cssText = 'padding:15px; border-bottom:1px dashed #d2b48c;';
+
+            const message = document.createElement('p');
+            const label = document.createElement('strong');
+            label.textContent = '活動達標：';
+            const dates = document.createElement('span');
+            dates.textContent = `${p.start} ~ ${p.end}`;
+            message.append(label, dates);
+
+            const confirmButton = document.createElement('button');
+            confirmButton.className = 'btn-primary';
+            confirmButton.textContent = '確認建立';
+            confirmButton.addEventListener('click', () => handleTripDecision(p._id, 'confirm'));
+
+            const cancelButton = document.createElement('button');
+            cancelButton.className = 'btn-text';
+            cancelButton.textContent = '取消';
+            cancelButton.addEventListener('click', () => handleTripDecision(p._id, 'cancel'));
+
+            item.append(message, confirmButton, cancelButton);
+            return item;
+        });
+
+        listContainer.replaceChildren(...notifications);
         section.classList.remove('hidden');
-        document.getElementById('notification-list').innerHTML = pendings.map(p => `
-            <div class="notif-item" id="notif-${p._id}" style="padding:15px; border-bottom:1px dashed #d2b48c;">
-                <p><strong>活動達標：</strong>${p.start} ~ ${p.end}</p>
-                <button onclick="handleTripDecision('${p._id}', 'confirm')" class="btn-primary">確認建立</button>
-                <button onclick="handleTripDecision('${p._id}', 'cancel')" class="btn-text">取消</button>
-            </div>
-        `).join('');
+    } catch (err) {
+        console.error('載入通知失敗:', err);
     }
 }
 
@@ -123,13 +216,14 @@ async function handleTripDecision(id, action) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ proposalId: id, action, title })
     });
-    const result = await response.json();
+    const result = await response.json().catch(() => ({}));
     if (response.ok) {
         alert(action === 'confirm' ? "🎉 行程建立成功！" : "已取消行程");
         location.reload();
     } else {
-        alert("建立失敗：" + result.message);
-        if (result.message.includes("名稱")) handleTripDecision(id, action);
+        const message = typeof result.message === 'string' ? result.message : '伺服器錯誤';
+        alert("建立失敗：" + message);
+        if (message.includes("名稱")) handleTripDecision(id, action);
     }
 }
 
