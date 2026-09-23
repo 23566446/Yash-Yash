@@ -194,39 +194,101 @@ function renderItinerary() {
     sortables = [];
 
     const readOnly = false;
-    container.innerHTML = currentTripData.days.map((day, index) => {
+    const dayCards = currentTripData.days.map((day, index) => {
         const isActive = activeDayIndex === index;
-        return `
-            <div class="day-card wabi-card ${isActive ? 'active-day' : ''}" style="margin-bottom:15px; cursor:pointer; border:${isActive?'2px solid #8a9a5b':'1px solid #e0ddd7'}">
-                <div class="day-header" onclick="setActiveDay(${index})" style="padding:15px; display:flex; justify-content:space-between; align-items:center;">
-                    <h4 style="margin:0;">Day ${day.dayNumber} ${isActive ? '🔓' : ''}</h4>
-                    <span>${isActive ? '▼' : '▶'}</span>
-                </div>
-                <div class="day-content" style="display:${isActive ? 'block' : 'none'}; padding:0 15px 15px 15px; background:#f9f9f7;">
-                    <div class="location-list" id="list-${index}" style="min-height:20px;">
-                        ${day.locations.length === 0 ? '<p class="empty-text" style="font-size:0.8rem; color:#999;">尚未新增地點</p>' : 
-                            day.locations.map((loc, locIdx) => `
-                                <div class="location-item" 
-                                     onclick="focusLocation(${loc.lat}, ${loc.lng})"
-                                     style="background:#fff; border:1px solid #eee; padding:10px; margin:5px 0; display:flex; align-items:center; border-radius:5px; cursor:pointer;">
-                                    ${readOnly ? '' : '<span class="drag-handle" style="margin-right:10px; cursor:grab; color:#ccc;" onclick="event.stopPropagation()">☰</span>'}
-                                    <div style="flex:1; overflow:hidden;">
-                                        <div style="font-size:0.9rem; font-weight:bold; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">${loc.name}</div>
-                                    </div>
-                                    <div style="display:flex; gap:5px;">
-                                        <button onclick="event.stopPropagation(); startNavigation(${loc.lat}, ${loc.lng})" 
-                                                style="padding:4px 8px; background:#f5f2ed; border:1px solid #d2b48c; border-radius:4px; cursor:pointer;">🚗</button>
-                                        ${readOnly ? '' : `<button onclick="event.stopPropagation(); deleteLocation(${index}, ${locIdx})" 
-                                                style="padding:4px 8px; background:none; border:none; color:#ccc; cursor:pointer;">×</button>`}
-                                    </div>
-                                </div>
-                            `).join('')
-                        }
-                    </div>
-                </div>
-            </div>
-        `;
-    }).join('');
+        const dayCard = document.createElement('div');
+        dayCard.className = `day-card wabi-card${isActive ? ' active-day' : ''}`;
+        dayCard.style.cssText = `margin-bottom:15px; cursor:pointer; border:${isActive ? '2px solid #8a9a5b' : '1px solid #e0ddd7'};`;
+
+        const header = document.createElement('div');
+        header.className = 'day-header';
+        header.style.cssText = 'padding:15px; display:flex; justify-content:space-between; align-items:center;';
+        header.addEventListener('click', () => setActiveDay(index));
+        const heading = document.createElement('h4');
+        heading.style.margin = '0';
+        heading.textContent = `Day ${day.dayNumber} ${isActive ? '🔓' : ''}`;
+        const indicator = document.createElement('span');
+        indicator.textContent = isActive ? '▼' : '▶';
+        header.append(heading, indicator);
+
+        const content = document.createElement('div');
+        content.className = 'day-content';
+        content.style.cssText = `display:${isActive ? 'block' : 'none'}; padding:0 15px 15px 15px; background:#f9f9f7;`;
+        const locationList = document.createElement('div');
+        locationList.className = 'location-list';
+        locationList.id = `list-${index}`;
+        locationList.style.minHeight = '20px';
+
+        if (day.locations.length === 0) {
+            const emptyText = document.createElement('p');
+            emptyText.className = 'empty-text';
+            emptyText.style.cssText = 'font-size:0.8rem; color:#999;';
+            emptyText.textContent = '尚未新增地點';
+            locationList.appendChild(emptyText);
+        } else {
+            day.locations.forEach((loc, locIdx) => {
+                const lat = Number.parseFloat(loc.lat);
+                const lng = Number.parseFloat(loc.lng);
+                const hasValidCoordinates = Number.isFinite(lat) && Number.isFinite(lng);
+                const locationItem = document.createElement('div');
+                locationItem.className = 'location-item';
+                locationItem.style.cssText = 'background:#fff; border:1px solid #eee; padding:10px; margin:5px 0; display:flex; align-items:center; border-radius:5px; cursor:pointer;';
+
+                if (hasValidCoordinates) {
+                    locationItem.addEventListener('click', () => focusLocation(lat, lng));
+                }
+
+                if (!readOnly) {
+                    const dragHandle = document.createElement('span');
+                    dragHandle.className = 'drag-handle';
+                    dragHandle.style.cssText = 'margin-right:10px; cursor:grab; color:#ccc;';
+                    dragHandle.textContent = '☰';
+                    dragHandle.addEventListener('click', event => event.stopPropagation());
+                    locationItem.appendChild(dragHandle);
+                }
+
+                const locationNameWrapper = document.createElement('div');
+                locationNameWrapper.style.cssText = 'flex:1; overflow:hidden;';
+                const locationName = document.createElement('div');
+                locationName.style.cssText = 'font-size:0.9rem; font-weight:bold; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;';
+                locationName.textContent = loc.name;
+                locationNameWrapper.appendChild(locationName);
+
+                const actions = document.createElement('div');
+                actions.style.cssText = 'display:flex; gap:5px;';
+                const navigationButton = document.createElement('button');
+                navigationButton.style.cssText = 'padding:4px 8px; background:#f5f2ed; border:1px solid #d2b48c; border-radius:4px; cursor:pointer;';
+                navigationButton.textContent = '🚗';
+                navigationButton.disabled = !hasValidCoordinates;
+                if (hasValidCoordinates) {
+                    navigationButton.addEventListener('click', event => {
+                        event.stopPropagation();
+                        startNavigation(lat, lng);
+                    });
+                }
+                actions.appendChild(navigationButton);
+
+                if (!readOnly) {
+                    const deleteButton = document.createElement('button');
+                    deleteButton.style.cssText = 'padding:4px 8px; background:none; border:none; color:#ccc; cursor:pointer;';
+                    deleteButton.textContent = '×';
+                    deleteButton.addEventListener('click', event => {
+                        event.stopPropagation();
+                        deleteLocation(index, locIdx);
+                    });
+                    actions.appendChild(deleteButton);
+                }
+
+                locationItem.append(locationNameWrapper, actions);
+                locationList.appendChild(locationItem);
+            });
+        }
+
+        content.appendChild(locationList);
+        dayCard.append(header, content);
+        return dayCard;
+    });
+    container.replaceChildren(...dayCards);
 
     if (typeof Sortable !== 'undefined' && !readOnly) {
         currentTripData.days.forEach((_, index) => {
