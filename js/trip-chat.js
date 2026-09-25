@@ -58,7 +58,7 @@ function mergeMessages(messages) {
         }
     });
     if (changed) {
-        const orderedMessages = [...messagesByKey.values()].sort((a, b) => new Date(a.time) - new Date(b.time));
+        const orderedMessages = window.YashYashChatUtils.sortMessages(messagesByKey.values());
         renderMessages(orderedMessages);
         scrollToBottom();
     }

@@ -215,9 +215,14 @@ function handleProposalPendingNotification(event) {
     window.showToast?.('旅遊提案已達成最低參加人數');
 }
 
+function refreshNotificationsOnConnect() {
+    checkNotifications();
+}
+
 async function initializeNotificationRealtime() {
     if (!window.YashYashRealtime) return;
     window.YashYashRealtime.on('notification:proposal-pending', handleProposalPendingNotification);
+    window.YashYashRealtime.on('connect', refreshNotificationsOnConnect);
     try { await window.YashYashRealtime.connect(); } catch (error) { /* Existing REST notifications remain available */ }
 }
 
