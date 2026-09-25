@@ -295,6 +295,10 @@ app.get('/api/admin/users', authenticateToken, requireAdmin, async (req, res) =>
         res.json((await User.find()).map(toPublicUser));
     } catch (error) { res.status(500).json({ message: '讀取使用者失敗' }); }
 });
+
+app.get('/api/session', authenticateToken, (req, res) => {
+    res.json(toPublicUser(req.user));
+});
 app.get('/api/admin/licenses', authenticateToken, requireAdmin, async (req, res) => {
     try {
         res.json(await License.find().sort({ createdAt: -1 }));
@@ -630,14 +634,21 @@ app.post('/api/trips/:id/ai', authenticateToken, async (req, res) => {
         if (!trip) return;
         const validation = validateQuestion(req.body.question);
         if (!validation.ok) return res.status(400).json({ message: '問題內容不合法' });
-        if (!aiProvider.isConfigured()) return res.status(503).json({ message: 'AI 助手尚未設定' });
+        if (!aiProvider.isConfigured()) return res.status(503).json({ message: 'AI 助手尚未設定', category: 'AI_NOT_CONFIGURED' });
         if (!aiRateWindow.allow(req.user.account)) return res.status(429).json({ message: 'AI 請求過於頻繁，請稍後再試' });
 
         const expenses = await Expense.find({ tripId: trip._id.toString() }).sort({ createdAt: -1 });
         const answer = await aiProvider.answerTripQuestion(validation.value, buildTripContext(trip, expenses));
         res.json({ answer });
     } catch (error) {
-        res.status(502).json({ message: 'AI 助手暫時無法回應' });
+        const category = error.category || 'AI_PROVIDER_FAILURE';
+        const response = aiProvider.AI_ERROR_RESPONSES[category] || aiProvider.AI_ERROR_RESPONSES.AI_PROVIDER_FAILURE;
+        console.error('AI provider error:', {
+            category,
+            status: error.providerStatus || null,
+            code: error.providerCode || null
+        });
+        res.status(response.status).json({ message: response.message, category });
     }
 });
 

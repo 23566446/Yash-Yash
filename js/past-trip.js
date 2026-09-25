@@ -2,9 +2,10 @@ const API_URL = window.YashYashConfig.API_URL;
 const userData = localStorage.getItem('yashyash_user');
 if (!localStorage.getItem('yashyash_user') || !localStorage.getItem('yashyash_token')) { localStorage.removeItem('yashyash_user'); localStorage.removeItem('yashyash_token'); window.location.href = 'login.html'; }
 if (!userData) { window.location.href = 'login.html'; }
-const currentUser = JSON.parse(userData);
+let currentUser = JSON.parse(userData);
 
-window.onload = () => {
+window.onload = async () => {
+    currentUser = await window.YashYashSession.ready;
     // 初始化選單使用者資訊
     if (currentUser.avatar) {
         document.getElementById('side-user-avatar').src = window.safeImageSource(currentUser.avatar, 'img/default-avatar.svg');

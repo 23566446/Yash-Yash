@@ -6,8 +6,9 @@ if (!localStorage.getItem('yashyash_user') || !localStorage.getItem('yashyash_to
 
 // ===== 初始化載入 =====
 window.onload = async function() {
+    const verifiedUser = await window.YashYashSession.ready;
     // 檢查登入狀態
-    const user = JSON.parse(localStorage.getItem('yashyash_user'));
+    const user = verifiedUser;
     if (!user) {
         location.href = 'login.html';
         return;
@@ -202,12 +203,12 @@ async function loadMyTrips() {
         }
         
         tripList.replaceChildren();
-        upcomingTrips.forEach(t => {
+        upcomingTrips.forEach((t, index) => {
             const dayCount = Math.ceil((new Date(t.endDate) - new Date(t.startDate)) / (1000 * 60 * 60 * 24)) + 1;
             const daysLeft = Math.ceil((new Date(t.startDate) - new Date()) / (1000 * 60 * 60 * 24));
             
-            const card=document.createElement('div'); card.className='trip-card wabi-card'; card.addEventListener('click',()=>{location.href=`trip-details.html?id=${encodeURIComponent(t._id)}`;});
-            const title=document.createElement('strong'); title.style.cssText='font-size:1.2rem;color:var(--accent-color);'; title.textContent=t.title; card.appendChild(title);
+            const card=document.createElement('div'); card.className=`trip-card wabi-card${index === 0 ? ' trip-hero' : ''}`; card.addEventListener('click',()=>{location.href=`trip-details.html?id=${encodeURIComponent(t._id)}`;});
+            const title=document.createElement('strong'); title.className='trip-card-title'; title.textContent=t.title; card.appendChild(title);
             if(daysLeft>=0){const badge=document.createElement('span'); badge.style.cssText=`background:${daysLeft>0?'var(--clay)':'var(--danger)'};color:white;padding:4px 10px;border-radius:20px;font-size:.75rem;`; badge.textContent=daysLeft>0?`還有 ${daysLeft} 天`:'今天出發！'; card.appendChild(badge);}
             const date=document.createElement('div'); date.style.cssText='color:#666;margin:8px 0;'; date.textContent=`📅 ${formatDate(t.startDate)} ~ ${formatDate(t.endDate)} (${dayCount} 天)`; card.appendChild(date); const people=document.createElement('div');people.style.cssText='color:#666;margin:8px 0;';people.textContent=`👥 ${t.participants.length} 位夥伴`;card.appendChild(people);const footer=document.createElement('div');footer.style.cssText='margin-top:12px;padding-top:12px;border-top:1px dashed #ddd;font-size:.85rem;color:#999;';footer.textContent='點擊查看詳情 →';card.appendChild(footer);tripList.appendChild(card); });
         

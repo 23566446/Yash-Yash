@@ -6,8 +6,9 @@
     <title>YashYash | 許可證管理</title>
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/product.css">
 </head>
-<body>
+<body class="auth-pending license-page">
     <header class="app-header">
         <button onclick="location.href='user.html'" class="btn-small">← 返回後台</button>
         <h2 style="margin:0;">許可證金鑰管理</h2>
@@ -37,11 +38,12 @@
     <script src="js/config.js"></script>
     <script src="js/pwa.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/auth-session.js"></script>
     <script>
         const API_URL = window.YashYashConfig.API_URL;
 
-        window.onload = function() {
-            const user = JSON.parse(localStorage.getItem('yashyash_user') || 'null');
+        window.onload = async function() {
+            const user = await window.YashYashSession.ready;
             if (!user || user.role !== 'admin') {
                 window.location.href = 'login.html';
                 return;

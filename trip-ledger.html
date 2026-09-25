@@ -7,6 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/ledger.css"> <!-- 引入剛建立的 CSS -->
+    <link rel="stylesheet" href="css/product.css">
     <title>YashYash | 記帳本</title>
     <link rel="manifest" href="manifest.json">
     <style>
@@ -24,7 +25,7 @@
         .split-item.active { background: var(--accent-color); color: white; border-color: var(--accent-color); }
     </style>
 </head>
-<body>
+<body class="auth-pending trip-ledger-page">
     <header class="app-header">
         <button id="back-to-details" class="btn-small">← 行程</button>
         <h2 style="margin:0;">行程記帳本</h2>
@@ -32,6 +33,7 @@
     </header>
 
     <main class="ledger-container">
+        <div class="section-header"><div><p class="section-eyebrow">旅費協作</p><h2 class="section-title">旅費記帳</h2></div></div>
         <!-- 結算總覽 -->
         <section class="summary-card" id="balance-summary">
             <h3>結算總覽 (待計算)</h3>
@@ -39,6 +41,7 @@
         </section>
 
         <!-- 支出清單 -->
+        <h3 class="ledger-section-title">支出紀錄</h3>
         <div id="expense-list">
             <p class="empty-text">尚無支出紀錄</p>
         </div>
@@ -78,6 +81,7 @@
     <script src="js/config.js"></script>
     <script src="js/pwa.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/auth-session.js"></script>
     <script src="js/trip-nav.js"></script>
     <script src="js/settlement.js"></script>
     <script src="js/trip-ledger.js"></script>

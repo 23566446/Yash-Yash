@@ -6,6 +6,7 @@
     <title>YashYash | 會員中心</title>
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/product.css">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         /* 確保頭像完美圓形 */
@@ -52,7 +53,7 @@
         }
     </style>
 </head>
-<body>
+<body class="auth-pending account-page">
     <header class="app-header">
         <button onclick="location.href='index.html'" class="btn-small">← 返回</button>
         <h2 id="header-nickname" style="margin:0;">個人設定</h2>
@@ -127,6 +128,7 @@
     <script src="js/config.js"></script>
     <script src="js/pwa.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/auth-session.js"></script>
     <script src="js/image-utils.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/realtime.js"></script>

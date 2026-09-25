@@ -22,8 +22,11 @@ let currentAvatarBase64 = currentUser?.avatar || "";
 let isUploadingAvatar = false;
 
 window.onload = () => {
-    if (!currentUser) return;
-    initPage();
+    window.YashYashSession.ready.then(user => {
+        currentUser = user;
+        currentAvatarBase64 = user.avatar || '';
+        initPage();
+    });
 };
 
 function initPage() {

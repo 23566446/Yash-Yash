@@ -10,9 +10,10 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="calendar.png">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/product.css">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 </head>
-<body>
+<body class="auth-pending home-page">
     <header class="app-header">
         <div class="header-left">
             <button class="menu-btn" onclick="toggleMenu()" aria-label="開啟選單">☰</button>
@@ -51,7 +52,7 @@
     <main class="main-content">
         <!-- 行程公告欄 -->
         <section class="container">
-            <h2 class="section-title">行程公告欄</h2>
+            <p class="section-eyebrow">一起決定下一站</p><h2 class="section-title">旅行提案</h2>
         </section>
         <div id="announcement-board" class="board">
             <p class="empty-text">載入中...</p>
@@ -59,7 +60,7 @@
 
         <!-- 即將到來的旅行 -->
         <section class="container">
-            <h2 class="section-title">即將到來的旅行</h2>
+            <p class="section-eyebrow">準備出發</p><h2 class="section-title">下一趟旅行</h2>
         </section>
         <div id="trip-list" class="board">
             <p class="empty-text">載入中...</p>
@@ -67,11 +68,12 @@
     </main>
 
     <!-- 浮動新增按鈕 -->
-    <button class="fab" onclick="location.href='create-trip.html'" aria-label="發起新提案">+</button>
+    <button class="fab" onclick="location.href='create-trip.html'" aria-label="發起新提案"><span aria-hidden="true">＋</span><span class="fab-label">發起旅行</span></button>
 
     <script src="js/config.js"></script>
     <script src="js/pwa.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/auth-session.js"></script>
     <script src="js/image-utils.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/realtime.js"></script>

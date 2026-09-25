@@ -19,6 +19,7 @@ let participantsPopoverBound = false;
 
 // === 初始化載入 ===
 window.onload = async () => {
+    await window.YashYashSession.ready;
     if (!tripId) {
         alert("找不到行程 ID");
         return;

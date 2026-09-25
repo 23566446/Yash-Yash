@@ -6,6 +6,7 @@
     <title>YashYash | AI 助手</title>
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/product.css">
     <style>
         .ai-container { max-width: 720px; margin: 0 auto; padding: 18px 14px 60px; }
         .ai-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
@@ -17,17 +18,17 @@
         .ai-message.error { color: var(--danger); }
     </style>
 </head>
-<body>
+<body class="auth-pending trip-ai-page">
     <header class="app-header">
         <button id="back-to-details" class="btn-small">← 行程</button>
         <h2 id="ai-trip-title" style="margin:0;">AI 旅遊助手</h2>
-        <div style="width:50px;"></div>
+        <span class="status-badge">唯讀建議</span>
     </header>
 
     <main class="ai-container">
         <section class="wabi-card">
             <h3>AI 旅遊助手</h3>
-            <p>根據目前行程與分幣別旅費提供唯讀建議。AI 不會修改任何資料。</p>
+            <p class="section-subtitle">根據目前行程與分幣別旅費提供唯讀建議。AI 不會修改任何資料。</p>
             <div id="ai-quick-actions" class="ai-actions"></div>
             <form id="ai-form">
                 <label for="ai-question">想問什麼？</label>
@@ -41,6 +42,7 @@
     <script src="js/config.js"></script>
     <script src="js/pwa.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/auth-session.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/trip-nav.js"></script>
     <script src="js/trip-ai.js"></script>

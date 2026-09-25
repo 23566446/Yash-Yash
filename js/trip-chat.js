@@ -2,7 +2,7 @@ const API_URL = window.YashYashConfig.API_URL;
 const tripId = new URLSearchParams(window.location.search).get('id');
 if (!localStorage.getItem('yashyash_user') || !localStorage.getItem('yashyash_token')) { localStorage.removeItem('yashyash_user'); localStorage.removeItem('yashyash_token'); window.location.href = 'login.html'; }
 
-const currentUser = JSON.parse(localStorage.getItem('yashyash_user'));
+let currentUser = JSON.parse(localStorage.getItem('yashyash_user'));
 const messagesByKey = new Map();
 let pollTimer = null;
 
@@ -13,6 +13,7 @@ function denyAccess() {
 }
 
 window.onload = async () => {
+    currentUser = await window.YashYashSession.ready;
     if (!tripId || !currentUser) {
         window.location.href = 'index.html';
         return;
