@@ -7,7 +7,7 @@ const currentUser = JSON.parse(userData);
 window.onload = () => {
     // 初始化選單使用者資訊
     if (currentUser.avatar) {
-        document.getElementById('side-user-avatar').src = currentUser.avatar;
+        document.getElementById('side-user-avatar').src = window.safeImageSource(currentUser.avatar, 'img/default-avatar.svg');
     }
     document.getElementById('side-display-name').innerText = currentUser.nickname;
     

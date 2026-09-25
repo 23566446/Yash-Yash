@@ -52,7 +52,8 @@
 
         async function loadLicenses() {
             const list = document.getElementById('license-list');
-            list.innerHTML = '<p class="empty-text">載入中...</p>';
+            const showMessage = (message, color) => { const el = document.createElement('p'); el.className = 'empty-text'; if (color) el.style.color = color; el.textContent = message; list.replaceChildren(el); };
+            showMessage('載入中...');
             
             try {
                 console.log("正在請求:", `${API_URL}/api/admin/licenses`);
@@ -65,35 +66,15 @@
                 const data = await res.json();
                 console.log("取得資料:", data);
                 
-                if (!data || data.length === 0) {
-                    list.innerHTML = '<p class="empty-text">目前沒有任何許可證金鑰</p>';
+                if (!Array.isArray(data) || data.length === 0) {
+                    showMessage(Array.isArray(data) ? '目前沒有任何許可證金鑰' : '載入失敗');
                     return;
                 }
-                
-                list.innerHTML = data.map(l => `
-                    <div class="user-item-row" style="padding:15px 0; border-bottom:1px dashed #ddd;">
-                        <div style="flex: 1; min-width: 0;">
-                            <strong style="color:var(--accent-color); font-family:monospace; font-size:1.1rem; word-break: break-all;">${l.key}</strong>
-                            <div style="font-size:0.8rem; color:#666; margin-top: 5px;">
-                                使用情況: ${l.used} / ${l.limit} 
-                                ${l.used >= l.limit ? '<span style="color:red; font-weight:bold;">(已失效)</span>' : '<span style="color:green; font-weight:bold;">(有效)</span>'}
-                            </div>
-                            <div style="font-size:0.7rem; color:#999; margin-top: 3px;">
-                                建立時間: ${new Date(l.createdAt).toLocaleString('zh-TW')}
-                            </div>
-                        </div>
-                        <button onclick="deleteLicense('${l._id}')" class="btn-small" style="color:red; border-color:#ffcccc; flex: 0 0 auto;">刪除</button>
-                    </div>
-                `).join('');
+                const rows = data.map(l => { const row=document.createElement('div'); row.className='user-item-row'; row.style.cssText='padding:15px 0; border-bottom:1px dashed #ddd;'; const info=document.createElement('div'); info.style.cssText='flex: 1; min-width: 0;'; const key=document.createElement('strong'); key.style.cssText='color:var(--accent-color); font-family:monospace; font-size:1.1rem; word-break: break-all;'; key.textContent=l.key; const usage=document.createElement('div'); usage.style.cssText='font-size:0.8rem; color:#666; margin-top: 5px;'; usage.textContent=`使用情況: ${l.used} / ${l.limit} `; const status=document.createElement('span'); status.style.cssText=`color:${l.used >= l.limit ? 'red' : 'green'}; font-weight:bold;`; status.textContent=l.used >= l.limit ? '(已失效)' : '(有效)'; usage.appendChild(status); const date=document.createElement('div'); date.style.cssText='font-size:0.7rem; color:#999; margin-top: 3px;'; date.textContent=`建立時間: ${new Date(l.createdAt).toLocaleString('zh-TW')}`; info.append(key,usage,date); const del=document.createElement('button'); del.className='btn-small'; del.style.cssText='color:red; border-color:#ffcccc; flex: 0 0 auto;'; del.textContent='刪除'; del.addEventListener('click',()=>deleteLicense(l._id)); row.append(info,del); return row; }); list.replaceChildren(...rows);
                 
             } catch (e) {
                 console.error("載入金鑰失敗:", e);
-                list.innerHTML = `
-                    <p class="empty-text" style="color: var(--danger);">
-                        ❌ 載入失敗：${e.message}<br>
-                        <small>請確認後端伺服器是否正常運作</small>
-                    </p>
-                `;
+                const error = document.createElement('p'); error.className='empty-text'; error.style.color='var(--danger)'; error.textContent=`❌ 載入失敗：${e.message || '未知錯誤'}`; const hint=document.createElement('small'); hint.textContent='請確認後端伺服器是否正常運作'; error.append(document.createElement('br'), hint); list.replaceChildren(error);
             }
         }
 
