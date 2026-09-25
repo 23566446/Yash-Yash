@@ -7,6 +7,9 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { Server } = require('socket.io');
 const { shouldNotifyProposalPending } = require('./lib/notification-utils');
+const { buildTripContext } = require('./lib/ai-context');
+const { validateQuestion, createRateWindow } = require('./lib/ai-utils');
+const aiProvider = require('./lib/ai-provider');
 require('dotenv').config();
 
 const app = express();
@@ -41,6 +44,7 @@ const User = mongoose.model('User', new mongoose.Schema({
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const BCRYPT_ROUNDS = 12;
+const aiRateWindow = createRateWindow();
 const RASTER_DATA_URL = /^data:image\/(jpeg|png|webp|gif|heic|heif|avif);base64,[A-Za-z0-9+/=\s]+$/i;
 function validImageData(value, maxLength) { return typeof value === 'string' && value.length <= maxLength && RASTER_DATA_URL.test(value); }
 
@@ -618,6 +622,23 @@ app.delete('/api/expenses/:id', authenticateToken, async (req, res) => {
         await Expense.findByIdAndDelete(req.params.id);
         res.json({ message: "已刪除" });
     } catch (e) { res.status(500).json({ message: "刪除失敗" }); }
+});
+
+app.post('/api/trips/:id/ai', authenticateToken, async (req, res) => {
+    try {
+        const trip = await getAuthorizedTrip(req, res);
+        if (!trip) return;
+        const validation = validateQuestion(req.body.question);
+        if (!validation.ok) return res.status(400).json({ message: '問題內容不合法' });
+        if (!aiProvider.isConfigured()) return res.status(503).json({ message: 'AI 助手尚未設定' });
+        if (!aiRateWindow.allow(req.user.account)) return res.status(429).json({ message: 'AI 請求過於頻繁，請稍後再試' });
+
+        const expenses = await Expense.find({ tripId: trip._id.toString() }).sort({ createdAt: -1 });
+        const answer = await aiProvider.answerTripQuestion(validation.value, buildTripContext(trip, expenses));
+        res.json({ answer });
+    } catch (error) {
+        res.status(502).json({ message: 'AI 助手暫時無法回應' });
+    }
 });
 
 // [相簿 API]

@@ -1,7 +1,7 @@
 (function () {
     const tripId = new URLSearchParams(window.location.search).get('id');
     if (!tripId) return;
-    const pages = [['trip-details.html', '行程'], ['trip-chat.html', '聊天'], ['trip-ledger.html', '記帳'], ['trip-album.html', '相簿']];
+    const pages = [['trip-details.html', '行程'], ['trip-chat.html', '聊天'], ['trip-ledger.html', '記帳'], ['trip-album.html', '相簿'], ['trip-ai.html', 'AI 助手']];
     const current = location.pathname.split('/').pop();
     const nav = document.createElement('nav');
     nav.className = 'trip-workspace-nav';
