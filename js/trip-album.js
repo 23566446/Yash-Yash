@@ -14,6 +14,7 @@ let allPhotos = [];
 let sortables = [];
 let currentUploadDay = 0;
 let currentLightboxPhotoId = null;
+let isUploadingPhotos = false;
 function denyAccess() { alert('你沒有權限存取這個內容'); window.location.href = 'index.html'; }
 
 window.onload = async () => {
@@ -79,7 +80,7 @@ function renderAlbum() {
         const title = document.createElement('span'); title.className = 'day-title'; title.style.cssText = 'font-weight:bold; font-size:1.2rem;'; title.textContent = `Day ${i + 1}`;
         const date = document.createElement('span'); date.className = 'day-date'; date.style.cssText = 'margin-left:10px; color:#888;'; date.textContent = dateStr;
         labels.append(title, date);
-        const uploadButton = document.createElement('button'); uploadButton.className = 'btn-upload-day'; uploadButton.style.cssText = 'background:var(--accent-color); color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;'; uploadButton.textContent = '＋ 上傳'; uploadButton.addEventListener('click', () => openUpload(i));
+        const uploadButton = document.createElement('button'); uploadButton.className = 'btn-upload-day'; uploadButton.style.cssText = 'background:var(--accent-color); color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;'; uploadButton.textContent = '＋ 上傳'; uploadButton.disabled = isUploadingPhotos; uploadButton.addEventListener('click', () => openUpload(i));
         header.append(labels, uploadButton);
         const grid = document.createElement('div');
         grid.className = 'photo-grid'; grid.id = `grid-day-${i}`; grid.dataset.day = String(i); grid.style.cssText = 'display:grid; grid-template-columns:repeat(3, 1fr); gap:5px; padding:10px; min-height:50px;';
@@ -117,59 +118,53 @@ function renderAlbum() {
 
 // --- 4. 上傳邏輯 (批量上傳) ---
 function openUpload(dayIdx) {
+    if (isUploadingPhotos) return;
     currentUploadDay = dayIdx;
     document.getElementById('photo-input').click();
 }
 
 async function handleFileUpload(event) {
     const files = Array.from(event.target.files);
-    if (files.length === 0) return;
+    if (files.length === 0 || isUploadingPhotos) return;
 
-    window.showToast?.(`正在上傳 0 / ${files.length}`);
+    const uploadDay = currentUploadDay;
+    const status = document.getElementById('upload-status');
+    let completed = 0;
+    isUploadingPhotos = true;
+    document.querySelectorAll('.btn-upload-day').forEach(button => { button.disabled = true; });
+    status.classList.remove('hidden');
+    status.textContent = `正在處理 / 上傳照片 0 / ${files.length}`;
 
-    let failedUploads = 0;
-    let processedUploads = 0;
-    for (const file of files) {
-        processedUploads++;
-        window.showToast?.(`正在上傳 ${processedUploads} / ${files.length}`);
-        if (file.size > 2 * 1024 * 1024) {
-            console.warn(`跳過大檔案: ${file.name}`);
-            failedUploads++;
-            window.showToast?.(`${file.name}：檔案超過 2 MB`, 'error');
-            continue;
-        }
-
-        try {
-            const base64 = await toBase64(file);
-            const response = await apiFetch(`${API_URL}/api/trips/${tripId}/photos`, {
+    try {
+        const results = await window.YashYashPhotoUtils.runBounded(files, async file => {
+            const imageData = await window.YashYashPhotoUtils.preprocessPhoto(file);
+            const response = await apiFetch(`${API_URL}/api/trips/${encodeURIComponent(tripId)}/photos`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    uploader: currentUser.nickname,
-                    imageData: base64,
-                    dayIndex: currentUploadDay,
-                    order: 999
-                })
+                body: JSON.stringify({ imageData, dayIndex: uploadDay, order: 999 })
             });
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        } catch (e) {
-            console.error("上傳失敗", e);
-            failedUploads++;
-        }
-    }
-    // 清空 input 讓同檔案可重複觸發
-    event.target.value = "";
-    loadPhotos();
-    if (failedUploads) window.showToast?.(`${failedUploads} 張照片上傳失敗`, 'error');
-    else window.showToast?.('照片上傳完成');
-}
+            if (!response.ok) {
+                const result = await response.json().catch(() => ({}));
+                throw new Error(result.message || '伺服器拒絕照片資料');
+            }
+        }, 3, () => {
+            completed++;
+            status.textContent = `正在處理 / 上傳照片 ${completed} / ${files.length}`;
+        });
 
-const toBase64 = file => new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = error => reject(error);
-});
+        results.forEach((result, index) => {
+            if (result.status === 'rejected') window.showToast?.(`${files[index].name}：${result.reason?.message || '圖片處理失敗'}`, 'error', 5500);
+        });
+        await loadPhotos();
+        const failures = results.filter(result => result.status === 'rejected').length;
+        window.showToast?.(failures ? `${files.length - failures} 張完成，${failures} 張失敗` : '照片上傳完成', failures ? 'error' : 'info');
+    } finally {
+        event.target.value = '';
+        isUploadingPhotos = false;
+        document.querySelectorAll('.btn-upload-day').forEach(button => { button.disabled = false; });
+        status.classList.add('hidden');
+    }
+}
 
 // --- 5. 預覽與刪除 (Lightbox) ---
 function viewPhoto(id) {
