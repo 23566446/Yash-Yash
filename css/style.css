@@ -50,6 +50,15 @@ body {
     min-width: 50px;
 }
 
+#notification-badge {
+    color: var(--text-color);
+    background: var(--clay);
+    border-radius: 999px;
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    text-decoration: none;
+}
+
 .brand-center {
     position: absolute; 
     left: 50%; 

@@ -58,7 +58,8 @@ function mergeMessages(messages) {
         }
     });
     if (changed) {
-        renderMessages([...messagesByKey.values()]);
+        const orderedMessages = [...messagesByKey.values()].sort((a, b) => new Date(a.time) - new Date(b.time));
+        renderMessages(orderedMessages);
         scrollToBottom();
     }
 }

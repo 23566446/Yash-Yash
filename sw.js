@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yashyash-v10';
+const CACHE_NAME = 'yashyash-v11';
 const ASSETS = [
     './',
     './index.html',
@@ -10,6 +10,8 @@ const ASSETS = [
     './js/auth.js',
     './js/api.js',
     './js/config.js',
+    './js/realtime.js',
+    './js/ui.js',
     './js/maps-loader.js',
     './js/pwa.js',
     './manifest.json',
@@ -29,7 +31,7 @@ self.addEventListener('install', (event) => {
 // 2. 攔截請求：先找快取，找不到再去網路抓
 self.addEventListener('fetch', (event) => {
     // 排除 API 請求的快取（確保每次抓到最新資料庫資料）
-    if (event.request.url.includes('/api/')) {
+    if (event.request.url.includes('/api/') || event.request.url.includes('/socket.io/')) {
         return;
     }
     

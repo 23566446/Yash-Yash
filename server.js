@@ -6,6 +6,7 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { Server } = require('socket.io');
+const { shouldNotifyProposalPending } = require('./lib/notification-utils');
 require('dotenv').config();
 
 const app = express();
@@ -384,11 +385,16 @@ app.post('/api/proposals/vote', authenticateToken, async (req, res) => {
     const prop = await Proposal.findById(proposalId);
     if (!prop) return res.status(404).json({ message: '找不到提案' });
     if (!prop.votes.includes(req.user.account)) {
+        const previousStatus = prop.status;
         prop.votes.push(req.user.account);
         if (prop.votes.length >= prop.min) {
             prop.status = 'pending'; 
         }
         await prop.save();
+        if (shouldNotifyProposalPending(previousStatus, prop.status)) {
+            const creatorAccount = await getProposalCreatorAccount(prop);
+            if (creatorAccount) io.to(`user:${creatorAccount}`).emit('notification:proposal-pending', { proposalId: prop._id.toString() });
+        }
         res.json({ message: "投票成功", status: prop.status });
     } else {
         res.status(400).json({ message: "已投過票" });
@@ -704,14 +710,15 @@ io.use(async (socket, next) => {
 io.on('connection', socket => {
     socket.join(`user:${socket.user.account}`);
     socket.on('trip:join', async (tripId, acknowledge = () => {}) => {
+        const respond = typeof acknowledge === 'function' ? acknowledge : () => {};
         try {
-            if (!mongoose.isValidObjectId(tripId)) return acknowledge({ ok: false, message: '無法加入行程聊天室' });
+            if (!mongoose.isValidObjectId(tripId)) return respond({ ok: false, message: '無法加入行程聊天室' });
             const trip = await Trip.findById(tripId);
-            if (!trip || !isTripParticipant(trip, socket.user)) return acknowledge({ ok: false, message: '無法加入行程聊天室' });
+            if (!trip || !isTripParticipant(trip, socket.user)) return respond({ ok: false, message: '無法加入行程聊天室' });
             await socket.join(`trip:${trip._id}`);
-            acknowledge({ ok: true });
+            respond({ ok: true });
         } catch (error) {
-            acknowledge({ ok: false, message: '無法加入行程聊天室' });
+            respond({ ok: false, message: '無法加入行程聊天室' });
         }
     });
 });
