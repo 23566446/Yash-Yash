@@ -23,10 +23,7 @@ window.onload = async function() {
     }
     
     // 載入資料
-    await loadMarquee();
-    await loadProposals();
-    await loadMyTrips();
-    await checkNotifications();
+    await Promise.allSettled([loadMarquee(), loadProposals(), loadMyTrips(), checkNotifications()]);
 };
 
 // ===== 跑馬燈載入 =====

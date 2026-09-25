@@ -151,6 +151,7 @@ const ExpenseSchema = new mongoose.Schema({
     splitWith: [String],
     createdAt: { type: Date, default: Date.now }
 });
+ExpenseSchema.index({ tripId: 1, createdAt: -1 });
 const Expense = mongoose.model('Expense', ExpenseSchema);
 
 const PhotoSchema = new mongoose.Schema({
@@ -162,6 +163,7 @@ const PhotoSchema = new mongoose.Schema({
     order: Number,
     createdAt: { type: Date, default: Date.now }
 });
+PhotoSchema.index({ tripId: 1, dayIndex: 1, order: 1 });
 const Photo = mongoose.model('Photo', PhotoSchema);
 
 // ========== API 路由 ==========
