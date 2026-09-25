@@ -128,6 +128,7 @@ async function handleFileUpload(event) {
     if (files.length === 0 || isUploadingPhotos) return;
 
     const uploadDay = currentUploadDay;
+    const baseOrder = window.YashYashPhotoUtils.nextPhotoBaseOrder(allPhotos, uploadDay);
     const status = document.getElementById('upload-status');
     let completed = 0;
     isUploadingPhotos = true;
@@ -136,12 +137,12 @@ async function handleFileUpload(event) {
     status.textContent = `正在處理 / 上傳照片 0 / ${files.length}`;
 
     try {
-        const results = await window.YashYashPhotoUtils.runBounded(files, async file => {
+        const results = await window.YashYashPhotoUtils.runBounded(files, async (file, index) => {
             const imageData = await window.YashYashPhotoUtils.preprocessPhoto(file);
             const response = await apiFetch(`${API_URL}/api/trips/${encodeURIComponent(tripId)}/photos`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ imageData, dayIndex: uploadDay, order: 999 })
+                body: JSON.stringify({ imageData, dayIndex: uploadDay, order: baseOrder + index })
             });
             if (!response.ok) {
                 const result = await response.json().catch(() => ({}));

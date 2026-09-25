@@ -30,6 +30,13 @@
         return results;
     }
 
+    function nextPhotoBaseOrder(photos, dayIndex) {
+        const orders = (Array.isArray(photos) ? photos : [])
+            .filter(photo => photo?.dayIndex === dayIndex && Number.isInteger(photo.order) && photo.order >= 0)
+            .map(photo => photo.order);
+        return orders.length ? Math.max(...orders) + 1 : 0;
+    }
+
     function isDataUrlWithinLimit(value, maxLength = MAX_DATA_URL_LENGTH) {
         return typeof value === 'string' && value.length <= maxLength;
     }
@@ -115,5 +122,5 @@
         }
     }
 
-    return { MAX_CONCURRENCY, MAX_ORIGINAL_BYTES, MAX_DATA_URL_LENGTH, runBounded, isDataUrlWithinLimit, preprocessPhoto };
+    return { MAX_CONCURRENCY, MAX_ORIGINAL_BYTES, MAX_DATA_URL_LENGTH, runBounded, nextPhotoBaseOrder, isDataUrlWithinLimit, preprocessPhoto };
 }));

@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { runBounded, isDataUrlWithinLimit, MAX_DATA_URL_LENGTH } = require('../js/photo-utils');
+const { runBounded, nextPhotoBaseOrder, isDataUrlWithinLimit, MAX_DATA_URL_LENGTH } = require('../js/photo-utils');
 
 test('bounded runner processes every input with at most three active tasks', async () => {
     let active = 0;
@@ -31,4 +31,40 @@ test('data URL size helper enforces the backend safety margin', () => {
     assert.equal(isDataUrlWithinLimit('x'.repeat(MAX_DATA_URL_LENGTH)), true);
     assert.equal(isDataUrlWithinLimit('x'.repeat(MAX_DATA_URL_LENGTH + 1)), false);
     assert.equal(isDataUrlWithinLimit(null), false);
+});
+
+test('next photo order starts at zero and follows valid same-day orders', () => {
+    assert.equal(nextPhotoBaseOrder([], 2), 0);
+    assert.equal(nextPhotoBaseOrder([
+        { dayIndex: 2, order: 0 },
+        { dayIndex: 2, order: 1 },
+        { dayIndex: 2, order: 2 }
+    ], 2), 3);
+    assert.equal(nextPhotoBaseOrder([{ dayIndex: 2, order: 999 }], 2), 1000);
+});
+
+test('next photo order ignores other days and malformed or negative orders', () => {
+    assert.equal(nextPhotoBaseOrder([
+        { dayIndex: 1, order: 50 },
+        { dayIndex: 2, order: -1 },
+        { dayIndex: 2, order: 3.5 },
+        { dayIndex: 2, order: '8' },
+        { dayIndex: 2 },
+        null
+    ], 2), 0);
+});
+
+test('bounded upload order remains associated with original file index', async () => {
+    const files = ['slow', 'fast', 'medium'];
+    const baseOrder = 4;
+    const results = await runBounded(files, async (file, index) => {
+        const delay = { slow: 8, fast: 1, medium: 4 }[file];
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return { file, order: baseOrder + index };
+    }, 3);
+    assert.deepEqual(results.map(result => result.value), [
+        { file: 'slow', order: 4 },
+        { file: 'fast', order: 5 },
+        { file: 'medium', order: 6 }
+    ]);
 });
