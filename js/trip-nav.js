@@ -11,6 +11,12 @@
         if (page === current) link.className = 'active';
         nav.appendChild(link);
     });
+    const header = document.querySelector('.app-header');
+    if (header && header.parentNode) {
+        header.parentNode.insertBefore(nav, header.nextSibling);
+        return;
+    }
+
     const target = document.querySelector('main') || document.body;
     target.parentNode.insertBefore(nav, target);
 })();
