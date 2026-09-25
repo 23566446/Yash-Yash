@@ -83,6 +83,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .past-trips-page .board { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .account-page .container, .license-page .container { max-width: 1060px; padding: 30px 20px 90px; }
 .account-page .wabi-card { padding: 24px; }
+.settings-dashboard { display: grid; grid-template-columns: minmax(300px, .85fr) minmax(360px, 1.15fr); gap: 20px; align-items: start; }
+.settings-dashboard .notification-panel { grid-column: 1 / -1; border-left: 4px solid var(--sand); }
+.settings-dashboard .profile-panel { grid-row: span 2; }
+.settings-dashboard .admin-panel { border-left: 4px solid var(--brand); }
+.settings-dashboard .user-admin-panel { grid-column: 2; }
+.settings-dashboard > .btn-text { grid-column: 1 / -1; color: var(--danger) !important; border: 1px solid rgba(169,77,77,.22); border-radius: 999px; }
 .user-item-row { gap: 18px; align-items: center; }
 .user-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
@@ -163,6 +169,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     .photo-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
     .day-header-wrapper { top: 64px; }
     .ai-message { max-width: 90%; }
+    .settings-dashboard { display: block; }
+    .settings-dashboard .settings-panel { margin-bottom: 16px; }
 }
 
 @media (max-width: 420px) {
