@@ -225,12 +225,12 @@
         
         <form class="chat-input-area" onsubmit="handleSend(event)">
             <input type="text" id="message-input" placeholder="輸入訊息..." autocomplete="off" maxlength="500">
-            <button type="submit" class="btn-primary">傳送</button>
+            <button type="submit" class="btn-primary" aria-label="傳送訊息">傳送</button>
         </form>
     </main>
     
     <!-- 捲動到底部按鈕 -->
-    <button id="scroll-to-bottom" onclick="scrollToBottom()">↓</button>
+    <button id="scroll-to-bottom" onclick="scrollToBottom()" aria-label="捲動至最新訊息">↓</button>
 
     <script src="js/config.js"></script>
     <script src="js/pwa.js"></script>
