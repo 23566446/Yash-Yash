@@ -128,8 +128,10 @@ async function handleFileUpload(event) {
     window.showToast?.(`正在上傳 0 / ${files.length}`);
 
     let failedUploads = 0;
+    let processedUploads = 0;
     for (const file of files) {
-        window.showToast?.(`正在上傳 ${failedUploads + 1} / ${files.length}`);
+        processedUploads++;
+        window.showToast?.(`正在上傳 ${processedUploads} / ${files.length}`);
         if (file.size > 2 * 1024 * 1024) {
             console.warn(`跳過大檔案: ${file.name}`);
             failedUploads++;
