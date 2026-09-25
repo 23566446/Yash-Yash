@@ -125,13 +125,15 @@ async function handleFileUpload(event) {
     const files = Array.from(event.target.files);
     if (files.length === 0) return;
 
-    alert(`正在準備上傳 ${files.length} 張照片...`);
+    window.showToast?.(`正在上傳 0 / ${files.length}`);
 
     let failedUploads = 0;
     for (const file of files) {
+        window.showToast?.(`正在上傳 ${failedUploads + 1} / ${files.length}`);
         if (file.size > 2 * 1024 * 1024) {
             console.warn(`跳過大檔案: ${file.name}`);
             failedUploads++;
+            window.showToast?.(`${file.name}：檔案超過 2 MB`, 'error');
             continue;
         }
 
@@ -156,7 +158,8 @@ async function handleFileUpload(event) {
     // 清空 input 讓同檔案可重複觸發
     event.target.value = "";
     loadPhotos();
-    if (failedUploads) alert(`${failedUploads} 張照片上傳失敗`);
+    if (failedUploads) window.showToast?.(`${failedUploads} 張照片上傳失敗`, 'error');
+    else window.showToast?.('照片上傳完成');
 }
 
 const toBase64 = file => new Promise((resolve, reject) => {
