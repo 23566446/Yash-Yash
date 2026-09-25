@@ -243,6 +243,34 @@ function calculateBalances(expenses) {
     }
 
     summary.replaceChildren(heading, summaryList);
+    const settlement = document.createElement('section');
+    const settlementHeading = document.createElement('h3'); settlementHeading.textContent = '建議結算'; settlement.appendChild(settlementHeading);
+    currencies.forEach(currency => {
+        const currencyHeading = document.createElement('h4'); currencyHeading.textContent = currency === 'UNKNOWN' ? '未指定幣別' : currency; settlement.appendChild(currencyHeading);
+        const transfers = calculateSettlements(balancesByCurrency.get(currency));
+        if (!transfers.length) { const none = document.createElement('div'); none.textContent = '目前無需結算'; settlement.appendChild(none); }
+        transfers.forEach(transfer => { const row = document.createElement('div'); row.textContent = `${transfer.from} → ${transfer.to}：${transfer.amount.toFixed(1)} ${currency === 'UNKNOWN' ? '未指定幣別' : currency}`; settlement.appendChild(row); });
+    });
+    summary.appendChild(settlement);
+}
+
+function calculateSettlements(balances) {
+    const creditors = [], debtors = [];
+    for (const [account, balance] of balances) {
+        if (balance > 0.1) creditors.push({ account, amount: balance });
+        else if (balance < -0.1) debtors.push({ account, amount: -balance });
+    }
+    creditors.sort((a, b) => String(a.account).localeCompare(String(b.account)));
+    debtors.sort((a, b) => String(a.account).localeCompare(String(b.account)));
+    const transfers = []; let creditor = 0, debtor = 0;
+    while (creditor < creditors.length && debtor < debtors.length) {
+        const amount = Math.min(creditors[creditor].amount, debtors[debtor].amount);
+        if (amount > 0.1) transfers.push({ from: debtors[debtor].account, to: creditors[creditor].account, amount });
+        creditors[creditor].amount -= amount; debtors[debtor].amount -= amount;
+        if (creditors[creditor].amount <= 0.1) creditor++;
+        if (debtors[debtor].amount <= 0.1) debtor++;
+    }
+    return transfers;
 }
 
 async function deleteExpense(id) {
