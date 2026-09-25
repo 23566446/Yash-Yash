@@ -722,3 +722,4 @@ button, a, .clickable {
         right: max(25px, env(safe-area-inset-right));
     }
 }
+ .trip-workspace-nav{display:flex;gap:8px;flex-wrap:wrap;max-width:900px;margin:12px auto;padding:0 16px}.trip-workspace-nav a{padding:7px 12px;border-radius:16px;color:var(--text-color);text-decoration:none;background:#f5f2ed}.trip-workspace-nav a.active{background:var(--accent-color);color:#fff}
