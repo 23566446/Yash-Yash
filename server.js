@@ -1,15 +1,23 @@
 const express = require('express');
+const http = require('http');
+const crypto = require('crypto');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { Server } = require('socket.io');
 require('dotenv').config();
 
 const app = express();
+const httpServer = http.createServer(app);
+const TRUSTED_ORIGINS = ['https://23566446.github.io', 'http://127.0.0.1:5500', 'http://localhost:5500'];
+const io = new Server(httpServer, {
+    cors: { origin: TRUSTED_ORIGINS, methods: ['GET', 'POST'] }
+});
 
 // 中間件：調高限制以支持大頭照
 app.use(cors({
-    origin: ['https://23566446.github.io', 'http://127.0.0.1:5500', 'http://localhost:5500'],
+    origin: TRUSTED_ORIGINS,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -565,9 +573,10 @@ app.post('/api/trips/:id/chat', authenticateToken, async (req, res) => {
         const trip = await getAuthorizedTrip(req, res);
         if (!trip) return;
         if (typeof req.body.text !== 'string' || !req.body.text.trim() || req.body.text.length > 500) return res.status(400).json({ message: '訊息資料不合法' });
-        const newMessage = { sender: req.user.nickname || req.user.account, text: req.body.text, avatar: req.user.avatar || '', time: new Date() };
+        const newMessage = { messageId: crypto.randomUUID(), sender: req.user.nickname || req.user.account, senderAccount: req.user.account, text: req.body.text, avatar: req.user.avatar || '', time: new Date() };
         trip.chatMessages.push(newMessage);
         await trip.save();
+        io.to(`trip:${trip._id}`).emit('trip:message', newMessage);
         res.status(201).json(newMessage);
     } catch (e) { res.status(500).send("傳送失敗"); }
 });
@@ -678,4 +687,33 @@ app.put('/api/settings/marquee', authenticateToken, requireAdmin, async (req, re
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 YashYash 伺服器運作中: ${PORT}`));
+io.use(async (socket, next) => {
+    try {
+        const token = socket.handshake.auth?.token;
+        if (!token || !JWT_SECRET) return next(new Error('unauthorized'));
+        const payload = jwt.verify(token, JWT_SECRET);
+        const user = await User.findById(payload.sub);
+        if (!user) return next(new Error('unauthorized'));
+        socket.user = user;
+        next();
+    } catch (error) {
+        next(new Error('unauthorized'));
+    }
+});
+
+io.on('connection', socket => {
+    socket.join(`user:${socket.user.account}`);
+    socket.on('trip:join', async (tripId, acknowledge = () => {}) => {
+        try {
+            if (!mongoose.isValidObjectId(tripId)) return acknowledge({ ok: false, message: '無法加入行程聊天室' });
+            const trip = await Trip.findById(tripId);
+            if (!trip || !isTripParticipant(trip, socket.user)) return acknowledge({ ok: false, message: '無法加入行程聊天室' });
+            await socket.join(`trip:${trip._id}`);
+            acknowledge({ ok: true });
+        } catch (error) {
+            acknowledge({ ok: false, message: '無法加入行程聊天室' });
+        }
+    });
+});
+
+httpServer.listen(PORT, () => console.log(`🚀 YashYash 伺服器運作中: ${PORT}`));
