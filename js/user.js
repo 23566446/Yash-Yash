@@ -30,7 +30,7 @@ function initPage() {
     document.getElementById('display-account').textContent = currentUser.account;
     document.getElementById('edit-nick').value = currentUser.nickname;
     document.getElementById('edit-gen').value = currentUser.gender || 'male';
-    if (currentUser.avatar) { document.getElementById('avatar-preview').src = currentUser.avatar; }
+    if (currentUser.avatar) { document.getElementById('avatar-preview').src = window.safeImageSource(currentUser.avatar, 'img/default-avatar.svg'); }
 
     checkNotifications();
 
@@ -280,10 +280,12 @@ function previewAvatar(event) {
         const reader = new FileReader();
         reader.onload = (e) => {
             const base64 = e.target.result;
-            document.getElementById('avatar-preview').src = base64;
-            currentAvatarBase64 = base64;
+            const safePreview = window.safeImageSource(base64, '');
+            if (!safePreview) return alert('不支援的圖片格式');
+            document.getElementById('avatar-preview').src = safePreview;
+            currentAvatarBase64 = safePreview;
             // 圖片選取成功後，直接自動更新到資料庫（不需再按「更新資料」）
-            updateAvatarOnly(base64);
+            updateAvatarOnly(safePreview);
         };
         reader.readAsDataURL(file);
     }

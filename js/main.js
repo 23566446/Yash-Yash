@@ -19,7 +19,7 @@ window.onload = async function() {
     
     // 載入頭像
     if (user.avatar) {
-        document.getElementById('side-user-avatar').src = user.avatar;
+        document.getElementById('side-user-avatar').src = window.safeImageSource(user.avatar, 'img/default-avatar.svg');
     }
     
     // 載入資料

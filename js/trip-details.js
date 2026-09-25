@@ -95,7 +95,7 @@ function createParticipantAvatarEl(p) {
     wrap.className = 'trip-participant-avatar';
     wrap.title = getParticipantDisplayName(p);
 
-    const avatar = (p?.avatar || "").trim();
+    const avatar = window.safeImageSource((p?.avatar || "").trim(), '');
     if (avatar) {
         const img = document.createElement('img');
         img.src = avatar;
