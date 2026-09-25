@@ -175,13 +175,25 @@ function renderExpenses(expenses) {
 
 // 核心分帳算法：誰該給誰錢
 function calculateBalances(expenses) {
-    const balances = new Map(); // 紀錄每個人的淨額 (正代表該收錢，負代表該給錢)
-    tripParticipants.forEach(acc => balances.set(acc, 0));
+    const balancesByCurrency = new Map();
+    const normalizeCurrency = value => {
+        const currency = typeof value === 'string' ? value.trim().toUpperCase() : '';
+        return currency || 'UNKNOWN';
+    };
+    const getBalances = currency => {
+        if (!balancesByCurrency.has(currency)) {
+            const balances = new Map();
+            tripParticipants.forEach(acc => balances.set(acc, 0));
+            balancesByCurrency.set(currency, balances);
+        }
+        return balancesByCurrency.get(currency);
+    };
 
     expenses.forEach(e => {
         const amount = Number(e.amount);
         const splitWith = Array.isArray(e.splitWith) ? e.splitWith : [];
         if (!Number.isFinite(amount) || splitWith.length === 0) return;
+        const balances = getBalances(normalizeCurrency(e.currency));
         const perPerson = amount / splitWith.length;
 
         // 付款人先墊了全額，所以他應該「收回」除了自己那份以外的錢
@@ -199,35 +211,35 @@ function calculateBalances(expenses) {
     const summaryList = document.createElement('div');
     summaryList.id = 'balance-list';
     summaryList.style.cssText = 'font-size: 0.9rem; opacity: 0.9;';
-    let hasBalance = false;
+    const currencyOrder = ['TWD', 'JPY', 'USD'];
+    const currencies = [...balancesByCurrency.keys()].sort((a, b) => {
+        const aOrder = currencyOrder.indexOf(a), bOrder = currencyOrder.indexOf(b);
+        if (a === 'UNKNOWN') return 1;
+        if (b === 'UNKNOWN') return -1;
+        if (aOrder !== -1 || bOrder !== -1) return (aOrder === -1 ? Infinity : aOrder) - (bOrder === -1 ? Infinity : bOrder);
+        return a.localeCompare(b);
+    });
 
-    for (const [acc, balance] of balances) {
-        const displayName = acc === currentUser.account ? '我' : acc;
-        const row = document.createElement('div');
-        const amount = document.createElement('span');
-        amount.style.fontWeight = 'bold';
-
-        if (balance > 0.1) {
-            row.textContent = `${displayName}: 應收回 `;
-            amount.style.color = '#fff';
-            amount.textContent = balance.toFixed(1);
-            row.appendChild(amount);
-            summaryList.appendChild(row);
-            hasBalance = true;
-        } else if (balance < -0.1) {
-            row.textContent = `${displayName}: 應支付 `;
-            amount.style.color = '#ffcccc';
-            amount.textContent = Math.abs(balance).toFixed(1);
-            row.appendChild(amount);
-            summaryList.appendChild(row);
-            hasBalance = true;
-        }
-    }
-
-    if (!hasBalance) {
+    if (currencies.length === 0) {
         const balancedText = document.createElement('div');
         balancedText.textContent = '目前帳目平整';
         summaryList.appendChild(balancedText);
+    } else {
+        currencies.forEach(currency => {
+            const currencyHeading = document.createElement('h4');
+            currencyHeading.textContent = currency === 'UNKNOWN' ? '未指定幣別' : currency;
+            summaryList.appendChild(currencyHeading);
+            let hasBalance = false;
+            for (const [acc, balance] of balancesByCurrency.get(currency)) {
+                const displayName = acc === currentUser.account ? '我' : acc;
+                const row = document.createElement('div');
+                const amount = document.createElement('span');
+                amount.style.fontWeight = 'bold';
+                if (balance > 0.1) { row.textContent = `${displayName}: 應收回 `; amount.style.color = '#fff'; amount.textContent = `${balance.toFixed(1)} ${currency === 'UNKNOWN' ? '未指定幣別' : currency}`; row.appendChild(amount); summaryList.appendChild(row); hasBalance = true; }
+                else if (balance < -0.1) { row.textContent = `${displayName}: 應支付 `; amount.style.color = '#ffcccc'; amount.textContent = `${Math.abs(balance).toFixed(1)} ${currency === 'UNKNOWN' ? '未指定幣別' : currency}`; row.appendChild(amount); summaryList.appendChild(row); hasBalance = true; }
+            }
+            if (!hasBalance) { const balancedText = document.createElement('div'); balancedText.textContent = '目前帳目平整'; summaryList.appendChild(balancedText); }
+        });
     }
 
     summary.replaceChildren(heading, summaryList);
