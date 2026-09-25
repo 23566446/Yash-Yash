@@ -33,7 +33,9 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 html { background: var(--bg); }
-body { background: radial-gradient(circle at 90% 0, rgba(214,185,143,.16), transparent 32rem), var(--bg); color: var(--text-primary); min-width: 0; }
+body { background: radial-gradient(circle at 90% 0, rgba(214,185,143,.16), transparent 32rem), var(--bg); color: var(--text-primary); min-width: 0; overflow-x: hidden; }
+main, section, article, aside, nav, form { min-width: 0; }
+img { max-width: 100%; }
 body.auth-pending > *:not(#auth-connection-state) { visibility: hidden !important; }
 .auth-connection-state { position: fixed; inset: 50% auto auto 50%; transform: translate(-50%, -50%); width: min(90vw, 420px); padding: 28px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-md); text-align: center; z-index: 5000; }
 .auth-connection-state h2 { margin: 0 0 8px; font-size: 1.25rem; }
@@ -50,6 +52,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .hidden { display: none !important; }
 
 .app-header { min-height: 64px; height: auto; padding: max(10px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) 10px max(18px, env(safe-area-inset-left)); background: rgba(243,241,234,.9); border-color: rgba(85,100,58,.12); }
+.app-header h1, .app-header h2 { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .brand, .brand-center { color: var(--brand-strong); letter-spacing: .02em; }
 .main-content, .container, .album-container, .ledger-container, .ai-container { width: min(100%, var(--content-wide)); margin-inline: auto; }
 .main-content { padding: 28px 24px 110px; }
@@ -186,6 +189,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     .app-header { padding-inline: 10px; }
     .photo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .proposal-card, .trip-card { padding: 18px; }
+    .app-header .actions { gap: 4px; }
+    .app-header .actions .btn-small { width: 40px; min-width: 40px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
