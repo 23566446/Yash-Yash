@@ -17,8 +17,8 @@ async function fetchTripInfo() {
     const res = await apiFetch(`${API_URL}/api/trips/${tripId}`);
     if (res.status === 403) return denyAccess();
     if (!res.ok) return alert('載入行程失敗');
-    const trip = await res.json();
-    tripParticipants = trip.participants;
+    const trip = await res.json().catch(() => null);
+    tripParticipants = Array.isArray(trip?.participants) ? trip.participants : [];
     renderSplitList();
 }
 
@@ -26,22 +26,24 @@ function renderSplitList() {
     const container = document.getElementById('participant-split-list');
     // 預設全選
     selectedSplit = [...tripParticipants];
-    
-    container.innerHTML = tripParticipants.map(acc => `
-        <div class="split-item active" id="split-${acc}" onclick="toggleSplit('${acc}')">
-            ${acc === currentUser.account ? '我' : acc}
-        </div>
-    `).join('');
+
+    const splitItems = tripParticipants.map(acc => {
+        const item = document.createElement('div');
+        item.className = 'split-item active';
+        item.textContent = acc === currentUser.account ? '我' : acc;
+        item.addEventListener('click', () => toggleSplit(acc, item));
+        return item;
+    });
+    container.replaceChildren(...splitItems);
 }
 
-function toggleSplit(acc) {
-    const el = document.getElementById(`split-${acc}`);
+function toggleSplit(acc, element) {
     if (selectedSplit.includes(acc)) {
         selectedSplit = selectedSplit.filter(a => a !== acc);
-        el.classList.remove('active');
+        element.classList.remove('active');
     } else {
         selectedSplit.push(acc);
-        el.classList.add('active');
+        element.classList.add('active');
     }
 }
 
@@ -102,7 +104,16 @@ async function fetchExpenses() {
     const res = await apiFetch(`${API_URL}/api/trips/${tripId}/expenses`);
     if (res.status === 403) return denyAccess();
     if (!res.ok) return alert('載入支出失敗');
-    const expenses = await res.json();
+    const expenses = await res.json().catch(() => null);
+    if (!Array.isArray(expenses)) {
+        const list = document.getElementById('expense-list');
+        const errorMessage = document.createElement('p');
+        errorMessage.className = 'empty-text';
+        errorMessage.textContent = '支出資料格式錯誤';
+        list.replaceChildren(errorMessage);
+        calculateBalances([]);
+        return;
+    }
     renderExpenses(expenses);
     calculateBalances(expenses);
 }
@@ -110,61 +121,116 @@ async function fetchExpenses() {
 function renderExpenses(expenses) {
     const list = document.getElementById('expense-list');
     if (expenses.length === 0) {
-        list.innerHTML = '<p class="empty-text">🍂 目前尚無支出紀錄</p>';
+        const emptyText = document.createElement('p');
+        emptyText.className = 'empty-text';
+        emptyText.textContent = '🍂 目前尚無支出紀錄';
+        list.replaceChildren(emptyText);
         return;
     }
 
-    list.innerHTML = expenses.map(e => `
-        <div class="expense-card">
-            <button onclick="deleteExpense('${e._id}')" class="btn-delete-exp">×</button>
-            <div class="expense-header">
-                <span class="category-tag">${e.category}</span>
-            </div>
-            <div class="amount-display">
-                ${e.amount.toLocaleString()} <span class="currency-code">${e.currency}</span>
-            </div>
-            <div class="expense-footer">
-                <span>👤 ${e.payerName} 付款</span>
-                <span>👥 分給 ${e.splitWith.length} 人</span>
-            </div>
-            ${e.note ? `<p style="font-size:0.8rem; margin-top:10px; color:#888; font-style:italic;">"${e.note}"</p>` : ''}
-        </div>
-    `).join('');
+    const expenseCards = expenses.map(e => {
+        const card = document.createElement('div');
+        card.className = 'expense-card';
+
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'btn-delete-exp';
+        deleteButton.textContent = '×';
+        deleteButton.addEventListener('click', () => deleteExpense(e._id));
+
+        const header = document.createElement('div');
+        header.className = 'expense-header';
+        const category = document.createElement('span');
+        category.className = 'category-tag';
+        category.textContent = e.category;
+        header.appendChild(category);
+
+        const amountDisplay = document.createElement('div');
+        amountDisplay.className = 'amount-display';
+        const amount = Number(e.amount);
+        amountDisplay.textContent = Number.isFinite(amount) ? amount.toLocaleString() : String(e.amount ?? '');
+        const currency = document.createElement('span');
+        currency.className = 'currency-code';
+        currency.textContent = e.currency;
+        amountDisplay.append(' ', currency);
+
+        const footer = document.createElement('div');
+        footer.className = 'expense-footer';
+        const payer = document.createElement('span');
+        payer.textContent = `👤 ${e.payerName} 付款`;
+        const splitCount = document.createElement('span');
+        splitCount.textContent = `👥 分給 ${Array.isArray(e.splitWith) ? e.splitWith.length : 0} 人`;
+        footer.append(payer, splitCount);
+
+        card.append(deleteButton, header, amountDisplay, footer);
+        if (e.note) {
+            const note = document.createElement('p');
+            note.style.cssText = 'font-size:0.8rem; margin-top:10px; color:#888; font-style:italic;';
+            note.textContent = `"${e.note}"`;
+            card.appendChild(note);
+        }
+        return card;
+    });
+    list.replaceChildren(...expenseCards);
 }
 
 // 核心分帳算法：誰該給誰錢
 function calculateBalances(expenses) {
-    const balances = {}; // 紀錄每個人的淨額 (正代表該收錢，負代表該給錢)
-    tripParticipants.forEach(acc => balances[acc] = 0);
+    const balances = new Map(); // 紀錄每個人的淨額 (正代表該收錢，負代表該給錢)
+    tripParticipants.forEach(acc => balances.set(acc, 0));
 
     expenses.forEach(e => {
-        const perPerson = e.amount / e.splitWith.length;
-        
+        const amount = Number(e.amount);
+        const splitWith = Array.isArray(e.splitWith) ? e.splitWith : [];
+        if (!Number.isFinite(amount) || splitWith.length === 0) return;
+        const perPerson = amount / splitWith.length;
+
         // 付款人先墊了全額，所以他應該「收回」除了自己那份以外的錢
-        balances[e.payer] += e.amount;
-        
+        balances.set(e.payer, (balances.get(e.payer) ?? 0) + amount);
+
         // 每個參與分攤的人，都欠下這筆錢
-        e.splitWith.forEach(acc => {
-            balances[acc] -= perPerson;
+        splitWith.forEach(acc => {
+            balances.set(acc, (balances.get(acc) ?? 0) - perPerson);
         });
     });
 
-    const summaryList = document.getElementById('balance-list');
-    let html = "";
-    
-    for (let acc in balances) {
-        const b = balances[acc];
-        if (b > 0.1) {
-            html += `<div>${acc === currentUser.account ? '我' : acc}: 應收回 <span style="color:#fff; font-weight:bold;">${b.toFixed(1)}</span></div>`;
-        } else if (b < -0.1) {
-            html += `<div>${acc === currentUser.account ? '我' : acc}: 應支付 <span style="color:#ffcccc; font-weight:bold;">${Math.abs(b).toFixed(1)}</span></div>`;
+    const summary = document.getElementById('balance-summary');
+    const heading = document.createElement('h3');
+    heading.textContent = '結算總覽';
+    const summaryList = document.createElement('div');
+    summaryList.id = 'balance-list';
+    summaryList.style.cssText = 'font-size: 0.9rem; opacity: 0.9;';
+    let hasBalance = false;
+
+    for (const [acc, balance] of balances) {
+        const displayName = acc === currentUser.account ? '我' : acc;
+        const row = document.createElement('div');
+        const amount = document.createElement('span');
+        amount.style.fontWeight = 'bold';
+
+        if (balance > 0.1) {
+            row.textContent = `${displayName}: 應收回 `;
+            amount.style.color = '#fff';
+            amount.textContent = balance.toFixed(1);
+            row.appendChild(amount);
+            summaryList.appendChild(row);
+            hasBalance = true;
+        } else if (balance < -0.1) {
+            row.textContent = `${displayName}: 應支付 `;
+            amount.style.color = '#ffcccc';
+            amount.textContent = Math.abs(balance).toFixed(1);
+            row.appendChild(amount);
+            summaryList.appendChild(row);
+            hasBalance = true;
         }
     }
-    
-    document.getElementById('balance-summary').innerHTML = `
-        <h3>結算總覽</h3>
-        ${html || "目前帳目平整"}
-    `;
+
+    if (!hasBalance) {
+        const balancedText = document.createElement('div');
+        balancedText.textContent = '目前帳目平整';
+        summaryList.appendChild(balancedText);
+    }
+
+    summary.replaceChildren(heading, summaryList);
 }
 
 async function deleteExpense(id) {
@@ -182,5 +248,7 @@ async function deleteExpense(id) {
     }
 }
 
-document.getElementById('back-to-details').onclick = () => window.location.href = `trip-details.html?id=${tripId}`;
+document.getElementById('back-to-details').addEventListener('click', () => {
+    window.location.href = `trip-details.html?id=${encodeURIComponent(tripId)}`;
+});
 
