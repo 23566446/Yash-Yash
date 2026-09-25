@@ -13,11 +13,17 @@ let tripData = null;
 let allPhotos = [];
 let sortables = [];
 let currentUploadDay = 0;
+let currentLightboxPhotoId = null;
 function denyAccess() { alert('你沒有權限存取這個內容'); window.location.href = 'index.html'; }
 
 window.onload = async () => {
     const backBtn = document.getElementById('back-to-details');
-    if (backBtn) backBtn.onclick = () => { window.location.href = `trip-details.html?id=${tripId}`; };
+    if (backBtn) backBtn.addEventListener('click', () => { window.location.href = `trip-details.html?id=${encodeURIComponent(tripId)}`; });
+    const deleteButton = document.getElementById('btn-delete-photo');
+    if (deleteButton) deleteButton.addEventListener('click', event => {
+        event.stopPropagation();
+        if (currentLightboxPhotoId) deletePhoto(currentLightboxPhotoId);
+    });
 
     try {
         const tripRes = await apiFetch(`${API_URL}/api/trips/${tripId}`);
@@ -36,7 +42,9 @@ async function loadPhotos() {
         const res = await apiFetch(`${API_URL}/api/trips/${tripId}/photos`);
         if (res.status === 403) return denyAccess();
         if (!res.ok) throw new Error('載入照片失敗');
-        allPhotos = await res.json();
+        const photos = await res.json().catch(() => null);
+        allPhotos = Array.isArray(photos) ? photos : [];
+        if (!Array.isArray(photos)) console.error('照片資料格式錯誤');
         renderAlbum();
     } catch (err) {
         console.error("載入照片失敗", err);
@@ -48,13 +56,14 @@ function renderAlbum() {
     const wrapper = document.getElementById('days-album-wrapper');
     if (!wrapper || !tripData) return;
 
-    wrapper.innerHTML = "";
-    sortables.forEach(s => s.destroy());
+    wrapper.replaceChildren();
+    sortables.forEach(s => s.destroy ? s.destroy() : null);
     sortables = [];
 
     const startDate = new Date(tripData.startDate);
 
-    for (let i = 0; i < tripData.days.length; i++) {
+    const days = Array.isArray(tripData.days) ? tripData.days : [];
+    for (let i = 0; i < days.length; i++) {
         const currentDate = new Date(startDate);
         currentDate.setDate(startDate.getDate() + i);
         const dateStr = currentDate.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric', weekday: 'short' });
@@ -63,22 +72,25 @@ function renderAlbum() {
         
         const daySection = document.createElement('div');
         daySection.className = 'day-section';
-        daySection.innerHTML = `
-            <div class="day-header-wrapper" style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding:10px; border-bottom:1px solid var(--clay);">
-                <div>
-                    <span class="day-title" style="font-weight:bold; font-size:1.2rem;">Day ${i + 1}</span>
-                    <span class="day-date" style="margin-left:10px; color:#888;">${dateStr}</span>
-                </div>
-                <button class="btn-upload-day" onclick="openUpload(${i})" style="background:var(--accent-color); color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">＋ 上傳</button>
-            </div>
-            <div class="photo-grid" id="grid-day-${i}" data-day="${i}" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:5px; padding:10px; min-height:50px;">
-                ${dayPhotos.map(p => `
-                    <div class="photo-item" data-id="${p._id}" onclick="viewPhoto('${p._id}', '${p.imageData}', '${p.uploader}')" style="aspect-ratio:1; overflow:hidden; background:#eee;">
-                        <img src="${p.imageData}" style="width:100%; height:100%; object-fit:cover;">
-                    </div>
-                `).join('')}
-            </div>
-        `;
+        const header = document.createElement('div');
+        header.className = 'day-header-wrapper';
+        header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding:10px; border-bottom:1px solid var(--clay);';
+        const labels = document.createElement('div');
+        const title = document.createElement('span'); title.className = 'day-title'; title.style.cssText = 'font-weight:bold; font-size:1.2rem;'; title.textContent = `Day ${i + 1}`;
+        const date = document.createElement('span'); date.className = 'day-date'; date.style.cssText = 'margin-left:10px; color:#888;'; date.textContent = dateStr;
+        labels.append(title, date);
+        const uploadButton = document.createElement('button'); uploadButton.className = 'btn-upload-day'; uploadButton.style.cssText = 'background:var(--accent-color); color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;'; uploadButton.textContent = '＋ 上傳'; uploadButton.addEventListener('click', () => openUpload(i));
+        header.append(labels, uploadButton);
+        const grid = document.createElement('div');
+        grid.className = 'photo-grid'; grid.id = `grid-day-${i}`; grid.dataset.day = String(i); grid.style.cssText = 'display:grid; grid-template-columns:repeat(3, 1fr); gap:5px; padding:10px; min-height:50px;';
+        dayPhotos.forEach(photo => {
+            const photoItem = document.createElement('div'); photoItem.className = 'photo-item'; photoItem.dataset.id = String(photo._id); photoItem.style.cssText = 'aspect-ratio:1; overflow:hidden; background:#eee;';
+            const img = document.createElement('img'); img.style.cssText = 'width:100%; height:100%; object-fit:cover;';
+            const safeSrc = window.safeImageSource(photo.imageData, ''); if (safeSrc) img.src = safeSrc;
+            photoItem.addEventListener('click', () => viewPhoto(photo._id));
+            photoItem.appendChild(img); grid.appendChild(photoItem);
+        });
+        daySection.append(header, grid);
         wrapper.appendChild(daySection);
 
         const el = document.getElementById(`grid-day-${i}`);
@@ -155,28 +167,26 @@ const toBase64 = file => new Promise((resolve, reject) => {
 });
 
 // --- 5. 預覽與刪除 (Lightbox) ---
-function viewPhoto(id, src, uploader) {
+function viewPhoto(id) {
     const lb = document.getElementById('lightbox');
     const lbImg = document.getElementById('lightbox-img');
     const lbText = document.getElementById('lightbox-text');
     const delBtn = document.getElementById('btn-delete-photo');
 
-    if (!lb || !lbImg) return;
+    const photo = allPhotos.find(p => p._id === id);
+    if (!lb || !lbImg || !photo) return;
 
-    lbImg.src = src;
-    lbText.innerText = `由 ${uploader} 分享`;
+    const safeSrc = window.safeImageSource(photo.imageData, '');
+    lbImg.src = safeSrc;
+    lbText.textContent = `由 ${photo.uploader} 分享`;
     lb.classList.remove('hidden');
 
-    const photo = allPhotos.find(p => p._id === id);
+    currentLightboxPhotoId = id;
     const isAdmin = currentUser.role === 'admin';
     const isOwner = photo?.uploaderAccount === currentUser.account;
     const isCreator = tripData?.creatorAccount === currentUser.account;
     delBtn.style.display = (isAdmin || isOwner || isCreator) ? 'block' : 'none';
     
-    delBtn.onclick = (e) => {
-        e.stopPropagation();
-        deletePhoto(id);
-    };
 }
 
 // 修改後的 closeLightbox 函數
@@ -185,6 +195,7 @@ function closeLightbox() {
     const lbImg = document.getElementById('lightbox-img');
     if (lb) lb.classList.add('hidden');
     if (lbImg) lbImg.src = ""; // 關閉時清空圖片，釋放記憶體並防止下次開啟閃爍
+    currentLightboxPhotoId = null;
 }
 
 async function deletePhoto(id) {
@@ -206,7 +217,7 @@ async function deletePhoto(id) {
 async function handleReorder(dayIdx, gridElement) {
     const items = gridElement.querySelectorAll('.photo-item');
     const photoOrders = Array.from(items).map((item, index) => ({
-        id: item.getAttribute('data-id'),
+        id: item.dataset.id,
         dayIndex: dayIdx,
         order: index
     }));
