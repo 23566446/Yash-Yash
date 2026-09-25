@@ -56,6 +56,15 @@
     opacity: 0.9;
 }
 
+.upload-status {
+    margin: 12px 10px 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: rgba(138, 154, 91, 0.14);
+    color: var(--text-color);
+    text-align: center;
+}
+
 /* --- 照片網格 (手機優化) --- */
 .photo-grid {
     display: grid;

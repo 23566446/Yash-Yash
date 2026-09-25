@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YashYash | AI 助手</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .ai-container { max-width: 720px; margin: 0 auto; padding: 18px 14px 60px; }
+        .ai-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+        .ai-actions button { width: auto; flex: 1 1 220px; }
+        #ai-question { width: 100%; min-height: 110px; resize: vertical; }
+        .ai-message { margin-top: 16px; padding: 16px; border-radius: 12px; background: white; white-space: pre-wrap; overflow-wrap: anywhere; }
+        .ai-message.user { border-left: 4px solid var(--clay); }
+        .ai-message.assistant { border-left: 4px solid var(--accent-color); }
+        .ai-message.error { color: var(--danger); }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <button id="back-to-details" class="btn-small">← 行程</button>
+        <h2 id="ai-trip-title" style="margin:0;">AI 旅遊助手</h2>
+        <div style="width:50px;"></div>
+    </header>
+
+    <main class="ai-container">
+        <section class="wabi-card">
+            <h3>AI 旅遊助手</h3>
+            <p>根據目前行程與分幣別旅費提供唯讀建議。AI 不會修改任何資料。</p>
+            <div id="ai-quick-actions" class="ai-actions"></div>
+            <form id="ai-form">
+                <label for="ai-question">想問什麼？</label>
+                <textarea id="ai-question" maxlength="1000" required></textarea>
+                <button id="ai-submit" type="submit" class="btn-primary">詢問 AI</button>
+            </form>
+        </section>
+        <section id="ai-conversation" aria-live="polite"></section>
+    </main>
+
+    <script src="js/config.js"></script>
+    <script src="js/pwa.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/trip-nav.js"></script>
+    <script src="js/trip-ai.js"></script>
+</body>
+</html>

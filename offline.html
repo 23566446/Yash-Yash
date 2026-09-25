@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YashYash | 離線</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <main class="container" style="max-width:560px;padding-top:15vh;text-align:center;">
+        <section class="wabi-card">
+            <h1>目前處於離線狀態</h1>
+            <p>行程、聊天、記帳、相簿及 AI 的即時資料需要網路連線。</p>
+            <button id="retry-button" class="btn-primary">重新連線</button>
+            <p><a href="index.html">返回應用程式首頁</a></p>
+        </section>
+    </main>
+    <script src="js/pwa.js"></script>
+    <script>
+        document.getElementById('retry-button').addEventListener('click', () => window.location.reload());
+    </script>
+</body>
+</html>

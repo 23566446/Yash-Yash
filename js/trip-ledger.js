@@ -243,6 +243,15 @@ function calculateBalances(expenses) {
     }
 
     summary.replaceChildren(heading, summaryList);
+    const settlement = document.createElement('section');
+    const settlementHeading = document.createElement('h3'); settlementHeading.textContent = '建議結算'; settlement.appendChild(settlementHeading);
+    currencies.forEach(currency => {
+        const currencyHeading = document.createElement('h4'); currencyHeading.textContent = currency === 'UNKNOWN' ? '未指定幣別' : currency; settlement.appendChild(currencyHeading);
+        const transfers = window.YashYashSettlement.calculateSettlements(balancesByCurrency.get(currency));
+        if (!transfers.length) { const none = document.createElement('div'); none.textContent = '目前無需結算'; settlement.appendChild(none); }
+        transfers.forEach(transfer => { const row = document.createElement('div'); row.textContent = `${transfer.from} → ${transfer.to}：${transfer.amount.toFixed(1)} ${currency === 'UNKNOWN' ? '未指定幣別' : currency}`; settlement.appendChild(row); });
+    });
+    summary.appendChild(settlement);
 }
 
 async function deleteExpense(id) {

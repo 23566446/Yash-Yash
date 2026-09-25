@@ -2,6 +2,7 @@ const API_URL = window.YashYashConfig.API_URL;
 const userData = localStorage.getItem('yashyash_user');
 const authToken = localStorage.getItem('yashyash_token');
 let currentUser = null;
+const realtimeProposalNotifications = new Set();
 
 if (!userData || !authToken) {
     localStorage.removeItem('yashyash_user');
@@ -33,6 +34,7 @@ function initPage() {
     if (currentUser.avatar) { document.getElementById('avatar-preview').src = window.safeImageSource(currentUser.avatar, 'img/default-avatar.svg'); }
 
     checkNotifications();
+    initializeNotificationRealtime();
 
     const isSuperAdmin = currentUser.role === 'admin';
 
@@ -203,6 +205,25 @@ async function checkNotifications() {
     } catch (err) {
         console.error('載入通知失敗:', err);
     }
+}
+
+function handleProposalPendingNotification(event) {
+    const proposalId = event?.proposalId;
+    if (!proposalId || realtimeProposalNotifications.has(proposalId)) return;
+    realtimeProposalNotifications.add(proposalId);
+    checkNotifications();
+    window.showToast?.('旅遊提案已達成最低參加人數');
+}
+
+function refreshNotificationsOnConnect() {
+    checkNotifications();
+}
+
+async function initializeNotificationRealtime() {
+    if (!window.YashYashRealtime) return;
+    window.YashYashRealtime.on('notification:proposal-pending', handleProposalPendingNotification);
+    window.YashYashRealtime.on('connect', refreshNotificationsOnConnect);
+    try { await window.YashYashRealtime.connect(); } catch (error) { /* Existing REST notifications remain available */ }
 }
 
 async function handleTripDecision(id, action) {

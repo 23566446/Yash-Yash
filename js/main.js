@@ -1,6 +1,7 @@
 // main.js - 首頁核心功能
 const API_URL = window.YashYashConfig.API_URL;
 let currentUser = null;
+const realtimeProposalNotifications = new Set();
 if (!localStorage.getItem('yashyash_user') || !localStorage.getItem('yashyash_token')) { localStorage.removeItem('yashyash_user'); localStorage.removeItem('yashyash_token'); location.href = 'login.html'; }
 
 // ===== 初始化載入 =====
@@ -23,10 +24,8 @@ window.onload = async function() {
     }
     
     // 載入資料
-    await loadMarquee();
-    await loadProposals();
-    await loadMyTrips();
-    await checkNotifications();
+    await Promise.allSettled([loadMarquee(), loadProposals(), loadMyTrips(), checkNotifications()]);
+    initializeNotificationRealtime();
 };
 
 // ===== 跑馬燈載入 =====
@@ -222,15 +221,36 @@ async function loadMyTrips() {
 async function checkNotifications() {
     try {
         const res = await apiFetch(`${API_URL}/api/notifications`);
+        if (!res.ok) return;
         const notifications = await res.json();
-        
-        if (notifications.length > 0) {
-            // 可以在這裡加上通知提示
-            console.log("你有", notifications.length, "個待處理的通知");
-        }
+        if (!Array.isArray(notifications)) return;
+        const badge = document.getElementById('notification-badge');
+        const count = document.getElementById('notification-count');
+        count.textContent = String(notifications.length);
+        badge.classList.toggle('hidden', notifications.length === 0);
+        badge.setAttribute('aria-label', `${notifications.length} 個待處理通知`);
     } catch (e) {
         console.error("檢查通知失敗:", e);
     }
+}
+
+function handleProposalPendingNotification(event) {
+    const proposalId = event?.proposalId;
+    if (!proposalId || realtimeProposalNotifications.has(proposalId)) return;
+    realtimeProposalNotifications.add(proposalId);
+    checkNotifications();
+    window.showToast?.('旅遊提案已達成最低參加人數');
+}
+
+function refreshNotificationsOnConnect() {
+    checkNotifications();
+}
+
+async function initializeNotificationRealtime() {
+    if (!window.YashYashRealtime) return;
+    window.YashYashRealtime.on('notification:proposal-pending', handleProposalPendingNotification);
+    window.YashYashRealtime.on('connect', refreshNotificationsOnConnect);
+    try { await window.YashYashRealtime.connect(); } catch (error) { /* REST badge remains available */ }
 }
 
 // ===== 側邊選單控制 =====

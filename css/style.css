@@ -50,6 +50,15 @@ body {
     min-width: 50px;
 }
 
+#notification-badge {
+    color: var(--text-color);
+    background: var(--clay);
+    border-radius: 999px;
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    text-decoration: none;
+}
+
 .brand-center {
     position: absolute; 
     left: 50%; 
@@ -722,3 +731,4 @@ button, a, .clickable {
         right: max(25px, env(safe-area-inset-right));
     }
 }
+ .trip-workspace-nav{display:flex;gap:8px;flex-wrap:wrap;max-width:900px;margin:12px auto;padding:0 16px}.trip-workspace-nav a{padding:7px 12px;border-radius:16px;color:var(--text-color);text-decoration:none;background:#f5f2ed}.trip-workspace-nav a.active{background:var(--accent-color);color:#fff}

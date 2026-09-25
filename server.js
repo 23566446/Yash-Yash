@@ -1,15 +1,27 @@
 const express = require('express');
+const http = require('http');
+const crypto = require('crypto');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { Server } = require('socket.io');
+const { shouldNotifyProposalPending } = require('./lib/notification-utils');
+const { buildTripContext } = require('./lib/ai-context');
+const { validateQuestion, createRateWindow } = require('./lib/ai-utils');
+const aiProvider = require('./lib/ai-provider');
 require('dotenv').config();
 
 const app = express();
+const httpServer = http.createServer(app);
+const TRUSTED_ORIGINS = ['https://23566446.github.io', 'http://127.0.0.1:5500', 'http://localhost:5500'];
+const io = new Server(httpServer, {
+    cors: { origin: TRUSTED_ORIGINS, methods: ['GET', 'POST'] }
+});
 
 // 中間件：調高限制以支持大頭照
 app.use(cors({
-    origin: ['https://23566446.github.io', 'http://127.0.0.1:5500', 'http://localhost:5500'],
+    origin: TRUSTED_ORIGINS,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -32,6 +44,7 @@ const User = mongoose.model('User', new mongoose.Schema({
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const BCRYPT_ROUNDS = 12;
+const aiRateWindow = createRateWindow();
 const RASTER_DATA_URL = /^data:image\/(jpeg|png|webp|gif|heic|heif|avif);base64,[A-Za-z0-9+/=\s]+$/i;
 function validImageData(value, maxLength) { return typeof value === 'string' && value.length <= maxLength && RASTER_DATA_URL.test(value); }
 
@@ -151,6 +164,7 @@ const ExpenseSchema = new mongoose.Schema({
     splitWith: [String],
     createdAt: { type: Date, default: Date.now }
 });
+ExpenseSchema.index({ tripId: 1, createdAt: -1 });
 const Expense = mongoose.model('Expense', ExpenseSchema);
 
 const PhotoSchema = new mongoose.Schema({
@@ -162,6 +176,7 @@ const PhotoSchema = new mongoose.Schema({
     order: Number,
     createdAt: { type: Date, default: Date.now }
 });
+PhotoSchema.index({ tripId: 1, dayIndex: 1, order: 1 });
 const Photo = mongoose.model('Photo', PhotoSchema);
 
 // ========== API 路由 ==========
@@ -374,11 +389,16 @@ app.post('/api/proposals/vote', authenticateToken, async (req, res) => {
     const prop = await Proposal.findById(proposalId);
     if (!prop) return res.status(404).json({ message: '找不到提案' });
     if (!prop.votes.includes(req.user.account)) {
+        const previousStatus = prop.status;
         prop.votes.push(req.user.account);
         if (prop.votes.length >= prop.min) {
             prop.status = 'pending'; 
         }
         await prop.save();
+        if (shouldNotifyProposalPending(previousStatus, prop.status)) {
+            const creatorAccount = await getProposalCreatorAccount(prop);
+            if (creatorAccount) io.to(`user:${creatorAccount}`).emit('notification:proposal-pending', { proposalId: prop._id.toString() });
+        }
         res.json({ message: "投票成功", status: prop.status });
     } else {
         res.status(400).json({ message: "已投過票" });
@@ -563,9 +583,10 @@ app.post('/api/trips/:id/chat', authenticateToken, async (req, res) => {
         const trip = await getAuthorizedTrip(req, res);
         if (!trip) return;
         if (typeof req.body.text !== 'string' || !req.body.text.trim() || req.body.text.length > 500) return res.status(400).json({ message: '訊息資料不合法' });
-        const newMessage = { sender: req.user.nickname || req.user.account, text: req.body.text, avatar: req.user.avatar || '', time: new Date() };
+        const newMessage = { messageId: crypto.randomUUID(), sender: req.user.nickname || req.user.account, senderAccount: req.user.account, text: req.body.text, avatar: req.user.avatar || '', time: new Date() };
         trip.chatMessages.push(newMessage);
         await trip.save();
+        io.to(`trip:${trip._id}`).emit('trip:message', newMessage);
         res.status(201).json(newMessage);
     } catch (e) { res.status(500).send("傳送失敗"); }
 });
@@ -601,6 +622,23 @@ app.delete('/api/expenses/:id', authenticateToken, async (req, res) => {
         await Expense.findByIdAndDelete(req.params.id);
         res.json({ message: "已刪除" });
     } catch (e) { res.status(500).json({ message: "刪除失敗" }); }
+});
+
+app.post('/api/trips/:id/ai', authenticateToken, async (req, res) => {
+    try {
+        const trip = await getAuthorizedTrip(req, res);
+        if (!trip) return;
+        const validation = validateQuestion(req.body.question);
+        if (!validation.ok) return res.status(400).json({ message: '問題內容不合法' });
+        if (!aiProvider.isConfigured()) return res.status(503).json({ message: 'AI 助手尚未設定' });
+        if (!aiRateWindow.allow(req.user.account)) return res.status(429).json({ message: 'AI 請求過於頻繁，請稍後再試' });
+
+        const expenses = await Expense.find({ tripId: trip._id.toString() }).sort({ createdAt: -1 });
+        const answer = await aiProvider.answerTripQuestion(validation.value, buildTripContext(trip, expenses));
+        res.json({ answer });
+    } catch (error) {
+        res.status(502).json({ message: 'AI 助手暫時無法回應' });
+    }
 });
 
 // [相簿 API]
@@ -676,4 +714,34 @@ app.put('/api/settings/marquee', authenticateToken, requireAdmin, async (req, re
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 YashYash 伺服器運作中: ${PORT}`));
+io.use(async (socket, next) => {
+    try {
+        const token = socket.handshake.auth?.token;
+        if (!token || !JWT_SECRET) return next(new Error('unauthorized'));
+        const payload = jwt.verify(token, JWT_SECRET);
+        const user = await User.findById(payload.sub);
+        if (!user) return next(new Error('unauthorized'));
+        socket.user = user;
+        next();
+    } catch (error) {
+        next(new Error('unauthorized'));
+    }
+});
+
+io.on('connection', socket => {
+    socket.join(`user:${socket.user.account}`);
+    socket.on('trip:join', async (tripId, acknowledge = () => {}) => {
+        const respond = typeof acknowledge === 'function' ? acknowledge : () => {};
+        try {
+            if (!mongoose.isValidObjectId(tripId)) return respond({ ok: false, message: '無法加入行程聊天室' });
+            const trip = await Trip.findById(tripId);
+            if (!trip || !isTripParticipant(trip, socket.user)) return respond({ ok: false, message: '無法加入行程聊天室' });
+            await socket.join(`trip:${trip._id}`);
+            respond({ ok: true });
+        } catch (error) {
+            respond({ ok: false, message: '無法加入行程聊天室' });
+        }
+    });
+});
+
+httpServer.listen(PORT, () => console.log(`🚀 YashYash 伺服器運作中: ${PORT}`));
