@@ -16,7 +16,7 @@
 <body class="auth-pending home-page" data-session-endpoint="/api/home-bootstrap">
     <header class="app-header">
         <div class="header-left">
-            <button class="menu-btn" onclick="toggleMenu()" aria-label="開啟選單">☰</button>
+            <button class="menu-btn" id="menu-open" aria-label="開啟選單" aria-controls="side-menu" aria-expanded="false">☰</button>
         </div>
         <h1 class="brand brand-center">YashYash</h1>
         <div class="header-right">
@@ -30,23 +30,28 @@
     </div>
 
     <!-- 側邊選單 -->
-    <nav id="side-menu" class="side-menu">
-        <div class="menu-header">
-            <button class="close-btn" onclick="toggleMenu()" aria-label="關閉選單">×</button>
-            <div class="user-profile-side">
-                <img id="side-user-avatar" src="img/default-avatar.svg" class="nav-avatar" alt="用戶頭像">
-                <div id="side-display-name">載入中...</div>
-            </div>
+    <div id="drawer-overlay" class="drawer-overlay" hidden></div>
+    <nav id="side-menu" class="side-menu travel-drawer" aria-label="旅行選單" aria-hidden="true" inert>
+        <div class="drawer-top">
+            <span class="brand">YashYash</span>
+            <button id="menu-close" class="drawer-close" type="button" aria-label="關閉選單" title="關閉選單">×</button>
         </div>
-        
+        <a class="drawer-profile" href="user.html">
+            <img id="side-user-avatar" src="img/default-avatar.svg" alt="" width="52" height="52">
+            <span class="drawer-profile-copy"><strong id="side-display-name">載入中...</strong><small id="side-account"></small></span>
+            <span aria-hidden="true">›</span>
+        </a>
+        <p class="drawer-section">旅程</p>
         <ul class="menu-list">
-            <li><a href="index.html" aria-current="page"><span aria-hidden="true">🏠</span><span>首頁</span></a></li>
-            <li><a href="user.html"><span aria-hidden="true">👤</span><span>個人設定</span></a></li>
-            <li><a href="create-trip.html"><span aria-hidden="true">➕</span><span>發起提案</span></a></li>
-            <li><a href="past-trip.html"><span aria-hidden="true">📂</span><span>過去的行程</span></a></li>
-            <li class="menu-divider"></li>
-            <li class="menu-logout"><button id="menu-logout" type="button"><span aria-hidden="true">🚪</span><span>登出系統</span></button></li>
+            <li><a href="index.html" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v11h-6v-7H9v7H3Z"/></svg><span>首頁</span></a></li>
+            <li><a href="create-trip.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg><span>發起提案</span></a></li>
+            <li><a href="past-trip.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2 7M3 4v7h7M12 7v5l3 2"/></svg><span>過去的行程</span></a></li>
         </ul>
+        <p class="drawer-section">帳號</p>
+        <ul class="menu-list">
+            <li><a href="user.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg><span>個人設定</span></a></li>
+        </ul>
+        <button id="menu-logout" class="drawer-logout" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H4v16h5M9 12h12m-5-5 5 5-5 5"/></svg><span>登出此裝置</span></button>
     </nav>
 
     <main class="main-content">

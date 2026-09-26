@@ -98,6 +98,25 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .fab-label { font-size: .9rem; font-weight: 700; }
 
 .side-menu { width: min(86vw, 340px); padding: max(18px, env(safe-area-inset-top)) 18px 24px; background: var(--surface); box-shadow: var(--shadow-md); }
+.home-page.drawer-open { overflow: hidden; }
+.drawer-overlay { position: fixed; inset: 0; z-index: 2100; background: rgba(39,48,39,.28); backdrop-filter: blur(4px); }
+.drawer-overlay[hidden] { display: none; }
+.home-page .travel-drawer { display: flex; flex-direction: column; width: min(88vw, 320px); height: 100dvh; left: 0; transform: translateX(-105%); transition: transform .2s ease; z-index: 2200; padding: max(16px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom)); border-radius: 0 24px 24px 0; overflow-y: auto; }
+.home-page .travel-drawer.active { transform: translateX(0); }
+.home-page .travel-drawer::before { display: none; }
+.drawer-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.drawer-top .brand { margin: 0; font-size: 1.8rem; }
+.drawer-close { width: 44px; height: 44px; border: 0; border-radius: 50%; background: transparent; color: var(--text-secondary); font-size: 1.7rem; cursor: pointer; }
+.drawer-profile { display: flex; align-items: center; gap: 12px; min-height: 76px; padding: 12px; border-radius: 16px; background: var(--surface-subtle); color: var(--text-primary); text-decoration: none; }
+.drawer-profile img { flex: 0 0 52px; width: 52px; height: 52px; border-radius: 50%; object-fit: cover; }
+.drawer-profile-copy { display: grid; gap: 4px; min-width: 0; flex: 1; }
+.drawer-profile-copy strong, .drawer-profile-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.drawer-profile-copy small { color: var(--text-secondary); font-size: .75rem; }
+.drawer-section { margin: 24px 12px 6px; color: var(--text-secondary); font-size: .72rem; letter-spacing: .12em; }
+.travel-drawer svg { width: 20px; height: 20px; flex: 0 0 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.travel-drawer .menu-list { margin: 0; padding: 0; }
+.travel-drawer .menu-list li a[aria-current="page"] { background: rgba(115,131,79,.09); box-shadow: inset 3px 0 var(--brand); }
+.drawer-logout { display: flex; align-items: center; gap: 12px; min-height: 48px; margin-top: auto; padding: 18px 14px 10px; border: 0; background: transparent; color: var(--text-secondary); text-align: left; cursor: pointer; }
 .menu-header { padding-bottom: 18px; border-bottom: 1px solid var(--border); }
 .menu-list li { display: block; min-height: 0; padding: 2px 0; border: 0; cursor: default; }
 .menu-list li a, .menu-list li button { width: 100%; min-height: 48px; padding: 10px 14px; border: 0; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 12px; background: transparent; color: var(--text-primary); text-decoration: none; text-align: left; cursor: pointer; }
