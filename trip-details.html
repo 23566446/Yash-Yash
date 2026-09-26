@@ -8,118 +8,9 @@
     <title>YashYash | 行程規劃</title>
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="css/style.css">
-    <style>
-        /* 確保頁面不產生多餘捲軸 */
-        body.details-page { 
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-            align-items: stretch;
-            overflow: hidden;
-            height: 100vh;
-            margin: 0;
-        }
-        
-        .trip-layout {
-            display: flex;
-            flex: 1;
-            width: 100%;
-            overflow: hidden;
-        }
-        
-        /* 手機版：地圖在上，行程在下 */
-        @media (max-width: 768px) {
-            .trip-layout {
-                flex-direction: column;
-            }
-            
-            .map-view {
-                width: 100%;
-                height: 45%;
-                flex: none;
-                order: 1;
-            }
-            
-            .itinerary-sidebar {
-                width: 100%;
-                height: 55%;
-                overflow-y: auto;
-                -webkit-overflow-scrolling: touch;
-                border-top: 2px solid #e0ddd7;
-                order: 2;
-                background: #fdfcf9;
-            }
-            
-            /* 手機版按鈕縮小 */
-            .actions {
-                gap: 4px;
-            }
-            
-            .actions .btn-small {
-                font-size: 0.7rem;
-                padding: 5px 8px;
-                min-height: 36px;
-            }
-        }
-        
-        /* 電腦版：左右分欄 */
-        @media (min-width: 769px) {
-            .trip-layout {
-                flex-direction: row;
-            }
-            
-            .itinerary-sidebar {
-                width: 420px;
-                min-width: 420px;
-                border-right: 1px solid #e0ddd7;
-                overflow-y: auto;
-                background: #fdfcf9;
-            }
-            
-            .map-view {
-                flex: 1;
-            }
-        }
-        
-        #map {
-            width: 100% !important;
-            height: 100% !important;
-        }
-        
-        /* 搜尋框 */
-        .search-box-container {
-            padding: 12px;
-            background: white;
-            border-bottom: 1px solid #eee;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        
-        #pac-input {
-            width: 100%;
-            padding: 12px 16px;
-            border: 1.5px solid #e0ddd7;
-            border-radius: 25px;
-            font-size: 15px;
-            margin: 0;
-        }
-
-        #pac-input gmp-place-autocomplete {
-            display: block;
-            width: 100%;
-        }
-        
-        /* 行程列表容器 */
-        #days-container {
-            padding: 15px;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-    </style>
     <link rel="stylesheet" href="css/product.css">
 </head>
-<body class="details-page auth-pending">
+<body class="details-page auth-pending" data-planner-view="itinerary">
     <header class="app-header">
         <div class="header-left">
             <button onclick="location.href='index.html'" class="btn-small">← 返回</button>
@@ -130,14 +21,15 @@
         </div>
         
         <div class="actions">
-            <button onclick="goToAlbum()" class="btn-small" aria-label="開啟行程相簿" title="相簿">🖼️</button>
-            <button onclick="goToChat()" class="btn-small" aria-label="開啟行程聊天" title="聊天">💬</button>
-            <button onclick="goToLedger()" class="btn-small" aria-label="開啟旅費記帳" title="記帳">💰</button>
             <button id="edit-date-btn" onclick="editTripDates()" class="btn-small hidden" aria-label="編輯旅行日期" title="編輯日期">📅</button>
             <button id="delete-trip-btn" onclick="deleteTrip()" class="btn-small hidden" aria-label="刪除旅行" title="刪除旅行">🗑️</button>
         </div>
     </header>
 
+    <div class="planner-view-switch" role="group" aria-label="行程顯示方式">
+        <button type="button" data-planner-mode="itinerary" aria-pressed="true">行程</button>
+        <button type="button" data-planner-mode="map" aria-pressed="false">地圖</button>
+    </div>
     <div class="trip-layout">
         <!-- 地圖區域 -->
         <main class="map-view">
@@ -146,8 +38,12 @@
 
         <!-- 行程側邊欄 -->
         <aside class="itinerary-sidebar">
-            <div class="search-box-container">
-                <div id="pac-input" aria-label="搜尋地點"></div>
+            <div class="planner-tools">
+                <div class="search-box-container">
+                    <p class="planner-search-label">規劃下一站</p>
+                    <div id="pac-input" aria-label="搜尋景點、餐廳或住宿"></div>
+                </div>
+                <div id="day-selector" class="day-selector" role="group" aria-label="選擇行程日期"></div>
             </div>
             <div id="days-container">
                 <!-- 由 JS 渲染 -->
@@ -163,20 +59,8 @@
     <script src="js/auth-session.js"></script>
     <script src="js/image-utils.js"></script>
     <script src="js/trip-nav.js"></script>
+    <script src="js/trip-order.js"></script>
     <script src="js/trip-details.js"></script>
     
-    <script>
-        function goToChat() {
-            window.location.href = `trip-chat.html?id=${tripId}`;
-        }
-        
-        function goToLedger() {
-            window.location.href = `trip-ledger.html?id=${tripId}`;
-        }
-        
-        function goToAlbum() {
-            window.location.href = `trip-album.html?id=${tripId}`;
-        }
-    </script>
 </body>
 </html>
