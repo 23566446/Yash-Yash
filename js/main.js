@@ -9,6 +9,8 @@ window.onload = async function() {
     
     // 更新側邊欄使用者資訊
     document.getElementById('side-display-name').innerText = currentUser.nickname || currentUser.account;
+    const sideAccount = document.getElementById('side-account');
+    if (sideAccount) sideAccount.textContent = `@${currentUser.account}`;
     
     // 載入頭像
     if (currentUser.avatar) {
@@ -271,22 +273,40 @@ async function initializeNotificationRealtime() {
 }
 
 // ===== 側邊選單控制 =====
-function toggleMenu() {
-    const menu = document.getElementById('side-menu');
-    menu.classList.toggle('active');
-}
+let menuReturnFocus = null;
 
-document.getElementById('menu-logout').addEventListener('click', logout);
-
-// 點擊背景關閉選單
-document.addEventListener('click', function(e) {
+function setMenuOpen(open) {
     const menu = document.getElementById('side-menu');
     const menuBtn = document.querySelector('.menu-btn');
-    
-    if (menu && menu.classList.contains('active')) {
-        if (!menu.contains(e.target) && !menuBtn.contains(e.target)) {
-            menu.classList.remove('active');
-        }
+    const closeBtn = menu?.querySelector('.close-btn');
+    if (!menu) return;
+
+    menu.classList.toggle('active', open);
+    menu.setAttribute('aria-hidden', String(!open));
+    menuBtn?.setAttribute('aria-expanded', String(open));
+    document.body.classList.toggle('menu-open', open);
+
+    if (open) {
+        menuReturnFocus = document.activeElement;
+        requestAnimationFrame(() => closeBtn?.focus());
+    } else if (menuReturnFocus instanceof HTMLElement && document.contains(menuReturnFocus)) {
+        menuReturnFocus.focus();
+    }
+}
+
+function toggleMenu(force) {
+    const menu = document.getElementById('side-menu');
+    if (!menu) return;
+    const nextOpen = typeof force === 'boolean' ? force : !menu.classList.contains('active');
+    setMenuOpen(nextOpen);
+}
+
+document.getElementById('side-menu-backdrop')?.addEventListener('click', () => setMenuOpen(false));
+document.getElementById('menu-logout')?.addEventListener('click', logout);
+
+document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && document.getElementById('side-menu')?.classList.contains('active')) {
+        setMenuOpen(false);
     }
 });
 
