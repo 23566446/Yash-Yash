@@ -74,13 +74,32 @@
             <div id="itinerary-preview-rows" class="transfer-rows"></div>
             <fieldset class="transfer-mode">
                 <legend>匯入方式</legend>
-                <label><input type="radio" name="itinerary-import-mode" value="merge" checked> 合併：保留原有地點，依順序追加</label>
-                <label><input type="radio" name="itinerary-import-mode" value="replace"> 取代：移除原有地點後匯入</label>
+                <div class="transfer-mode-options">
+                    <label class="transfer-mode-card"><input type="radio" name="itinerary-import-mode" value="merge" checked><span><strong>合併</strong><small>保留原有行程，依順序追加</small></span></label>
+                    <label class="transfer-mode-card"><input type="radio" name="itinerary-import-mode" value="replace"><span><strong>取代</strong><small>清除原有行程後重新匯入</small></span></label>
+                </div>
             </fieldset>
             <button id="itinerary-backup-download" class="transfer-backup" type="button">先匯出目前行程備份</button>
             <label class="transfer-ack"><input id="itinerary-warning-ack" type="checkbox"> 我已檢查匯入預覽與警告</label>
             <button id="itinerary-import-confirm" class="btn-primary" type="button" disabled>確認匯入</button>
         </section>
+    </dialog>
+
+    <dialog id="location-edit-dialog" class="location-edit-dialog" aria-labelledby="location-edit-title">
+        <form id="location-edit-form">
+            <h2 id="location-edit-title">編輯地點</h2>
+            <label for="location-edit-name">地點名稱</label>
+            <input id="location-edit-name" type="text" maxlength="200" required>
+            <label for="location-edit-time">時間</label>
+            <input id="location-edit-time" type="text" maxlength="50">
+            <label for="location-edit-note">備註</label>
+            <textarea id="location-edit-note" maxlength="3000" rows="4"></textarea>
+            <p id="location-edit-status" role="status" aria-live="polite"></p>
+            <div class="location-edit-actions">
+                <button id="location-edit-cancel" type="button">取消</button>
+                <button id="location-edit-save" class="btn-primary" type="submit">儲存</button>
+            </div>
+        </form>
     </dialog>
 
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>

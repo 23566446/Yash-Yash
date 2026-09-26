@@ -32,7 +32,7 @@ test('template and export use the exact sheet and header contract', async () => 
 });
 
 test('wrong headers and formula cells are rejected', async () => {
-    await assert.rejects(parseWorkbook(await fileWithRows([[1, '', '', '地點']], ['Wrong', ...HEADERS.slice(1)]), trip), /欄位/);
+    await assert.rejects(parseWorkbook(await fileWithRows([[1, '', '', '地點']], ['Wrong', ...HEADERS.slice(1)]), trip), { code: 'XLSX_HEADER_MISMATCH' });
     const rows = await parseWorkbook(await fileWithRows([[1, '', '', { formula: '2+2', result: 4 }]]), trip);
     assert.match(rows[0].errors.join(' '), /公式/);
 });
@@ -83,7 +83,7 @@ test('Day, Title, Date and coordinate validation preserve warning distinction', 
 
 test('500-row limit accepts boundary and rejects the next populated row', async () => {
     assert.equal((await parseWorkbook(await fileWithRows(Array.from({ length: 500 }, () => [1, '', '', '地點'])), trip)).length, 500);
-    await assert.rejects(parseWorkbook(await fileWithRows(Array.from({ length: 501 }, () => [1, '', '', '地點'])), trip), /500/);
+    await assert.rejects(parseWorkbook(await fileWithRows(Array.from({ length: 501 }, () => [1, '', '', '地點'])), trip), { code: 'XLSX_ROW_LIMIT' });
 });
 
 test('Merge, Replace, exclusion and manually resolved locations work without mutating source', () => {
@@ -92,11 +92,24 @@ test('Merge, Replace, exclusion and manually resolved locations work without mut
     assert.deepEqual(merge[0].locations.map(loc => loc.name), ['原地點', '新地點']);
     assert.equal(merge[0].locations[1].lat, 23);
     assert.equal(trip.days[0].locations.length, 1);
-    const replace = applyImport(trip, [row], 'replace');
+    const replace = applyImport(trip, [row], 'replace', { 2: { lat: 23, lng: 120 } });
     assert.deepEqual(replace[0].locations.map(loc => loc.name), ['新地點']);
-    assert.equal(replace[0].locations[0].lat, undefined);
+    assert.equal(replace[0].locations[0].lat, 23);
     assert.equal(applyImport(trip, [row], 'merge', { 2: { exclude: true } })[0].locations.length, 1);
     assert.throws(() => applyImport(trip, [row], 'merge', { 2: { lat: 200, lng: 0 } }), /定位/);
+    assert.throws(() => applyImport(trip, [row], 'merge'), { code: 'IMPORT_UNRESOLVED_LOCATION' });
+    const generic = normalizeRow([1, '', '', '回飯店休息'], 3, trip);
+    assert.equal(generic.lat, null);
+    assert.throws(() => applyImport(trip, [generic], 'merge'), { code: 'IMPORT_UNRESOLVED_LOCATION' });
+    assert.equal(applyImport(trip, [generic], 'merge', { 3: { exclude: true } })[0].locations.length, 1);
+});
+
+test('invalid XLSX diagnostics use distinct safe categories', async () => {
+    await assert.rejects(parseWorkbook(Buffer.from('not an XLSX'), trip), { code: 'XLSX_INVALID_FILE' });
+    await assert.rejects(parseWorkbook(Buffer.from('PK\x03\x04broken'), trip), { code: 'XLSX_PARSE_FAILED' });
+    const book = new ExcelJS.Workbook();
+    book.addWorksheet('別的工作表');
+    await assert.rejects(parseWorkbook(Buffer.from(await book.xlsx.writeBuffer()), trip), { code: 'XLSX_MISSING_SHEET' });
 });
 
 test('mapUrl round-trips and old rows without mapUrl remain valid', async () => {

@@ -23,8 +23,8 @@
         const resolved = active.filter(row => validCoordinates(row.lat, row.lng)).length;
         const errors = active.reduce((count, row) => count + row.errors.length, 0);
         const warnings = active.reduce((count, row) => count + row.warnings.length + Number(Boolean(row.reviewMessage)), 0);
-        summary.textContent = `共 ${rows.length} 列 · 已定位 ${resolved} · 無地圖定位 ${active.length - resolved} · 警告 ${warnings} · 錯誤 ${errors} · 現有 ${existingCount} 個地點`;
-        confirmButton.disabled = busy || previewVersion === null || !active.length || errors > 0 || (warnings > 0 && !acknowledge.checked);
+        summary.textContent = `共 ${rows.length} 列 · 已定位 ${resolved} · 待定位 ${active.length - resolved} · 警告 ${warnings} · 錯誤 ${errors} · 現有 ${existingCount} 個地點`;
+        confirmButton.disabled = busy || previewVersion === null || !active.length || errors > 0 || resolved !== active.length || (warnings > 0 && !acknowledge.checked);
     }
     function appendText(parent, tag, className, value) {
         const node = document.createElement(tag);
@@ -35,16 +35,17 @@
     }
     function refreshRow(row) {
         const state = row.element.querySelector('.transfer-row-state');
+        const resolved = validCoordinates(row.lat, row.lng);
         state.textContent = row.excluded ? '已排除' : row.errors.length ? '錯誤'
-            : row.warnings.length || row.reviewMessage ? '需確認'
-                : validCoordinates(row.lat, row.lng) ? '可匯入' : '無地圖定位';
+            : !resolved ? '找不到地點' : row.warnings.length || row.reviewMessage ? '需確認' : '可匯入';
         row.element.classList.toggle('is-excluded', Boolean(row.excluded));
         const issues = row.element.querySelector('.transfer-row-issues');
-        issues.textContent = [...row.errors, ...row.warnings, row.reviewMessage].filter(Boolean).join('；');
+        issues.textContent = [...row.errors, ...row.warnings, row.reviewMessage,
+            !row.excluded && !row.errors.length && !resolved ? '請手動定位或排除此列' : ''].filter(Boolean).join('；');
         const coordinates = row.element.querySelector('.transfer-row-coordinates');
         coordinates.textContent = validCoordinates(row.lat, row.lng)
             ? `地圖定位：${row.lat.toFixed(6)}, ${row.lng.toFixed(6)}`
-            : '尚無地圖定位';
+            : '尚未定位';
         counts();
     }
     async function lookupLocation(query, addressFirst) {
@@ -95,7 +96,7 @@
                 const query = document.createElement('input');
                 query.type = 'text';
                 query.maxLength = 500;
-                query.value = row.addr || row.name;
+                query.value = row.addr || '';
                 query.setAttribute('aria-label', `第 ${row.rowNumber} 列搜尋文字`);
                 const lookup = document.createElement('button');
                 lookup.type = 'button';
@@ -105,7 +106,7 @@
                     lookup.disabled = true;
                     setStatus(`正在搜尋第 ${row.rowNumber} 列…`);
                     const found = await resolveRow(row, query.value.trim(), true, generation);
-                    setStatus(found ? '已找到位置，請核對後確認。' : '未找到位置，可保留為無地圖地點或手動填入座標。');
+                    setStatus(found ? '已找到位置，請核對後確認。' : '找不到地點，請換個搜尋詞、手動填入座標或排除此列。');
                     lookup.disabled = false;
                 });
                 const latitude = document.createElement('input');
@@ -155,7 +156,11 @@
             form.append('file', file);
             const response = await apiFetch(`${API_URL}/api/trips/${encodeURIComponent(tripId)}/itinerary/import/preview`, { method: 'POST', body: form });
             const result = await response.json();
-            if (!response.ok) throw new Error(result.message || '檔案驗證失敗');
+            if (!response.ok) {
+                const error = new Error(result.message || '檔案驗證失敗');
+                error.code = result.code;
+                throw error;
+            }
             if (!Number.isSafeInteger(result.tripVersion) || result.tripVersion < 0) throw new Error('預覽版本不合法，請重新預覽');
             if (token !== generation) return;
             sourceFile = file;
@@ -169,12 +174,13 @@
                 if (token !== generation) return;
                 if (row.errors.length || validCoordinates(row.lat, row.lng)) continue;
                 setStatus(`正在解析位置：第 ${row.rowNumber} 列…`);
-                if (row.addr && await resolveRow(row, row.addr, true, token)) continue;
-                await resolveRow(row, [row.name, row.addr].filter(Boolean).join(' '), false, token);
+                if (!row.addr) continue;
+                if (await resolveRow(row, row.addr, true, token)) continue;
+                await resolveRow(row, `${row.name} ${row.addr}`, false, token);
             }
-            if (token === generation) setStatus('預覽完成。請核對地點與警告，再選擇匯入方式。');
+            if (token === generation) setStatus('預覽完成。找不到地點的列需手動定位或排除，才能確認匯入。');
         } catch (error) {
-            if (token === generation) setStatus(error.message || '預覽失敗');
+            if (token === generation) setStatus(`${error.message || '預覽失敗'}${error.code ? ` (${error.code})` : ''}`);
         } finally {
             if (token === generation) { busy = false; counts(); }
         }
@@ -222,6 +228,7 @@
             if (!response.ok || !Array.isArray(result.days)) {
                 const error = new Error(result.message || '匯入失敗');
                 error.status = response.status;
+                error.code = result.code;
                 throw error;
             }
             currentTripData = result;
@@ -236,7 +243,7 @@
                 fileInput.value = '';
                 previewPanel.classList.add('hidden');
             }
-            setStatus(error.message || '匯入失敗，原行程未變更。');
+            setStatus(`${error.message || '匯入失敗，原行程未變更。'}${error.code ? ` (${error.code})` : ''}`);
         }
         finally { busy = false; counts(); }
     }
@@ -261,7 +268,7 @@
     document.getElementById('itinerary-backup-download').addEventListener('click', () => download('export'));
     document.getElementById('itinerary-import-confirm').addEventListener('click', submitImport);
     document.getElementById('itinerary-prompt-copy').addEventListener('click', async () => {
-        const prompt = `請將以下旅遊計畫整理成 YashYash XLSX。只建立「行程」工作表，第一列欄位依序是：Day, Date, Time, Title, Address, GoogleMapsURL, Note, Latitude, Longitude。每列必須有 1 起算的 Day 和 Title；日期用 YYYY-MM-DD，對應行程開始日 ${currentTripData?.startDate || ''}；最多 500 列。沒有可靠座標時留空，勿猜測經緯度。不要放公式。請輸出 .xlsx 檔案。`;
+        const prompt = `請將以下旅遊計畫整理成 YashYash XLSX。只建立「行程」工作表，第一列欄位依序是：Day, Date, Time, Title, Address, GoogleMapsURL, Note, Latitude, Longitude。每列必須有 1 起算的 Day 和 Title；日期用 YYYY-MM-DD，對應行程開始日 ${currentTripData?.startDate || ''}；最多 500 列。每列必須是真實且可定位的地點，請提供可靠的 Address、GoogleMapsURL 或座標；不要猜測經緯度。沒有實際地點的純活動文字請放在相關地點的 Note，不要建立無法定位的獨立列。不要放公式。請輸出 .xlsx 檔案。`;
         try { await navigator.clipboard.writeText(prompt); setStatus('AI 提示詞已複製。'); }
         catch { setStatus('無法複製，請檢查瀏覽器剪貼簿權限。'); }
     });

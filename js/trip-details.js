@@ -7,6 +7,8 @@ let map, markers = [];
 let currentTripData = null;
 let activeDayIndex = 0; 
 let sortables = [];
+let editingLocation = null;
+let savingLocation = false;
 
 // 地圖輔助變數
 let tempMarker = null;
@@ -276,13 +278,21 @@ function renderItinerary() {
         navigation.setAttribute('aria-label', `導航到 ${loc.name}`);
         navigation.disabled = !valid;
         navigation.addEventListener('click', () => startNavigation(lat, lng));
+        const edit = document.createElement('button');
+        edit.type = 'button';
+        edit.textContent = '✎';
+        edit.title = '編輯地點';
+        edit.setAttribute('aria-label', `編輯 ${loc.name}`);
+        edit.addEventListener('click', () => openLocationEditor(activeDayIndex, locIdx));
         const remove = document.createElement('button');
         remove.type = 'button';
         remove.textContent = '×';
         remove.title = '移除地點';
         remove.setAttribute('aria-label', `移除 ${loc.name}`);
         remove.addEventListener('click', () => deleteLocation(activeDayIndex, locIdx));
-        actions.append(drag, navigation, remove);
+        actions.append(drag, navigation);
+        if (currentTripData.participants?.includes(currentUser?.account)) actions.appendChild(edit);
+        actions.appendChild(remove);
         stop.append(marker, content, actions);
         list.appendChild(stop);
     });
@@ -574,6 +584,49 @@ async function addLocationToDB(locationObj) {
         alert("網路錯誤");
     }
 }
+
+function openLocationEditor(dayIndex, locationIndex) {
+    const location = currentTripData?.days?.[dayIndex]?.locations?.[locationIndex];
+    if (!location) return;
+    editingLocation = { dayIndex, locationIndex };
+    document.getElementById('location-edit-name').value = location.name || '';
+    document.getElementById('location-edit-time').value = location.time || '';
+    document.getElementById('location-edit-note').value = location.note || '';
+    document.getElementById('location-edit-status').textContent = '';
+    document.getElementById('location-edit-dialog').showModal();
+    document.getElementById('location-edit-name').focus();
+}
+
+document.getElementById('location-edit-cancel').addEventListener('click', () => document.getElementById('location-edit-dialog').close());
+document.getElementById('location-edit-dialog').addEventListener('cancel', event => { if (savingLocation) event.preventDefault(); });
+document.getElementById('location-edit-dialog').addEventListener('close', () => { editingLocation = null; });
+document.getElementById('location-edit-form').addEventListener('submit', async event => {
+    event.preventDefault();
+    if (!editingLocation) return;
+    const name = document.getElementById('location-edit-name').value;
+    const time = document.getElementById('location-edit-time').value;
+    const note = document.getElementById('location-edit-note').value;
+    const save = document.getElementById('location-edit-save');
+    const cancel = document.getElementById('location-edit-cancel');
+    const status = document.getElementById('location-edit-status');
+    savingLocation = true;
+    save.disabled = true;
+    cancel.disabled = true;
+    status.textContent = '正在儲存…';
+    try {
+        const response = await apiFetch(`${API_URL}/api/trips/${encodeURIComponent(tripId)}/location`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...editingLocation, name, time, note })
+        });
+        const result = await response.json();
+        if (!response.ok || !Array.isArray(result.days)) throw new Error(result.message || '儲存失敗');
+        currentTripData = result;
+        renderItinerary();
+        renderMarkers();
+        document.getElementById('location-edit-dialog').close();
+    } catch (error) { status.textContent = error.message || '儲存失敗，請稍後再試'; }
+    finally { savingLocation = false; save.disabled = false; cancel.disabled = false; }
+});
 
 async function deleteLocation(dayIdx, locIdx) {
     if(!confirm("確定移除此地點嗎？")) return;
