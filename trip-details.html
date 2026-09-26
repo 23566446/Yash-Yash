@@ -40,7 +40,10 @@
         <aside class="itinerary-sidebar">
             <div class="planner-tools">
                 <div class="search-box-container">
-                    <p class="planner-search-label">規劃下一站</p>
+                    <div class="planner-search-heading">
+                        <p class="planner-search-label">規劃下一站</p>
+                        <button id="itinerary-transfer-open" class="planner-transfer-open hidden" type="button">匯入 / 匯出</button>
+                    </div>
                     <div id="pac-input" aria-label="搜尋景點、餐廳或住宿"></div>
                 </div>
                 <div id="day-selector" class="day-selector" role="group" aria-label="選擇行程日期"></div>
@@ -50,6 +53,35 @@
             </div>
         </aside>
     </div>
+
+    <dialog id="itinerary-transfer-dialog" class="itinerary-transfer-dialog" aria-labelledby="itinerary-transfer-title">
+        <div class="transfer-header">
+            <div><p class="section-eyebrow">行程資料</p><h2 id="itinerary-transfer-title">匯入 / 匯出</h2></div>
+            <button id="itinerary-transfer-close" type="button" aria-label="關閉匯入匯出視窗" title="關閉">×</button>
+        </div>
+        <p class="transfer-intro">使用標準 XLSX 範本規劃旅程。匯入前可以逐列預覽，確認後才會更新行程。</p>
+        <div class="transfer-actions">
+            <button id="itinerary-template-download" type="button">下載 AI / Excel 範本</button>
+            <button id="itinerary-export-download" type="button">匯出目前行程</button>
+            <button id="itinerary-prompt-copy" type="button">複製 AI 提示詞</button>
+        </div>
+        <label class="transfer-file-label" for="itinerary-import-file">匯入行程 (.xlsx，最多 2 MB)</label>
+        <input id="itinerary-import-file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+        <p id="itinerary-transfer-status" class="transfer-status" role="status" aria-live="polite"></p>
+        <section id="itinerary-preview" class="itinerary-preview hidden" aria-label="匯入預覽">
+            <h3>匯入預覽</h3>
+            <p id="itinerary-preview-summary"></p>
+            <div id="itinerary-preview-rows" class="transfer-rows"></div>
+            <fieldset class="transfer-mode">
+                <legend>匯入方式</legend>
+                <label><input type="radio" name="itinerary-import-mode" value="merge" checked> 合併：保留原有地點，依順序追加</label>
+                <label><input type="radio" name="itinerary-import-mode" value="replace"> 取代：移除原有地點後匯入</label>
+            </fieldset>
+            <button id="itinerary-backup-download" class="transfer-backup" type="button">先匯出目前行程備份</button>
+            <label class="transfer-ack"><input id="itinerary-warning-ack" type="checkbox"> 我已檢查匯入預覽與警告</label>
+            <button id="itinerary-import-confirm" class="btn-primary" type="button" disabled>確認匯入</button>
+        </section>
+    </dialog>
 
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script src="js/config.js"></script>
@@ -61,6 +93,7 @@
     <script src="js/trip-nav.js"></script>
     <script src="js/trip-order.js"></script>
     <script src="js/trip-details.js"></script>
+    <script src="js/itinerary-import.js"></script>
     
 </body>
 </html>

@@ -168,6 +168,39 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .planner-tools { position: sticky; top: 0; z-index: 20; background: var(--surface); border-bottom: 1px solid var(--border); }
 .details-page .search-box-container { padding: 18px 20px 12px; }
 .planner-search-label { display: block; margin-bottom: 8px; font-size: .75rem; color: var(--text-secondary); font-weight: 650; }
+.planner-search-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.planner-search-heading .planner-search-label { margin: 0 0 8px; }
+.planner-transfer-open { min-height: 40px; margin-bottom: 8px; padding: 6px 10px; border: 1px solid var(--sand); border-radius: 10px; background: var(--surface); color: var(--brand-strong); font-size: .75rem; font-weight: 700; cursor: pointer; }
+.itinerary-transfer-dialog { width: min(94vw, 760px); max-height: min(88dvh, 850px); padding: 22px; border: 1px solid var(--border); border-radius: 20px; background: var(--surface); color: var(--text-primary); box-shadow: var(--shadow-md); overflow-y: auto; }
+.itinerary-transfer-dialog::backdrop { background: rgba(39,48,39,.5); backdrop-filter: blur(3px); }
+.transfer-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.transfer-header h2 { margin: 2px 0 10px; color: var(--brand-strong); }
+.transfer-header button { width: 44px; height: 44px; padding: 0; border: 0; background: var(--surface-subtle); border-radius: 50%; font-size: 1.5rem; cursor: pointer; }
+.transfer-intro, .transfer-status { color: var(--text-secondary); line-height: 1.6; }
+.transfer-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0; }
+.transfer-actions button, .transfer-row-controls button, .transfer-backup { min-height: 44px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 10px; background: white; color: var(--brand-strong); cursor: pointer; }
+.transfer-file-label { display: block; margin: 18px 0 8px; font-weight: 700; }
+#itinerary-import-file { width: 100%; max-width: 100%; padding: 10px; border: 1px dashed var(--sand); border-radius: 10px; }
+.itinerary-preview { margin-top: 20px; }
+.itinerary-preview h3 { margin: 0 0 8px; }
+#itinerary-preview-summary { font-size: .85rem; color: var(--text-secondary); line-height: 1.6; }
+.transfer-rows { display: grid; gap: 10px; max-height: min(36dvh, 340px); overflow-y: auto; padding: 2px; }
+.transfer-row { min-width: 0; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: white; overflow-wrap: anywhere; }
+.transfer-row.is-excluded { opacity: .55; }
+.transfer-row-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.transfer-row-state { flex: 0 0 auto; padding: 4px 8px; border-radius: 999px; background: var(--surface-subtle); color: var(--brand-strong); font-size: .72rem; }
+.transfer-row-meta, .transfer-row-coordinates, .transfer-row-issues { margin: 6px 0; font-size: .8rem; color: var(--text-secondary); white-space: pre-wrap; }
+.transfer-row-issues:not(:empty) { color: var(--danger); }
+.transfer-row-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-top: 10px; }
+.transfer-row-controls input[type="text"] { flex: 1 1 160px; }
+.transfer-row-controls input[type="number"] { flex: 1 1 85px; max-width: 110px; }
+.transfer-row-controls input { min-width: 0; min-height: 44px; padding: 8px; border: 1px solid var(--border); border-radius: 9px; }
+.transfer-exclude { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; white-space: nowrap; }
+.transfer-mode { display: grid; gap: 8px; margin: 18px 0 10px; padding: 14px; border: 1px solid var(--border); border-radius: 12px; }
+.transfer-mode legend { font-weight: 700; }
+.transfer-mode label, .transfer-ack { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.transfer-backup { margin-bottom: 10px; }
+.itinerary-preview .btn-primary { display: block; width: 100%; margin-top: 12px; }
 #pac-input { min-width: 0; width: 100%; border: 1px solid var(--sand); border-radius: 12px; background: white; }
 #pac-input gmp-place-autocomplete { display: block; width: 100%; color-scheme: light; }
 .day-selector { display: flex; gap: 8px; overflow-x: auto; padding: 6px 20px 14px; overscroll-behavior-x: contain; scrollbar-width: thin; }
@@ -296,6 +329,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     .details-page[data-planner-view="map"] #days-container { display: none; }
     .details-page[data-planner-view="map"] .search-box-container { display: none; }
     .details-page[data-planner-view="map"] .day-selector { padding-block: 6px; }
+}
+
+@media (max-width: 767px) {
+    .itinerary-transfer-dialog { width: min(calc(100vw - 16px), 760px); max-height: calc(100dvh - 24px); padding: 16px; }
+    .transfer-actions button { flex: 1 1 150px; }
+    .transfer-rows { max-height: 32dvh; }
 }
 
 @media (max-width: 420px) {

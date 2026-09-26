@@ -45,6 +45,7 @@ async function fetchTripDetails() {
         }
         
         currentTripData = await response.json();
+        document.getElementById('itinerary-transfer-open').classList.toggle('hidden', !currentTripData.participants?.includes(currentUser.account));
         console.log("✅ 行程資料載入成功:", currentTripData);
 
         const titleTextEl = document.getElementById('trip-title-text');
@@ -235,8 +236,8 @@ function renderItinerary() {
         list.appendChild(empty);
     }
     day.locations.forEach((loc, locIdx) => {
-        const lat = Number.parseFloat(loc.lat);
-        const lng = Number.parseFloat(loc.lng);
+        const lat = loc.lat == null ? NaN : Number(loc.lat);
+        const lng = loc.lng == null ? NaN : Number(loc.lng);
         const valid = Number.isFinite(lat) && Number.isFinite(lng);
         const stop = document.createElement('div');
         stop.className = 'itinerary-stop location-item';
@@ -468,8 +469,8 @@ function renderMarkers() {
         const isActiveDay = (dIdx === activeDayIndex);
         
         day.locations.forEach((loc, locIdx) => {
-            const lat = parseFloat(loc.lat);
-            const lng = parseFloat(loc.lng);
+            const lat = loc.lat == null ? NaN : Number(loc.lat);
+            const lng = loc.lng == null ? NaN : Number(loc.lng);
 
             if (isNaN(lat) || isNaN(lng)) {
                 console.error(`❌ 地點「${loc.name}」的座標無效:`, loc.lat, loc.lng);
