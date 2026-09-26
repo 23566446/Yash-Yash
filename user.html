@@ -6,6 +6,7 @@
     <title>YashYash | 會員中心</title>
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/product.css">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         /* 確保頭像完美圓形 */
@@ -52,16 +53,16 @@
         }
     </style>
 </head>
-<body>
+<body class="auth-pending account-page">
     <header class="app-header">
         <button onclick="location.href='index.html'" class="btn-small">← 返回</button>
         <h2 id="header-nickname" style="margin:0;">個人設定</h2>
         <div style="width:50px;"></div>
     </header>
 
-    <main class="container">
+    <main class="container settings-dashboard">
         <!-- 通知區塊 -->
-        <section id="notification-section" class="wabi-card hidden" style="border-left: 4px solid var(--clay) !important; background: #fdfcf9;">
+        <section id="notification-section" class="wabi-card settings-panel notification-panel hidden">
             <h3 style="color: #a67c52;">🔔 活動建立通知</h3>
             <div id="notification-list">
                 <!-- JS 渲染通知內容 -->
@@ -69,7 +70,7 @@
         </section>
 
         <!-- 區塊 A: 個人基本資料 (所有人可見) -->
-        <section class="wabi-card">
+        <section class="wabi-card settings-panel profile-panel">
             <h3>基本資料</h3>
             
             <div class="avatar-container" onclick="document.getElementById('avatar-input').click()">
@@ -101,14 +102,14 @@
         </section>
 
         <!-- 跑馬燈管理區塊 -->
-        <section id="marquee-admin-section" class="wabi-card hidden" style="border-left: 4px solid var(--accent-color) !important;">
+        <section id="marquee-admin-section" class="wabi-card settings-panel admin-panel hidden">
             <h3>📢 更新跑馬燈公告</h3>
             <input type="text" id="marquee-input" placeholder="輸入要顯示的公告內容...">
             <button onclick="updateMarquee()" class="btn-primary" style="width:100%; margin-top:10px;">更新全站公告</button>
         </section>
 
         <!-- 區塊 B: 超級管理員專區 (只有 admin 會看到) -->
-        <section id="super-user-section" class="wabi-card hidden" style="border-left: 4px solid var(--clay) !important;">
+        <section id="super-user-section" class="wabi-card settings-panel admin-panel user-admin-panel hidden">
             <h3 style="color: #a67c52;">👑 超級管理員儀表板</h3>
             <p style="font-size: 0.8rem; opacity: 0.7;">您可以查看所有成員的帳號資訊。</p>
             
@@ -127,6 +128,7 @@
     <script src="js/config.js"></script>
     <script src="js/pwa.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/auth-session.js"></script>
     <script src="js/image-utils.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/realtime.js"></script>

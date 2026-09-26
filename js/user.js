@@ -1,29 +1,15 @@
 const API_URL = window.YashYashConfig.API_URL;
-const userData = localStorage.getItem('yashyash_user');
-const authToken = localStorage.getItem('yashyash_token');
 let currentUser = null;
 const realtimeProposalNotifications = new Set();
-
-if (!userData || !authToken) {
-    localStorage.removeItem('yashyash_user');
-    localStorage.removeItem('yashyash_token');
-    window.location.href = 'login.html';
-} else {
-    try {
-        currentUser = JSON.parse(userData);
-    } catch (err) {
-        localStorage.removeItem('yashyash_user');
-        localStorage.removeItem('yashyash_token');
-        window.location.href = 'login.html';
-    }
-}
-
-let currentAvatarBase64 = currentUser?.avatar || "";
+let currentAvatarBase64 = "";
 let isUploadingAvatar = false;
 
 window.onload = () => {
-    if (!currentUser) return;
-    initPage();
+    window.YashYashSession.ready.then(user => {
+        currentUser = user;
+        currentAvatarBase64 = user.avatar || '';
+        initPage();
+    });
 };
 
 function initPage() {

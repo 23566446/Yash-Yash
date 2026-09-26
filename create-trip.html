@@ -6,9 +6,10 @@
     <title>YashYash | 發起提案</title>
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/product.css">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 </head>
-<body>
+<body class="auth-pending create-trip-page">
     <header class="app-header">
         <div class="header-left">
             <button onclick="location.href='index.html'" class="btn-small">← 返回</button>
@@ -20,19 +21,19 @@
     <main class="container">
         <div class="wabi-card">
             <h3>發起新的旅行提案</h3>
+            <p class="section-subtitle">先提出日期，夥伴達到最低人數後再確認行程</p>
             <div class="form-group">
-                <label>開始日期</label>
-                <input type="date" id="start-date">
-                
-                <label>結束日期</label>
-                <input type="date" id="end-date">
-                
-                <label>最低成行人數</label>
-                <input type="number" id="min-ppl" value="2" min="1">
+                <div class="date-fields">
+                    <div><label for="start-date">開始日期</label><input type="date" id="start-date"></div>
+                    <div><label for="end-date">結束日期</label><input type="date" id="end-date"></div>
+                </div>
+                <label for="min-ppl">最低成行人數</label>
+                <input type="number" id="min-ppl" value="2" min="1" aria-describedby="min-ppl-help">
+                <small id="min-ppl-help" class="form-help">參加人數達到門檻後，發起人即可建立正式行程。</small>
                 
                 <div class="actions" style="margin-top: 20px; display: flex; gap: 10px;">
                     <button onclick="location.href='index.html'" class="btn-text" style="flex: 1;">取消</button>
-                    <button onclick="submitProposal()" class="btn-primary" style="flex: 2;">發布提案</button>
+                    <button onclick="submitProposal()" class="btn-primary" style="flex: 2;">建立旅行提案</button>
                 </div>
             </div>
         </div>
@@ -41,9 +42,9 @@
     <script src="js/config.js"></script>
     <script src="js/pwa.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/auth-session.js"></script>
     <script>
     const API_URL = window.YashYashConfig.API_URL;
-    if (!localStorage.getItem('yashyash_user') || !localStorage.getItem('yashyash_token')) { localStorage.removeItem('yashyash_user'); localStorage.removeItem('yashyash_token'); location.href = 'login.html'; }
     
     async function submitProposal() {
         const startDate = document.getElementById('start-date').value;

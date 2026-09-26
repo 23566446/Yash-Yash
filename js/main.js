@@ -2,25 +2,17 @@
 const API_URL = window.YashYashConfig.API_URL;
 let currentUser = null;
 const realtimeProposalNotifications = new Set();
-if (!localStorage.getItem('yashyash_user') || !localStorage.getItem('yashyash_token')) { localStorage.removeItem('yashyash_user'); localStorage.removeItem('yashyash_token'); location.href = 'login.html'; }
 
 // ===== 初始化載入 =====
 window.onload = async function() {
-    // 檢查登入狀態
-    const user = JSON.parse(localStorage.getItem('yashyash_user'));
-    if (!user) {
-        location.href = 'login.html';
-        return;
-    }
-    
-    currentUser = user;
+    currentUser = await window.YashYashSession.ready;
     
     // 更新側邊欄使用者資訊
-    document.getElementById('side-display-name').innerText = user.nickname || user.account;
+    document.getElementById('side-display-name').innerText = currentUser.nickname || currentUser.account;
     
     // 載入頭像
-    if (user.avatar) {
-        document.getElementById('side-user-avatar').src = window.safeImageSource(user.avatar, 'img/default-avatar.svg');
+    if (currentUser.avatar) {
+        document.getElementById('side-user-avatar').src = window.safeImageSource(currentUser.avatar, 'img/default-avatar.svg');
     }
     
     // 載入資料
@@ -191,10 +183,10 @@ async function loadMyTrips() {
         const trips = await res.json();
         
         // 取得今天的日期（格式：YYYY-MM-DD）
-        const today = new Date().toISOString().split('T')[0];
+        const today = window.YashYashTripOrder.localDateKey();
         
         // 過濾出尚未結束的行程（結束日期 >= 今天）
-        const upcomingTrips = trips.filter(t => t.endDate >= today);
+        const upcomingTrips = window.YashYashTripOrder.sortUpcomingTrips(trips, today);
         
         if (upcomingTrips.length === 0) {
             tripList.innerHTML = '<p class="empty-text">尚無確定的行程。</p>';
@@ -202,14 +194,16 @@ async function loadMyTrips() {
         }
         
         tripList.replaceChildren();
-        upcomingTrips.forEach(t => {
+        upcomingTrips.forEach((t, index) => {
             const dayCount = Math.ceil((new Date(t.endDate) - new Date(t.startDate)) / (1000 * 60 * 60 * 24)) + 1;
-            const daysLeft = Math.ceil((new Date(t.startDate) - new Date()) / (1000 * 60 * 60 * 24));
+            const daysLeft = window.YashYashTripOrder.daysUntilDate(t.startDate);
             
-            const card=document.createElement('div'); card.className='trip-card wabi-card'; card.addEventListener('click',()=>{location.href=`trip-details.html?id=${encodeURIComponent(t._id)}`;});
-            const title=document.createElement('strong'); title.style.cssText='font-size:1.2rem;color:var(--accent-color);'; title.textContent=t.title; card.appendChild(title);
-            if(daysLeft>=0){const badge=document.createElement('span'); badge.style.cssText=`background:${daysLeft>0?'var(--clay)':'var(--danger)'};color:white;padding:4px 10px;border-radius:20px;font-size:.75rem;`; badge.textContent=daysLeft>0?`還有 ${daysLeft} 天`:'今天出發！'; card.appendChild(badge);}
-            const date=document.createElement('div'); date.style.cssText='color:#666;margin:8px 0;'; date.textContent=`📅 ${formatDate(t.startDate)} ~ ${formatDate(t.endDate)} (${dayCount} 天)`; card.appendChild(date); const people=document.createElement('div');people.style.cssText='color:#666;margin:8px 0;';people.textContent=`👥 ${t.participants.length} 位夥伴`;card.appendChild(people);const footer=document.createElement('div');footer.style.cssText='margin-top:12px;padding-top:12px;border-top:1px dashed #ddd;font-size:.85rem;color:#999;';footer.textContent='點擊查看詳情 →';card.appendChild(footer);tripList.appendChild(card); });
+            const card=document.createElement('a'); card.className=`trip-card wabi-card${index === 0 ? ' trip-hero' : ''}`; card.href=`trip-details.html?id=${encodeURIComponent(t._id)}`;
+            const title=document.createElement('strong'); title.className='trip-card-title'; title.textContent=t.title; card.appendChild(title);
+            const badge=document.createElement('span'); badge.className='status-badge trip-status'; badge.textContent=t.startDate<today?'旅途中':daysLeft===0?'今天出發！':`還有 ${daysLeft} 天`; card.appendChild(badge);
+            const date=document.createElement('div'); date.className='trip-card-meta'; date.textContent=`📅 ${formatDate(t.startDate)} ~ ${formatDate(t.endDate)} (${dayCount} 天)`; card.appendChild(date);
+            const people=document.createElement('div'); people.className='trip-card-meta'; people.textContent=`👥 ${t.participants.length} 位夥伴`; card.appendChild(people);
+            const footer=document.createElement('div'); footer.className='trip-card-footer'; footer.textContent=index===0?'查看行程 →':'點擊查看詳情 →'; card.appendChild(footer); tripList.appendChild(card); });
         
     } catch (e) {
         console.error("載入行程失敗:", e);
@@ -258,6 +252,8 @@ function toggleMenu() {
     const menu = document.getElementById('side-menu');
     menu.classList.toggle('active');
 }
+
+document.getElementById('menu-logout').addEventListener('click', logout);
 
 // 點擊背景關閉選單
 document.addEventListener('click', function(e) {

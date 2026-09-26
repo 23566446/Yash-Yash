@@ -209,8 +209,9 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="css/product.css">
 </head>
-<body>
+<body class="auth-pending trip-chat-page">
     <header class="app-header">
         <button id="back-to-details" class="btn-small">← 行程</button>
         <h2 id="chat-trip-title" style="margin:0; font-size: 1.2rem;">聊天室</h2>
@@ -224,16 +225,17 @@
         
         <form class="chat-input-area" onsubmit="handleSend(event)">
             <input type="text" id="message-input" placeholder="輸入訊息..." autocomplete="off" maxlength="500">
-            <button type="submit" class="btn-primary">傳送</button>
+            <button type="submit" class="btn-primary" aria-label="傳送訊息">傳送</button>
         </form>
     </main>
     
     <!-- 捲動到底部按鈕 -->
-    <button id="scroll-to-bottom" onclick="scrollToBottom()">↓</button>
+    <button id="scroll-to-bottom" onclick="scrollToBottom()" aria-label="捲動至最新訊息">↓</button>
 
     <script src="js/config.js"></script>
     <script src="js/pwa.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/auth-session.js"></script>
     <script src="js/image-utils.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/trip-nav.js"></script>

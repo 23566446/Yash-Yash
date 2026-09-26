@@ -1,13 +1,35 @@
 /* --- 全域基礎變數 --- */
 :root {
-    --bg-color: #f5f2ed;
-    --text-color: #363636;
-    --accent-color: #8a9a5b;
-    --clay: #d2b48c;
-    --danger: #a65252;
-    --card-bg: #ffffff;
-    --border-radius: 16px;
-    --shadow: 0 8px 30px rgba(0,0,0,0.05);
+    --bg: #f3f1ea;
+    --surface: #fffefa;
+    --surface-subtle: #ebe8de;
+    --text-primary: #283027;
+    --text-secondary: #687064;
+    --brand: #73834f;
+    --brand-strong: #55643a;
+    --sand: #d6b98f;
+    --danger: #a94d4d;
+    --border: #dedbd0;
+    --radius-sm: 10px;
+    --radius-md: 16px;
+    --radius-lg: 24px;
+    --shadow-sm: 0 3px 12px rgba(39, 48, 39, 0.06);
+    --shadow-md: 0 16px 42px rgba(39, 48, 39, 0.12);
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+    --space-6: 32px;
+    --content-wide: 1200px;
+    --content-readable: 780px;
+    --bg-color: var(--bg);
+    --text-color: var(--text-primary);
+    --accent-color: var(--brand);
+    --clay: var(--sand);
+    --card-bg: var(--surface);
+    --border-radius: var(--radius-md);
+    --shadow: var(--shadow-sm);
 }
 
 * { 

@@ -10,9 +10,10 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="calendar.png">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/product.css">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 </head>
-<body>
+<body class="auth-pending home-page">
     <header class="app-header">
         <div class="header-left">
             <button class="menu-btn" onclick="toggleMenu()" aria-label="開啟選單">☰</button>
@@ -39,39 +40,41 @@
         </div>
         
         <ul class="menu-list">
-            <li onclick="location.href='index.html'">🏠 首頁公告</li>
-            <li onclick="location.href='user.html'">👤 個人設定</li>
-            <li onclick="location.href='create-trip.html'">➕ 發起提案</li>
-            <li onclick="location.href='past-trip.html'">📂 過去的行程</li>
+            <li><a href="index.html" aria-current="page"><span aria-hidden="true">🏠</span><span>首頁</span></a></li>
+            <li><a href="user.html"><span aria-hidden="true">👤</span><span>個人設定</span></a></li>
+            <li><a href="create-trip.html"><span aria-hidden="true">➕</span><span>發起提案</span></a></li>
+            <li><a href="past-trip.html"><span aria-hidden="true">📂</span><span>過去的行程</span></a></li>
             <li class="menu-divider"></li>
-            <li onclick="logout()" style="color:var(--danger);">🚪 登出系統</li>
+            <li class="menu-logout"><button id="menu-logout" type="button"><span aria-hidden="true">🚪</span><span>登出系統</span></button></li>
         </ul>
     </nav>
 
     <main class="main-content">
-        <!-- 行程公告欄 -->
+        <!-- 即將到來的旅行 -->
         <section class="container">
-            <h2 class="section-title">行程公告欄</h2>
+            <p class="section-eyebrow">準備出發</p><h2 class="section-title">下一趟旅行</h2>
         </section>
-        <div id="announcement-board" class="board">
+        <div id="trip-list" class="board">
             <p class="empty-text">載入中...</p>
         </div>
 
-        <!-- 即將到來的旅行 -->
+        <!-- 行程公告欄 -->
         <section class="container">
-            <h2 class="section-title">即將到來的旅行</h2>
+            <p class="section-eyebrow">一起決定下一站</p><h2 class="section-title">旅行提案</h2>
         </section>
-        <div id="trip-list" class="board">
+        <div id="announcement-board" class="board">
             <p class="empty-text">載入中...</p>
         </div>
     </main>
 
     <!-- 浮動新增按鈕 -->
-    <button class="fab" onclick="location.href='create-trip.html'" aria-label="發起新提案">+</button>
+    <button class="fab" onclick="location.href='create-trip.html'" aria-label="發起新提案"><span aria-hidden="true">＋</span><span class="fab-label">發起旅行</span></button>
 
     <script src="js/config.js"></script>
     <script src="js/pwa.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/auth-session.js"></script>
+    <script src="js/trip-order.js"></script>
     <script src="js/image-utils.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/realtime.js"></script>

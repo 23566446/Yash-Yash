@@ -6,16 +6,17 @@
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/album.css">
+    <link rel="stylesheet" href="css/product.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 </head>
-<body>
+<body class="auth-pending trip-album-page">
     <header class="app-header">
         <button id="back-to-details" class="btn-small">← 行程</button>
         <h2 style="margin:0;">旅行相簿</h2>
         <!-- 新增打包下載按鈕 -->
-        <button onclick="downloadAllPhotos()" class="btn-small" style="background:var(--clay); color:white; border:none;">📦 全部下載</button>
+        <button onclick="downloadAllPhotos()" class="btn-small" aria-label="下載全部旅行照片">📦 全部下載</button>
     </header>
 
     <main class="album-container">
@@ -43,6 +44,7 @@
     <script src="js/config.js"></script>
     <script src="js/pwa.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/auth-session.js"></script>
     <script src="js/image-utils.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/trip-nav.js"></script>

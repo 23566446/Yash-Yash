@@ -1,8 +1,6 @@
 const API_URL = window.YashYashConfig.API_URL;
 const tripId = new URLSearchParams(window.location.search).get('id');
-if (!localStorage.getItem('yashyash_user') || !localStorage.getItem('yashyash_token')) { localStorage.removeItem('yashyash_user'); localStorage.removeItem('yashyash_token'); window.location.href = 'login.html'; }
-
-const currentUser = JSON.parse(localStorage.getItem('yashyash_user'));
+let currentUser = null;
 const messagesByKey = new Map();
 let pollTimer = null;
 
@@ -13,6 +11,7 @@ function denyAccess() {
 }
 
 window.onload = async () => {
+    currentUser = await window.YashYashSession.ready;
     if (!tripId || !currentUser) {
         window.location.href = 'index.html';
         return;
@@ -76,7 +75,7 @@ function renderMessages(messages) {
         const row = document.createElement('div'); row.className = `msg ${isMine ? 'me' : 'others'}`;
         const img = document.createElement('img'); img.className = 'msg-avatar'; img.src = window.safeImageSource ? safeImageSource(message.avatar) : 'img/default-avatar.svg'; img.onerror = () => { img.src = 'img/default-avatar.svg'; };
         const body = document.createElement('div');
-        const sender = document.createElement('div'); sender.style.cssText = 'font-size:0.7rem;color:#888;margin-bottom:2px;'; sender.textContent = message.sender || '';
+        const sender = document.createElement('div'); sender.className = 'msg-sender'; sender.textContent = message.sender || '';
         const text = document.createElement('div'); text.className = 'msg-content'; text.textContent = message.text || '';
         const time = document.createElement('div'); time.className = 'msg-info'; time.textContent = new Date(message.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         body.append(sender, text, time); row.append(img, body); windowEl.appendChild(row);

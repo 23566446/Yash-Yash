@@ -1,14 +1,7 @@
 const API_URL = window.YashYashConfig.API_URL;
 const urlParams = new URLSearchParams(window.location.search);
 const tripId = urlParams.get('id');
-if (!localStorage.getItem('yashyash_user') || !localStorage.getItem('yashyash_token')) { localStorage.removeItem('yashyash_user'); localStorage.removeItem('yashyash_token'); window.location.href = 'login.html'; }
-const userData = localStorage.getItem('yashyash_user');
-
-if (!userData || !tripId) {
-    window.location.href = 'index.html';
-}
-
-const currentUser = JSON.parse(userData);
+let currentUser = null;
 let tripData = null;
 let allPhotos = [];
 let sortables = [];
@@ -18,6 +11,8 @@ let isUploadingPhotos = false;
 function denyAccess() { alert('你沒有權限存取這個內容'); window.location.href = 'index.html'; }
 
 window.onload = async () => {
+    currentUser = await window.YashYashSession.ready;
+    if (!tripId) return window.location.href = 'index.html';
     const backBtn = document.getElementById('back-to-details');
     if (backBtn) backBtn.addEventListener('click', () => { window.location.href = `trip-details.html?id=${encodeURIComponent(tripId)}`; });
     const deleteButton = document.getElementById('btn-delete-photo');

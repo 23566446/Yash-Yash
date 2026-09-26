@@ -1,6 +1,5 @@
 const API_URL = window.YashYashConfig.API_URL;
 const tripId = new URLSearchParams(window.location.search).get('id');
-if (!localStorage.getItem('yashyash_user') || !localStorage.getItem('yashyash_token')) { localStorage.removeItem('yashyash_user'); localStorage.removeItem('yashyash_token'); window.location.href = 'login.html'; }
 
 const quickQuestions = [
     '幫我整理今天的行程',
@@ -12,6 +11,7 @@ const quickQuestions = [
 window.addEventListener('load', initializeAIPage);
 
 async function initializeAIPage() {
+    await window.YashYashSession.ready;
     if (!tripId) return window.location.href = 'index.html';
     document.getElementById('back-to-details').addEventListener('click', () => {
         window.location.href = `trip-details.html?id=${encodeURIComponent(tripId)}`;
@@ -53,6 +53,17 @@ function showAIMessage(text, type) {
     document.getElementById('ai-conversation').appendChild(message);
 }
 
+function showAIStatus(text, category) {
+    const status = document.createElement('div');
+    status.className = `ai-status-card ${category || 'AI_PROVIDER_FAILURE'}`;
+    const heading = document.createElement('strong');
+    heading.textContent = category === 'AI_BILLING_ERROR' ? 'AI 額度狀態' : ['AI_NOT_CONFIGURED', 'AI_AUTH_ERROR', 'AI_MODEL_ERROR'].includes(category) ? 'AI 設定狀態' : '連線狀態';
+    const message = document.createElement('p');
+    message.textContent = text;
+    status.append(heading, message);
+    document.getElementById('ai-conversation').appendChild(status);
+}
+
 async function submitQuestion(event) {
     event.preventDefault();
     const input = document.getElementById('ai-question');
@@ -64,6 +75,10 @@ async function submitQuestion(event) {
     input.value = '';
     button.disabled = true;
     button.textContent = '思考中…';
+    const thinking = document.createElement('div');
+    thinking.className = 'ai-thinking';
+    thinking.textContent = 'YashYash AI 正在整理旅程建議…';
+    document.getElementById('ai-conversation').appendChild(thinking);
     try {
         const response = await apiFetch(`${API_URL}/api/trips/${encodeURIComponent(tripId)}/ai`, {
             method: 'POST',
@@ -71,11 +86,15 @@ async function submitQuestion(event) {
             body: JSON.stringify({ question })
         });
         const result = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(result.message || 'AI 助手暫時無法回應');
+        if (!response.ok) {
+            showAIStatus(result.message || 'AI 助手暫時無法回應', result.category);
+            return;
+        }
         showAIMessage(result.answer, 'assistant');
     } catch (error) {
-        showAIMessage(error.message || 'AI 助手暫時無法回應', 'error');
+        showAIStatus(error.message || 'AI 助手暫時無法回應', 'AI_PROVIDER_FAILURE');
     } finally {
+        thinking.remove();
         button.disabled = false;
         button.textContent = '詢問 AI';
     }

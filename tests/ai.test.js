@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { MAX_LOCATIONS, MAX_TEXT_LENGTH, buildTripContext } = require('../lib/ai-context');
 const { validateQuestion, createRateWindow } = require('../lib/ai-utils');
+const { classifyProviderError } = require('../lib/ai-provider');
 
 test('AI context keeps expense currencies separate', () => {
     const context = buildTripContext({}, [
@@ -41,4 +42,12 @@ test('AI rate window limits authenticated account requests and expires entries',
     assert.equal(limiter.allow('bob'), true);
     time += 101;
     assert.equal(limiter.allow('alice'), true);
+});
+
+test('AI provider errors map to controlled diagnostic categories', () => {
+    assert.equal(classifyProviderError({ status: 401, code: 'invalid_api_key' }).category, 'AI_AUTH_ERROR');
+    assert.equal(classifyProviderError({ status: 429, code: 'insufficient_quota' }).category, 'AI_BILLING_ERROR');
+    assert.equal(classifyProviderError({ status: 429, code: 'rate_limit_exceeded' }).category, 'AI_RATE_LIMIT');
+    assert.equal(classifyProviderError({ status: 404, code: 'model_not_found' }).category, 'AI_MODEL_ERROR');
+    assert.equal(classifyProviderError({ status: 500 }).category, 'AI_PROVIDER_FAILURE');
 });
