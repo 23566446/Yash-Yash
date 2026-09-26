@@ -15,14 +15,28 @@ window.onload = async function() {
         document.getElementById('side-user-avatar').src = window.safeImageSource(currentUser.avatar, 'img/default-avatar.svg');
     }
     
-    // 載入資料
-    await Promise.allSettled([loadMarquee(), loadProposals(), loadMyTrips(), checkNotifications()]);
+    // 首頁首次載入由已驗證的 bootstrap 一次取得，避免 session 驗證後再串接多次 API 往返。
+    const bootstrap = window.YashYashSession.bootstrapData;
+    if (bootstrap) {
+        await Promise.allSettled([
+            loadMarquee(bootstrap.marqueeText),
+            loadProposals(bootstrap.proposals),
+            loadMyTrips(bootstrap.trips),
+            checkNotifications(bootstrap.notifications)
+        ]);
+    } else {
+        await Promise.allSettled([loadMarquee(), loadProposals(), loadMyTrips(), checkNotifications()]);
+    }
     initializeNotificationRealtime();
 };
 
 // ===== 跑馬燈載入 =====
-async function loadMarquee() {
+async function loadMarquee(prefetchedText) {
     try {
+        if (typeof prefetchedText === 'string') {
+            document.getElementById('marquee-text').innerText = prefetchedText || '歡迎來到 YashYash！';
+            return;
+        }
         const res = await fetch(`${API_URL}/api/settings/marquee`);
         const data = await res.json();
         document.getElementById('marquee-text').innerText = data.text || '歡迎來到 YashYash！';
@@ -32,13 +46,16 @@ async function loadMarquee() {
 }
 
 // ===== 載入公告欄提案 =====
-async function loadProposals() {
+async function loadProposals(prefetchedProposals) {
     const board = document.getElementById('announcement-board');
     
     try {
-        const res = await apiFetch(`${API_URL}/api/proposals`);
-        if (!res.ok) throw new Error('載入失敗');
-        const proposals = await res.json();
+        let proposals = prefetchedProposals;
+        if (!Array.isArray(proposals)) {
+            const res = await apiFetch(`${API_URL}/api/proposals`);
+            if (!res.ok) throw new Error('載入失敗');
+            proposals = await res.json();
+        }
         
         if (proposals.length === 0) {
             board.innerHTML = '<p class="empty-text">目前沒有公告中的行程提案。</p>';
@@ -174,13 +191,16 @@ async function deleteProposal(proposalId) {
 }
 
 // ===== 載入我的行程 =====
-async function loadMyTrips() {
+async function loadMyTrips(prefetchedTrips) {
     const tripList = document.getElementById('trip-list');
     
     try {
-        const res = await apiFetch(`${API_URL}/api/my-trips`);
-        if (!res.ok) throw new Error('載入失敗');
-        const trips = await res.json();
+        let trips = prefetchedTrips;
+        if (!Array.isArray(trips)) {
+            const res = await apiFetch(`${API_URL}/api/my-trips`);
+            if (!res.ok) throw new Error('載入失敗');
+            trips = await res.json();
+        }
         
         // 取得今天的日期（格式：YYYY-MM-DD）
         const today = window.YashYashTripOrder.localDateKey();
@@ -212,11 +232,14 @@ async function loadMyTrips() {
 }
 
 // ===== 檢查通知 =====
-async function checkNotifications() {
+async function checkNotifications(prefetchedNotifications) {
     try {
-        const res = await apiFetch(`${API_URL}/api/notifications`);
-        if (!res.ok) return;
-        const notifications = await res.json();
+        let notifications = prefetchedNotifications;
+        if (!Array.isArray(notifications)) {
+            const res = await apiFetch(`${API_URL}/api/notifications`);
+            if (!res.ok) return;
+            notifications = await res.json();
+        }
         if (!Array.isArray(notifications)) return;
         const badge = document.getElementById('notification-badge');
         const count = document.getElementById('notification-count');

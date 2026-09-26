@@ -101,6 +101,23 @@
             </div>
         </section>
 
+        <section class="wabi-card settings-panel session-panel" aria-labelledby="session-title">
+            <div class="section-header">
+                <div>
+                    <p class="section-eyebrow">SESSION</p>
+                    <h3 id="session-title">登入與安全</h3>
+                </div>
+                <span class="status-badge">此瀏覽器</span>
+            </div>
+            <div class="session-meta-list">
+                <div><span>瀏覽器</span><strong id="session-browser">讀取中…</strong></div>
+                <div><span>登入狀態</span><strong>有效</strong></div>
+                <div><span>有效期限</span><strong id="session-expiry">讀取中…</strong></div>
+            </div>
+            <p class="form-help">登入狀態只保存在各瀏覽器本機；分享行程網址不會分享登入權限。</p>
+            <button id="logout-all-btn" type="button" class="btn-small session-revoke-all">登出所有裝置</button>
+        </section>
+
         <!-- 跑馬燈管理區塊 -->
         <section id="marquee-admin-section" class="wabi-card settings-panel admin-panel hidden">
             <h3>📢 更新跑馬燈公告</h3>
@@ -122,7 +139,7 @@
             </div>
         </section>
 
-        <button onclick="logout()" class="btn-text" style="color: #a65252; margin-top: 20px; width: 100%;">登出帳號</button>
+        <button onclick="logout()" class="btn-text" style="color: #a65252; margin-top: 20px; width: 100%;">登出此裝置</button>
     </main>
 
     <script src="js/config.js"></script>

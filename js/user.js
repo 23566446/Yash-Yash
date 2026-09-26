@@ -18,6 +18,8 @@ function initPage() {
     document.getElementById('edit-nick').value = currentUser.nickname;
     document.getElementById('edit-gen').value = currentUser.gender || 'male';
     if (currentUser.avatar) { document.getElementById('avatar-preview').src = window.safeImageSource(currentUser.avatar, 'img/default-avatar.svg'); }
+    renderSessionInfo();
+    document.getElementById('logout-all-btn')?.addEventListener('click', logoutAllSessions);
 
     checkNotifications();
     initializeNotificationRealtime();
@@ -35,6 +37,47 @@ function initPage() {
     const licenseBtn = document.querySelector("button[onclick*='license-manager.html']");
     if (licenseBtn) {
         licenseBtn.style.display = isSuperAdmin ? 'block' : 'none';
+    }
+}
+
+function detectBrowserLabel() {
+    const brands = Array.isArray(navigator.userAgentData?.brands) ? navigator.userAgentData.brands.map(item => item.brand).join(' ') : '';
+    const ua = navigator.userAgent || '';
+    if (/Microsoft Edge/i.test(brands) || /Edg\//.test(ua)) return 'Microsoft Edge';
+    if (/Google Chrome/i.test(brands) || /Chrome\//.test(ua) || /CriOS\//.test(ua)) return 'Google Chrome';
+    if (/Firefox\//.test(ua) || /FxiOS\//.test(ua)) return 'Firefox';
+    if (/Safari\//.test(ua) && !/Chrome|CriOS|Edg\//.test(ua)) return 'Safari';
+    return '目前瀏覽器';
+}
+
+function renderSessionInfo() {
+    const browser = document.getElementById('session-browser');
+    const expiry = document.getElementById('session-expiry');
+    if (browser) browser.textContent = detectBrowserLabel();
+    if (expiry) {
+        const expiresAt = currentUser?.session?.expiresAt;
+        const date = expiresAt ? new Date(expiresAt) : null;
+        expiry.textContent = date && !Number.isNaN(date.getTime())
+            ? date.toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+            : '最多 7 天';
+    }
+}
+
+async function logoutAllSessions() {
+    if (!confirm('確定要登出所有裝置嗎？所有瀏覽器都需要重新登入。')) return;
+    const button = document.getElementById('logout-all-btn');
+    if (button) button.disabled = true;
+    try {
+        const response = await apiFetch(`${API_URL}/api/session/logout-all`, { method: 'POST' });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.message || '登出所有裝置失敗');
+        localStorage.removeItem('yashyash_user');
+        localStorage.removeItem('yashyash_token');
+        window.location.replace('login.html');
+    } catch (error) {
+        if (button) button.disabled = false;
+        if (window.showToast) window.showToast(error.message || '登出所有裝置失敗', 'error');
+        else alert(error.message || '登出所有裝置失敗');
     }
 }
 

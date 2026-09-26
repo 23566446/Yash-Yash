@@ -37,6 +37,22 @@ body { background: radial-gradient(circle at 90% 0, rgba(214,185,143,.16), trans
 main, section, article, aside, nav, form { min-width: 0; }
 img { max-width: 100%; }
 body.auth-pending > *:not(#auth-connection-state) { visibility: hidden !important; }
+body.auth-pending::after {
+    content: '正在載入旅程…';
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 4990;
+    padding: 13px 18px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: rgba(255,254,250,.96);
+    color: var(--text-secondary);
+    box-shadow: var(--shadow-sm);
+    font-size: .9rem;
+    animation: gentlePulse 1.4s ease-in-out infinite;
+}
 .auth-connection-state { position: fixed; inset: 50% auto auto 50%; transform: translate(-50%, -50%); width: min(90vw, 420px); padding: 28px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-md); text-align: center; z-index: 5000; }
 .auth-connection-state h2 { margin: 0 0 8px; font-size: 1.25rem; }
 .auth-connection-state p { color: var(--text-secondary); }
@@ -108,6 +124,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .settings-dashboard > .btn-text { grid-column: 1 / -1; color: var(--danger) !important; border: 1px solid rgba(169,77,77,.22); border-radius: 999px; }
 .user-item-row { gap: 18px; align-items: center; }
 .user-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.session-panel { border-left: 4px solid var(--brand); }
+.session-panel .section-header { align-items: center; }
+.session-panel h3 { margin: 0; }
+.session-meta-list { display: grid; gap: 10px; margin: 18px 0 14px; }
+.session-meta-list > div { display: flex; justify-content: space-between; gap: 18px; padding: 11px 0; border-bottom: 1px solid var(--border); }
+.session-meta-list span { color: var(--text-secondary); }
+.session-meta-list strong { text-align: right; }
+.session-revoke-all { width: 100%; margin-top: 14px; border-color: rgba(169,77,77,.35); color: var(--danger); font-weight: 700; }
+.session-revoke-all:disabled { opacity: .55; cursor: wait; }
 
 .trip-workspace-nav { position: sticky; top: 64px; z-index: 900; display: flex; justify-content: center; gap: 6px; max-width: none; margin: 0; padding: 9px 16px; border-bottom: 1px solid var(--border); background: rgba(255,254,250,.94); backdrop-filter: blur(16px); }
 .trip-workspace-nav a { display: flex; align-items: center; gap: 7px; min-height: 42px; padding: 8px 16px; border-radius: 999px; background: transparent; color: var(--text-secondary); font-weight: 650; }

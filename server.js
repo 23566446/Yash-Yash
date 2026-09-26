@@ -10,6 +10,7 @@ const { shouldNotifyProposalPending } = require('./lib/notification-utils');
 const { buildTripContext } = require('./lib/ai-context');
 const { validateQuestion, createRateWindow } = require('./lib/ai-utils');
 const aiProvider = require('./lib/ai-provider');
+const { tokenVersionOf, isTokenVersionCurrent, sessionMetadata } = require('./lib/session-utils');
 require('dotenv').config();
 
 const app = express();
@@ -39,7 +40,8 @@ const User = mongoose.model('User', new mongoose.Schema({
     nickname: String,
     gender: String,
     role: { type: String, default: 'user' },
-    avatar: { type: String, default: "" }
+    avatar: { type: String, default: "" },
+    tokenVersion: { type: Number, default: 0 }
 }));
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -61,7 +63,7 @@ function toPublicUser(user) {
 
 function createToken(user) {
     if (!JWT_SECRET) throw new Error('JWT_SECRET is not configured');
-    return jwt.sign({ sub: user._id.toString(), account: user.account, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+    return jwt.sign({ sub: user._id.toString(), account: user.account, role: user.role, ver: tokenVersionOf(user.tokenVersion) }, JWT_SECRET, { expiresIn: '7d' });
 }
 
 async function authenticateToken(req, res, next) {
@@ -73,8 +75,9 @@ async function authenticateToken(req, res, next) {
     try {
         const payload = jwt.verify(token, JWT_SECRET);
         const user = await User.findById(payload.sub);
-        if (!user) return res.status(401).json({ message: '驗證已失效，請重新登入' });
+        if (!user || !isTokenVersionCurrent(payload, user)) return res.status(401).json({ message: '驗證已失效，請重新登入' });
         req.user = user;
+        req.authPayload = payload;
         next();
     } catch (error) {
         return res.status(401).json({ message: '驗證已失效，請重新登入' });
@@ -259,7 +262,13 @@ app.put('/api/users/update', authenticateToken, async (req, res) => {
             updateData.password = await bcrypt.hash(password, BCRYPT_ROUNDS);
             passwordChanged = true; 
         }
-        const user = await User.findByIdAndUpdate(req.user._id, updateData, { new: true });
+        const update = { $set: updateData };
+        if (passwordChanged) update.$inc = { tokenVersion: 1 };
+        const user = await User.findByIdAndUpdate(req.user._id, update, { new: true });
+        if (passwordChanged) {
+            io.to(`user:${user.account}`).emit('session:revoked');
+            io.in(`user:${user.account}`).disconnectSockets(true);
+        }
         res.json({ message: "更新成功", user: toPublicUser(user), logoutRequired: passwordChanged });
     } catch (error) { res.status(500).json({ message: "更新失敗" }); }
 });
@@ -297,7 +306,50 @@ app.get('/api/admin/users', authenticateToken, requireAdmin, async (req, res) =>
 });
 
 app.get('/api/session', authenticateToken, (req, res) => {
-    res.json(toPublicUser(req.user));
+    res.json({ ...toPublicUser(req.user), session: sessionMetadata(req.authPayload) });
+});
+
+app.post('/api/session/logout-all', authenticateToken, async (req, res) => {
+    try {
+        await User.findByIdAndUpdate(req.user._id, { $inc: { tokenVersion: 1 } });
+        io.to(`user:${req.user.account}`).emit('session:revoked');
+        io.in(`user:${req.user.account}`).disconnectSockets(true);
+        res.json({ message: '已登出所有裝置' });
+    } catch (error) {
+        res.status(500).json({ message: '無法登出所有裝置' });
+    }
+});
+
+app.get('/api/home-bootstrap', authenticateToken, async (req, res) => {
+    try {
+        const [marquee, rawProposals, trips] = await Promise.all([
+            Setting.findOne({ key: 'marquee' }, { value: 1, _id: 0 }).lean(),
+            Proposal.find({}, { creator: 1, creatorAccount: 1, start: 1, end: 1, min: 1, votes: 1, status: 1 }).lean(),
+            Trip.find(
+                { participants: req.user.account },
+                { title: 1, startDate: 1, endDate: 1, participants: 1, creator: 1, creatorAccount: 1 }
+            ).lean()
+        ]);
+
+        const proposals = rawProposals.map(proposal => ({
+            ...proposal,
+            creatorAccount: proposal.creatorAccount || proposal.votes?.[0] || ''
+        }));
+        const notifications = proposals.filter(proposal => proposal.status === 'pending' && proposal.creatorAccount === req.user.account);
+
+        res.json({
+            user: { ...toPublicUser(req.user), session: sessionMetadata(req.authPayload) },
+            home: {
+                marqueeText: marquee?.value || '歡迎來到 YashYash，祝您旅途愉快！',
+                proposals,
+                trips,
+                notifications
+            }
+        });
+    } catch (error) {
+        console.error('Home bootstrap failed');
+        res.status(500).json({ message: '首頁資料載入失敗' });
+    }
 });
 app.get('/api/admin/licenses', authenticateToken, requireAdmin, async (req, res) => {
     try {
@@ -328,7 +380,9 @@ app.put('/api/admin/reset-password', authenticateToken, requireAdmin, async (req
         if (typeof newPassword !== 'string' || newPassword.length === 0) return res.status(400).json({ message: '密碼不能為空' });
         const target = await User.findById(targetUserId);
         if (!target) return res.status(404).json({ message: '找不到使用者' });
-        await User.findByIdAndUpdate(targetUserId, { password: await bcrypt.hash(newPassword, BCRYPT_ROUNDS) });
+        await User.findByIdAndUpdate(targetUserId, { $set: { password: await bcrypt.hash(newPassword, BCRYPT_ROUNDS) }, $inc: { tokenVersion: 1 } });
+        io.to(`user:${target.account}`).emit('session:revoked');
+        io.in(`user:${target.account}`).disconnectSockets(true);
         res.json({ message: "密碼重設成功" });
     } catch (error) { res.status(500).json({ message: '密碼重設失敗' }); }
 });
@@ -444,7 +498,10 @@ app.post('/api/trips/confirm', authenticateToken, async (req, res) => {
 
 app.get('/api/my-trips', authenticateToken, async (req, res) => {
     try {
-        const trips = await Trip.find({ participants: req.user.account });
+        const trips = await Trip.find(
+            { participants: req.user.account },
+            { title: 1, startDate: 1, endDate: 1, participants: 1, creator: 1, creatorAccount: 1 }
+        ).lean();
         res.json(trips);
     } catch (e) { res.status(500).send("讀取失敗"); }
 });
@@ -731,7 +788,7 @@ io.use(async (socket, next) => {
         if (!token || !JWT_SECRET) return next(new Error('unauthorized'));
         const payload = jwt.verify(token, JWT_SECRET);
         const user = await User.findById(payload.sub);
-        if (!user) return next(new Error('unauthorized'));
+        if (!user || !isTokenVersionCurrent(payload, user)) return next(new Error('unauthorized'));
         socket.user = user;
         next();
     } catch (error) {
