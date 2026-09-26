@@ -516,7 +516,7 @@ app.get('/api/trips/:id', authenticateToken, async (req, res) => {
 
 const itineraryUpload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 2 * 1024 * 1024, files: 1, fields: 4, parts: 5 },
+    limits: { fileSize: 2 * 1024 * 1024, files: 1, fields: 5, parts: 6 },
     fileFilter: (req, file, done) => done(null, /\.xlsx$/i.test(file.originalname) && !/\.(xls|xlsm)$/i.test(file.originalname))
 }).single('file');
 
@@ -564,7 +564,7 @@ app.post('/api/trips/:id/itinerary/import/preview', authenticateToken, receiveIt
             unresolved: rows.filter(row => !row.errors.length && row.lat == null).length,
             warnings: rows.reduce((total, row) => total + row.warnings.length, 0),
             errors: rows.reduce((total, row) => total + row.errors.length, 0)
-        }, existingCount: trip.days.reduce((total, day) => total + day.locations.length, 0) });
+        }, existingCount: trip.days.reduce((total, day) => total + day.locations.length, 0), tripVersion: trip.__v });
     } catch (error) { res.status(400).json({ message: error.message }); }
 });
 
@@ -572,6 +572,7 @@ app.post('/api/trips/:id/itinerary/import', authenticateToken, receiveItinerary,
     try {
         const trip = await getAuthorizedTrip(req, res);
         if (!trip) return;
+        const previewVersion = itineraryXlsx.requirePreviewVersion(req.body.previewVersion, trip.__v);
         const rows = await itineraryXlsx.parseWorkbook(req.file.buffer, trip);
         if (!rows.length) return res.status(400).json({ message: '檔案沒有可匯入的地點' });
         if (rows.some(row => row.errors.length)) return res.status(400).json({ message: '檔案仍有欄位錯誤' });
@@ -586,13 +587,13 @@ app.post('/api/trips/:id/itinerary/import', authenticateToken, receiveItinerary,
         );
         if (mode === 'replace' && req.body.confirmReplace !== 'true') return res.status(400).json({ message: '請確認取代現有行程' });
         const updated = await Trip.findOneAndUpdate(
-            { _id: trip._id, __v: trip.__v, participants: req.user.account },
+            { _id: trip._id, __v: previewVersion, participants: req.user.account },
             { $set: { days }, $inc: { __v: 1 } },
             { new: true, runValidators: true }
         );
         if (!updated) return res.status(409).json({ message: '行程已被其他人修改，請重新預覽' });
         res.json(updated);
-    } catch (error) { res.status(400).json({ message: error.message }); }
+    } catch (error) { res.status(error.status || 400).json({ message: error.message }); }
 });
 
 app.post('/api/trips/:id/location', authenticateToken, async (req, res) => {

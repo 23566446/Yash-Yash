@@ -10,6 +10,7 @@
     let sourceFile = null;
     let rows = [];
     let existingCount = 0;
+    let previewVersion = null;
     let busy = false;
     let generation = 0;
 
@@ -23,7 +24,7 @@
         const errors = active.reduce((count, row) => count + row.errors.length, 0);
         const warnings = active.reduce((count, row) => count + row.warnings.length + Number(Boolean(row.reviewMessage)), 0);
         summary.textContent = `共 ${rows.length} 列 · 已定位 ${resolved} · 無地圖定位 ${active.length - resolved} · 警告 ${warnings} · 錯誤 ${errors} · 現有 ${existingCount} 個地點`;
-        confirmButton.disabled = busy || !active.length || errors > 0 || (warnings > 0 && !acknowledge.checked);
+        confirmButton.disabled = busy || previewVersion === null || !active.length || errors > 0 || (warnings > 0 && !acknowledge.checked);
     }
     function appendText(parent, tag, className, value) {
         const node = document.createElement(tag);
@@ -140,7 +141,7 @@
     }
     async function previewFile(file) {
         const token = ++generation;
-        rows = []; sourceFile = null;
+        rows = []; sourceFile = null; previewVersion = null;
         previewPanel.classList.add('hidden');
         if (!file) return;
         if (!/\.xlsx$/i.test(file.name) || file.size > 2 * 1024 * 1024) {
@@ -155,10 +156,12 @@
             const response = await apiFetch(`${API_URL}/api/trips/${encodeURIComponent(tripId)}/itinerary/import/preview`, { method: 'POST', body: form });
             const result = await response.json();
             if (!response.ok) throw new Error(result.message || '檔案驗證失敗');
+            if (!Number.isSafeInteger(result.tripVersion) || result.tripVersion < 0) throw new Error('預覽版本不合法，請重新預覽');
             if (token !== generation) return;
             sourceFile = file;
             rows = result.rows;
             existingCount = result.existingCount;
+            previewVersion = result.tripVersion;
             acknowledge.checked = false;
             previewPanel.classList.remove('hidden');
             renderRows();
@@ -210,18 +213,31 @@
         form.append('decisions', JSON.stringify(decisions));
         form.append('acknowledgeWarnings', String(acknowledge.checked));
         form.append('confirmReplace', String(mode === 'replace'));
+        form.append('previewVersion', String(previewVersion));
         busy = true; counts();
         setStatus('正在更新行程…');
         try {
             const response = await apiFetch(`${API_URL}/api/trips/${encodeURIComponent(tripId)}/itinerary/import`, { method: 'POST', body: form });
             const result = await response.json();
-            if (!response.ok || !Array.isArray(result.days)) throw new Error(result.message || '匯入失敗');
+            if (!response.ok || !Array.isArray(result.days)) {
+                const error = new Error(result.message || '匯入失敗');
+                error.status = response.status;
+                throw error;
+            }
             currentTripData = result;
             renderItinerary();
             renderMarkers();
             dialog.close();
             window.showToast?.('行程匯入完成');
-        } catch (error) { setStatus(error.message || '匯入失敗，原行程未變更。'); }
+        } catch (error) {
+            if (error.status === 409) {
+                sourceFile = null;
+                previewVersion = null;
+                fileInput.value = '';
+                previewPanel.classList.add('hidden');
+            }
+            setStatus(error.message || '匯入失敗，原行程未變更。');
+        }
         finally { busy = false; counts(); }
     }
 
@@ -232,6 +248,7 @@
         busy = false;
         rows = [];
         sourceFile = null;
+        previewVersion = null;
         fileInput.value = '';
         previewPanel.classList.add('hidden');
         setStatus('');

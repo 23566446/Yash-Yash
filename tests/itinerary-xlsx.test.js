@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const ExcelJS = require('exceljs');
 const {
     HEADERS, normalizeRow, parseWorkbook, applyImport, mapUrlHostAllowed,
-    parseGoogleMapsCoordinates, safeFilename, buildWorkbook
+    parseGoogleMapsCoordinates, requirePreviewVersion, safeFilename, buildWorkbook
 } = require('../lib/itinerary-xlsx');
 
 const trip = { title: '台北', startDate: '2026-09-26', days: [
@@ -35,6 +35,40 @@ test('wrong headers and formula cells are rejected', async () => {
     await assert.rejects(parseWorkbook(await fileWithRows([[1, '', '', '地點']], ['Wrong', ...HEADERS.slice(1)]), trip), /欄位/);
     const rows = await parseWorkbook(await fileWithRows([[1, '', '', { formula: '2+2', result: 4 }]]), trip);
     assert.match(rows[0].errors.join(' '), /公式/);
+});
+
+test('official template instructions before row 5 are skipped, while header order stays exact', async () => {
+    const book = new ExcelJS.Workbook();
+    const sheet = book.addWorksheet('行程');
+    for (let i = 1; i <= 4; i++) sheet.getCell(`A${i}`).value = `填寫說明 ${i}`;
+    sheet.getRow(5).values = HEADERS;
+    sheet.getRow(6).values = [1, '', '09:00', '第六列地點'];
+    const rows = await parseWorkbook(Buffer.from(await book.xlsx.writeBuffer()), trip);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].rowNumber, 6);
+    assert.equal(rows[0].time, '09:00');
+    sheet.getRow(5).getCell(2).value = 'Wrong';
+    await assert.rejects(parseWorkbook(Buffer.from(await book.xlsx.writeBuffer()), trip), /欄位/);
+});
+
+test('Excel time-formatted cells and text ranges preserve useful Time values', async () => {
+    const book = new ExcelJS.Workbook();
+    const sheet = book.addWorksheet('行程');
+    sheet.addRow(HEADERS);
+    const timeCell = sheet.addRow([1, '', 0.375, '上午地點']).getCell(3);
+    timeCell.numFmt = 'hh:mm';
+    sheet.addRow([1, '', '09:00-10:00', '時段地點']);
+    const rows = await parseWorkbook(Buffer.from(await book.xlsx.writeBuffer()), trip);
+    assert.equal(rows[0].time, '09:00');
+    assert.equal(rows[1].time, '09:00-10:00');
+    assert.equal(normalizeRow([1, '', 0.375, '數字時間'], 4, trip).time, '09:00');
+});
+
+test('final import requires the exact version returned by preview', () => {
+    assert.equal(requirePreviewVersion('7', 7), 7);
+    assert.throws(() => requirePreviewVersion('7', 8), { status: 409 });
+    assert.throws(() => requirePreviewVersion('', 7), { status: 400 });
+    assert.throws(() => requirePreviewVersion('7.1', 7), { status: 400 });
 });
 
 test('Day, Title, Date and coordinate validation preserve warning distinction', () => {
