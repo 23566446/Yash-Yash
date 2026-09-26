@@ -40,12 +40,12 @@
         </div>
         
         <ul class="menu-list">
-            <li onclick="location.href='index.html'">🏠 首頁公告</li>
-            <li onclick="location.href='user.html'">👤 個人設定</li>
-            <li onclick="location.href='create-trip.html'">➕ 發起提案</li>
-            <li onclick="location.href='past-trip.html'">📂 過去的行程</li>
+            <li><a href="index.html" aria-current="page"><span aria-hidden="true">🏠</span><span>首頁</span></a></li>
+            <li><a href="user.html"><span aria-hidden="true">👤</span><span>個人設定</span></a></li>
+            <li><a href="create-trip.html"><span aria-hidden="true">➕</span><span>發起提案</span></a></li>
+            <li><a href="past-trip.html"><span aria-hidden="true">📂</span><span>過去的行程</span></a></li>
             <li class="menu-divider"></li>
-            <li onclick="logout()" style="color:var(--danger);">🚪 登出系統</li>
+            <li class="menu-logout"><button id="menu-logout" type="button"><span aria-hidden="true">🚪</span><span>登出系統</span></button></li>
         </ul>
     </nav>
 
@@ -74,6 +74,7 @@
     <script src="js/pwa.js"></script>
     <script src="js/api.js"></script>
     <script src="js/auth-session.js"></script>
+    <script src="js/trip-order.js"></script>
     <script src="js/image-utils.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/realtime.js"></script>

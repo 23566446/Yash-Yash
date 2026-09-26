@@ -1,7 +1,7 @@
 const API_URL = window.YashYashConfig.API_URL;
 const urlParams = new URLSearchParams(window.location.search);
 const tripId = urlParams.get('id');
-if (!localStorage.getItem('yashyash_user') || !localStorage.getItem('yashyash_token')) { localStorage.removeItem('yashyash_user'); localStorage.removeItem('yashyash_token'); window.location.href = 'login.html'; }
+let currentUser = null;
 
 let map, markers = [];
 let currentTripData = null;
@@ -19,7 +19,7 @@ let participantsPopoverBound = false;
 
 // === 初始化載入 ===
 window.onload = async () => {
-    await window.YashYashSession.ready;
+    currentUser = await window.YashYashSession.ready;
     if (!tripId) {
         alert("找不到行程 ID");
         return;
@@ -53,9 +53,8 @@ async function fetchTripDetails() {
 
         await renderTripParticipants(currentTripData.participants || []);
 
-        const user = JSON.parse(localStorage.getItem('yashyash_user'));
-        const isOwner = currentTripData.creatorAccount === user.account;
-        const isAdmin = user.role === 'admin';
+        const isOwner = currentTripData.creatorAccount === currentUser.account;
+        const isAdmin = currentUser.role === 'admin';
         const canEdit = isOwner || isAdmin;
 
         if (canEdit) {

@@ -66,19 +66,28 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .status-badge { display: inline-flex; align-items: center; min-height: 28px; padding: 4px 10px; border-radius: 999px; background: rgba(115,131,79,.12); color: var(--brand-strong); font-size: .75rem; font-weight: 700; }
 
 .board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; width: min(100%, var(--content-wide)); margin: 0 auto 38px; padding: 0; overflow: visible; }
-.proposal-card, .trip-card { width: auto; min-width: 0; margin: 0; transition: transform .18s ease, box-shadow .18s ease; }
+.proposal-card, .trip-card { width: auto; min-width: 0; max-width: none; flex: none; margin: 0; transition: transform .18s ease, box-shadow .18s ease; }
 .proposal-card:hover, .trip-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
 .trip-card-title { display: block; color: var(--brand-strong); font-size: 1.25rem; margin-bottom: 8px; }
 .trip-hero { grid-column: 1 / -1; min-height: 220px; padding: clamp(24px, 5vw, 52px); background: linear-gradient(120deg, rgba(85,100,58,.96), rgba(115,131,79,.86)), var(--surface); color: white; }
 .trip-hero .trip-card-title { color: white; font-size: clamp(1.8rem, 4vw, 3rem); }
 .trip-hero > div { color: rgba(255,255,255,.84) !important; }
+.trip-card-meta { margin: 9px 0; color: var(--text-secondary); line-height: 1.5; }
+.trip-card-footer { margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--border); color: var(--text-secondary); font-size: .88rem; }
+.trip-hero .trip-status { margin: 8px 0; background: rgba(255,255,255,.2); color: white; }
+.trip-hero .trip-card-footer { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 17px; border: 0; border-radius: 999px; background: white; color: var(--brand-strong) !important; font-weight: 700; }
 .fab { width: auto; min-width: 60px; padding: 0 20px; gap: 8px; border-radius: 999px; bottom: max(24px, env(safe-area-inset-bottom)); }
 .fab-label { font-size: .9rem; font-weight: 700; }
 
 .side-menu { width: min(86vw, 340px); padding: max(18px, env(safe-area-inset-top)) 18px 24px; background: var(--surface); box-shadow: var(--shadow-md); }
 .menu-header { padding-bottom: 18px; border-bottom: 1px solid var(--border); }
-.menu-list li a, .menu-list li button { min-height: 48px; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 12px; }
-.menu-list li:last-child { margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--border); }
+.menu-list li { display: block; min-height: 0; padding: 2px 0; border: 0; cursor: default; }
+.menu-list li a, .menu-list li button { width: 100%; min-height: 48px; padding: 10px 14px; border: 0; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 12px; background: transparent; color: var(--text-primary); text-decoration: none; text-align: left; cursor: pointer; }
+.menu-list li a:hover, .menu-list li button:hover, .menu-list li a:focus-visible, .menu-list li button:focus-visible { background: var(--surface-subtle); }
+.menu-list li a[aria-current="page"] { background: rgba(115,131,79,.14); color: var(--brand-strong); font-weight: 750; }
+.menu-list .menu-divider { height: 1px; min-height: 1px; padding: 0; margin: 10px 0; background: var(--border); }
+.menu-list .menu-logout { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+.menu-list .menu-logout button { color: var(--danger); font-weight: 700; }
 
 .create-trip-page .container { max-width: 720px; padding: 42px 20px; }
 .create-trip-page .wabi-card { padding: clamp(24px, 5vw, 42px); }
@@ -101,6 +110,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .trip-workspace-nav { position: sticky; top: 64px; z-index: 900; display: flex; justify-content: center; gap: 6px; max-width: none; margin: 0; padding: 9px 16px; border-bottom: 1px solid var(--border); background: rgba(255,254,250,.94); backdrop-filter: blur(16px); }
 .trip-workspace-nav a { display: flex; align-items: center; gap: 7px; min-height: 42px; padding: 8px 16px; border-radius: 999px; background: transparent; color: var(--text-secondary); font-weight: 650; }
 .trip-workspace-nav a.active { background: var(--brand-strong); color: white; }
+.app-header .btn-primary { width: auto; min-width: 44px; flex: 0 0 auto; }
 .workspace-icon { font-size: 1rem; }
 .details-page .trip-layout { min-height: 0; }
 .details-page .itinerary-sidebar { width: clamp(380px, 34vw, 440px); background: var(--surface); border-left: 1px solid var(--border); }
@@ -112,7 +122,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 .chat-container { width: min(100%, 820px) !important; margin: 0 auto !important; background: rgba(255,254,250,.55) !important; border-inline: 1px solid var(--border); }
 #chat-window { padding: 26px clamp(16px, 4vw, 34px) !important; }
-.message-bubble { max-width: min(78%, 560px) !important; box-shadow: var(--shadow-sm); }
+#chat-window .msg { width: fit-content; max-width: min(88%, 610px); margin-block: 4px; gap: 12px; }
+#chat-window .msg > div { flex: 0 1 auto; width: min(100%, 560px); }
+#chat-window .msg-content { max-width: min(100%, 560px); min-width: 72px; padding: 13px 17px; border-radius: 18px; box-shadow: var(--shadow-sm); line-height: 1.55; }
+#chat-window .msg.others .msg-content { background: var(--surface); border-color: var(--border); }
+#chat-window .msg.me .msg-content { background: var(--brand-strong); color: white; }
+#chat-window .msg-sender { margin: 0 0 4px 5px; color: var(--text-secondary); font-size: .75rem; font-weight: 650; }
+#chat-window .msg.me .msg-sender { text-align: right; margin-right: 5px; }
+#chat-window .msg-info { margin-top: 5px; color: var(--text-secondary); font-size: .72rem; }
+#chat-window .msg-avatar { width: 38px; height: 38px; border-color: var(--sand); }
 .chat-input-area { padding-bottom: max(14px, env(safe-area-inset-bottom)) !important; background: rgba(255,254,250,.96) !important; border-top: 1px solid var(--border); }
 .chat-input-area input { border-radius: 999px !important; background: white !important; }
 #scroll-to-bottom { border: 0; background: var(--brand-strong) !important; color: white; box-shadow: var(--shadow-md); }
@@ -176,6 +194,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     .details-page .map-view { height: 42vh !important; min-height: 300px; }
     .details-page .itinerary-sidebar { width: 100%; height: auto !important; overflow: visible !important; border: 0; }
     .chat-container { border: 0; }
+    #chat-window .msg { max-width: 92%; gap: 8px; }
+    #chat-window .msg-content { max-width: 100%; padding: 11px 14px; }
+    #chat-window .msg-avatar { width: 34px; height: 34px; }
     #expense-list { grid-template-columns: 1fr; }
     .photo-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
     .day-header-wrapper { top: 64px; }

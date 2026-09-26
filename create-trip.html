@@ -45,7 +45,6 @@
     <script src="js/auth-session.js"></script>
     <script>
     const API_URL = window.YashYashConfig.API_URL;
-    if (!localStorage.getItem('yashyash_user') || !localStorage.getItem('yashyash_token')) { localStorage.removeItem('yashyash_user'); localStorage.removeItem('yashyash_token'); location.href = 'login.html'; }
     
     async function submitProposal() {
         const startDate = document.getElementById('start-date').value;
