@@ -531,7 +531,8 @@ function receiveItinerary(req, res, next) {
 function sendWorkbook(res, workbook, filename) {
     return workbook.xlsx.writeBuffer().then(buffer => {
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        const asciiFilename = filename.replace(/[^\x20-\x7e]/g, '_');
+        res.setHeader('Content-Disposition', `attachment; filename="${asciiFilename}"; filename*=UTF-8''${encodeURIComponent(filename)}`);
         res.send(Buffer.from(buffer));
     });
 }

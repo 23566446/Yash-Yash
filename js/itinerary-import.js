@@ -21,7 +21,7 @@
         const active = rows.filter(row => !row.excluded);
         const resolved = active.filter(row => validCoordinates(row.lat, row.lng)).length;
         const errors = active.reduce((count, row) => count + row.errors.length, 0);
-        const warnings = active.reduce((count, row) => count + row.warnings.length + Number(Boolean(row.needsReview)), 0);
+        const warnings = active.reduce((count, row) => count + row.warnings.length + Number(Boolean(row.reviewMessage)), 0);
         summary.textContent = `共 ${rows.length} 列 · 已定位 ${resolved} · 無地圖定位 ${active.length - resolved} · 警告 ${warnings} · 錯誤 ${errors} · 現有 ${existingCount} 個地點`;
         confirmButton.disabled = busy || !active.length || errors > 0 || (warnings > 0 && !acknowledge.checked);
     }
@@ -35,11 +35,11 @@
     function refreshRow(row) {
         const state = row.element.querySelector('.transfer-row-state');
         state.textContent = row.excluded ? '已排除' : row.errors.length ? '錯誤'
-            : row.warnings.length || row.needsReview ? '需確認'
+            : row.warnings.length || row.reviewMessage ? '需確認'
                 : validCoordinates(row.lat, row.lng) ? '可匯入' : '無地圖定位';
         row.element.classList.toggle('is-excluded', Boolean(row.excluded));
         const issues = row.element.querySelector('.transfer-row-issues');
-        issues.textContent = [...row.errors, ...row.warnings, row.needsReview ? '自動定位結果請核對' : ''].filter(Boolean).join('；');
+        issues.textContent = [...row.errors, ...row.warnings, row.reviewMessage].filter(Boolean).join('；');
         const coordinates = row.element.querySelector('.transfer-row-coordinates');
         coordinates.textContent = validCoordinates(row.lat, row.lng)
             ? `地圖定位：${row.lat.toFixed(6)}, ${row.lng.toFixed(6)}`
@@ -69,7 +69,7 @@
         if (token !== generation) return;
         if (point) {
             Object.assign(row, point);
-            row.needsReview = true;
+            row.reviewMessage = '搜尋定位結果請核對';
             refreshRow(row);
         }
         return Boolean(point);
@@ -121,7 +121,7 @@
                         setStatus('請輸入有效的成對緯度與經度。');
                         return;
                     }
-                    Object.assign(row, { lat, lng, needsReview: true });
+                    Object.assign(row, { lat, lng, reviewMessage: '手動座標請核對' });
                     refreshRow(row);
                     setStatus('已套用座標，請核對後確認。');
                 });
@@ -182,7 +182,9 @@
             const response = await apiFetch(`${API_URL}/api/trips/${encodeURIComponent(tripId)}/itinerary/${kind}.xlsx`);
             if (!response.ok) throw new Error('下載失敗');
             const blob = await response.blob();
-            const filename = response.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1]
+            const disposition = response.headers.get('Content-Disposition') || '';
+            const encodedName = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+            const filename = (encodedName ? decodeURIComponent(encodedName) : disposition.match(/filename="([^"]+)"/)?.[1])
                 || (kind === 'template' ? 'YashYash_Itinerary_Template.xlsx' : 'YashYash_Itinerary.xlsx');
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');

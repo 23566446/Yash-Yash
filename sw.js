@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yashyash-v19';
+const CACHE_NAME = 'yashyash-v20';
 const ASSETS = [
     './',
     './index.html',
@@ -38,6 +38,7 @@ const ASSETS = [
     './js/trip-ai.js',
     './js/trip-chat.js',
     './js/trip-details.js',
+    './js/itinerary-import.js',
     './js/trip-ledger.js',
     './js/trip-nav.js',
     './js/user.js',
