@@ -186,122 +186,212 @@ async function renderTripParticipants(accounts) {
     }
 }
 
+function getTripDayMeta(index) {
+    const rawStart = currentTripData?.startDate?.split('T')[0] || '';
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(rawStart);
+    if (!match) return { dateLabel: '', weekday: '' };
+
+    const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]) + index, 12);
+    const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+    return {
+        dateLabel: `${date.getMonth() + 1}/${date.getDate()}`,
+        weekday: `週${weekdays[date.getDay()]}`
+    };
+}
+
+function renderDaySwitcher() {
+    const switcher = document.getElementById('day-switcher');
+    if (!switcher || !currentTripData) return;
+
+    const tabs = currentTripData.days.map((day, index) => {
+        const active = index === activeDayIndex;
+        const meta = getTripDayMeta(index);
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `planner-day-tab${active ? ' active' : ''}`;
+        button.setAttribute('role', 'tab');
+        button.setAttribute('aria-selected', String(active));
+        button.setAttribute('aria-controls', 'days-container');
+        button.addEventListener('click', () => setActiveDay(index));
+
+        const dayLabel = document.createElement('strong');
+        dayLabel.textContent = `Day ${day.dayNumber}`;
+        const dateLabel = document.createElement('span');
+        dateLabel.textContent = meta.dateLabel ? `${meta.dateLabel} ${meta.weekday}` : '';
+
+        button.append(dayLabel, dateLabel);
+        return button;
+    });
+
+    switcher.replaceChildren(...tabs);
+}
+
 function renderItinerary() {
     const container = document.getElementById('days-container');
+    const summary = document.getElementById('active-day-summary');
     if (!container || !currentTripData) return;
 
     sortables.forEach(s => s.destroy ? s.destroy() : null);
     sortables = [];
 
+    if (!Array.isArray(currentTripData.days) || currentTripData.days.length === 0) {
+        document.getElementById('day-switcher')?.replaceChildren();
+        if (summary) summary.textContent = '尚無日期';
+        const empty = document.createElement('div');
+        empty.className = 'empty-state planner-empty-day';
+        empty.textContent = '這趟旅行目前沒有可安排的日期。';
+        container.replaceChildren(empty);
+        return;
+    }
+
+    activeDayIndex = Math.min(Math.max(activeDayIndex, 0), currentTripData.days.length - 1);
+    renderDaySwitcher();
+
     const readOnly = false;
-    const dayCards = currentTripData.days.map((day, index) => {
-        const isActive = activeDayIndex === index;
-        const dayCard = document.createElement('div');
-        dayCard.className = `day-card wabi-card${isActive ? ' active-day' : ''}`;
-        dayCard.style.cssText = `margin-bottom:15px; cursor:pointer; border:${isActive ? '2px solid #8a9a5b' : '1px solid #e0ddd7'};`;
+    const day = currentTripData.days[activeDayIndex];
+    const locations = Array.isArray(day.locations) ? day.locations : [];
+    const meta = getTripDayMeta(activeDayIndex);
+    if (summary) summary.textContent = `Day ${day.dayNumber} · ${locations.length} 景點`;
 
-        const header = document.createElement('div');
-        header.className = 'day-header';
-        header.style.cssText = 'padding:15px; display:flex; justify-content:space-between; align-items:center;';
-        header.addEventListener('click', () => setActiveDay(index));
-        const heading = document.createElement('h4');
-        heading.style.margin = '0';
-        heading.textContent = `Day ${day.dayNumber} ${isActive ? '🔓' : ''}`;
-        const indicator = document.createElement('span');
-        indicator.textContent = isActive ? '▼' : '▶';
-        header.append(heading, indicator);
+    const dayPanel = document.createElement('section');
+    dayPanel.className = 'planner-day-panel';
 
-        const content = document.createElement('div');
-        content.className = 'day-content';
-        content.style.cssText = `display:${isActive ? 'block' : 'none'}; padding:0 15px 15px 15px; background:#f9f9f7;`;
-        const locationList = document.createElement('div');
-        locationList.className = 'location-list';
-        locationList.id = `list-${index}`;
-        locationList.style.minHeight = '20px';
+    const overview = document.createElement('div');
+    overview.className = 'planner-day-overview';
 
-        if (day.locations.length === 0) {
-            const emptyText = document.createElement('p');
-            emptyText.className = 'empty-text';
-            emptyText.style.cssText = 'font-size:0.8rem; color:#999;';
-            emptyText.textContent = '尚未新增地點';
-            locationList.appendChild(emptyText);
-        } else {
-            day.locations.forEach((loc, locIdx) => {
-                const lat = Number.parseFloat(loc.lat);
-                const lng = Number.parseFloat(loc.lng);
-                const hasValidCoordinates = Number.isFinite(lat) && Number.isFinite(lng);
-                const locationItem = document.createElement('div');
-                locationItem.className = 'location-item';
-                locationItem.style.cssText = 'background:#fff; border:1px solid #eee; padding:10px; margin:5px 0; display:flex; align-items:center; border-radius:5px; cursor:pointer;';
+    const overviewCopy = document.createElement('div');
+    const eyebrow = document.createElement('p');
+    eyebrow.className = 'planner-day-date';
+    eyebrow.textContent = meta.dateLabel ? `${meta.dateLabel} ${meta.weekday}` : `Day ${day.dayNumber}`;
+    const heading = document.createElement('h3');
+    heading.textContent = `第 ${day.dayNumber} 天`;
+    const hint = document.createElement('p');
+    hint.className = 'planner-day-hint';
+    hint.textContent = locations.length > 1 ? '拖曳排序，點景點可在地圖上定位。' : '從上方搜尋景點，開始安排今天的路線。';
+    overviewCopy.append(eyebrow, heading, hint);
 
-                if (hasValidCoordinates) {
-                    locationItem.addEventListener('click', () => focusLocation(lat, lng));
-                }
+    const count = document.createElement('span');
+    count.className = 'planner-stop-count';
+    count.textContent = `${locations.length} 個景點`;
+    overview.append(overviewCopy, count);
 
-                if (!readOnly) {
-                    const dragHandle = document.createElement('span');
-                    dragHandle.className = 'drag-handle';
-                    dragHandle.style.cssText = 'margin-right:10px; cursor:grab; color:#ccc;';
-                    dragHandle.textContent = '☰';
-                    dragHandle.addEventListener('click', event => event.stopPropagation());
-                    locationItem.appendChild(dragHandle);
-                }
+    const locationList = document.createElement('div');
+    locationList.className = 'location-list planner-timeline';
+    locationList.id = `list-${activeDayIndex}`;
 
-                const locationNameWrapper = document.createElement('div');
-                locationNameWrapper.style.cssText = 'flex:1; overflow:hidden;';
-                const locationName = document.createElement('div');
-                locationName.style.cssText = 'font-size:0.9rem; font-weight:bold; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;';
-                locationName.textContent = loc.name;
-                locationNameWrapper.appendChild(locationName);
+    if (locations.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'planner-empty-day';
+        const icon = document.createElement('span');
+        icon.className = 'planner-empty-icon';
+        icon.setAttribute('aria-hidden', 'true');
+        icon.textContent = '⌖';
+        const title = document.createElement('strong');
+        title.textContent = '還沒有安排景點';
+        const text = document.createElement('span');
+        text.textContent = '用上方搜尋框加入第一站，YashYash 會同步標在地圖上。';
+        empty.append(icon, title, text);
+        locationList.appendChild(empty);
+    } else {
+        locations.forEach((loc, locIdx) => {
+            const lat = Number.parseFloat(loc.lat);
+            const lng = Number.parseFloat(loc.lng);
+            const hasValidCoordinates = Number.isFinite(lat) && Number.isFinite(lng);
 
-                const actions = document.createElement('div');
-                actions.style.cssText = 'display:flex; gap:5px;';
-                const navigationButton = document.createElement('button');
-                navigationButton.style.cssText = 'padding:4px 8px; background:#f5f2ed; border:1px solid #d2b48c; border-radius:4px; cursor:pointer;';
-                navigationButton.textContent = '🚗';
-                navigationButton.disabled = !hasValidCoordinates;
-                if (hasValidCoordinates) {
-                    navigationButton.addEventListener('click', event => {
-                        event.stopPropagation();
-                        startNavigation(lat, lng);
-                    });
-                }
-                actions.appendChild(navigationButton);
-
-                if (!readOnly) {
-                    const deleteButton = document.createElement('button');
-                    deleteButton.style.cssText = 'padding:4px 8px; background:none; border:none; color:#ccc; cursor:pointer;';
-                    deleteButton.textContent = '×';
-                    deleteButton.addEventListener('click', event => {
-                        event.stopPropagation();
-                        deleteLocation(index, locIdx);
-                    });
-                    actions.appendChild(deleteButton);
-                }
-
-                locationItem.append(locationNameWrapper, actions);
-                locationList.appendChild(locationItem);
-            });
-        }
-
-        content.appendChild(locationList);
-        dayCard.append(header, content);
-        return dayCard;
-    });
-    container.replaceChildren(...dayCards);
-
-    if (typeof Sortable !== 'undefined' && !readOnly) {
-        currentTripData.days.forEach((_, index) => {
-            const el = document.getElementById(`list-${index}`);
-            if (el) {
-                const s = new Sortable(el, {
-                    animation: 150,
-                    handle: '.drag-handle',
-                    onEnd: (evt) => handleReorder(index, evt.oldIndex, evt.newIndex)
-                });
-                sortables.push(s);
+            const locationItem = document.createElement('article');
+            locationItem.className = 'location-item planner-stop-card';
+            if (hasValidCoordinates) {
+                locationItem.addEventListener('click', () => focusLocation(lat, lng));
             }
+
+            const indexBadge = document.createElement('span');
+            indexBadge.className = 'planner-stop-index';
+            indexBadge.textContent = String(locIdx + 1);
+
+            const locationCopy = document.createElement('div');
+            locationCopy.className = 'planner-stop-copy';
+            const locationName = document.createElement('strong');
+            locationName.className = 'planner-stop-name';
+            locationName.textContent = loc.name;
+            locationCopy.appendChild(locationName);
+
+            if (loc.addr) {
+                const address = document.createElement('span');
+                address.className = 'planner-stop-address';
+                address.textContent = loc.addr;
+                locationCopy.appendChild(address);
+            }
+
+            const actions = document.createElement('div');
+            actions.className = 'planner-stop-actions';
+
+            const navigationButton = document.createElement('button');
+            navigationButton.type = 'button';
+            navigationButton.className = 'planner-stop-action';
+            navigationButton.textContent = '↗';
+            navigationButton.title = '開啟導航';
+            navigationButton.setAttribute('aria-label', `導航到 ${loc.name}`);
+            navigationButton.disabled = !hasValidCoordinates;
+            if (hasValidCoordinates) {
+                navigationButton.addEventListener('click', event => {
+                    event.stopPropagation();
+                    startNavigation(lat, lng);
+                });
+            }
+            actions.appendChild(navigationButton);
+
+            if (!readOnly) {
+                const dragHandle = document.createElement('button');
+                dragHandle.type = 'button';
+                dragHandle.className = 'drag-handle planner-drag-handle';
+                dragHandle.textContent = '⠿';
+                dragHandle.title = '拖曳調整順序';
+                dragHandle.setAttribute('aria-label', `拖曳調整 ${loc.name} 的順序`);
+                dragHandle.addEventListener('click', event => event.stopPropagation());
+
+                const deleteButton = document.createElement('button');
+                deleteButton.type = 'button';
+                deleteButton.className = 'planner-stop-action planner-stop-delete';
+                deleteButton.textContent = '×';
+                deleteButton.title = '移除景點';
+                deleteButton.setAttribute('aria-label', `移除 ${loc.name}`);
+                deleteButton.addEventListener('click', event => {
+                    event.stopPropagation();
+                    deleteLocation(activeDayIndex, locIdx);
+                });
+                actions.append(dragHandle, deleteButton);
+            }
+
+            locationItem.append(indexBadge, locationCopy, actions);
+
+            if (locIdx < locations.length - 1) {
+                const connector = document.createElement('div');
+                connector.className = 'planner-route-connector';
+                connector.setAttribute('aria-hidden', 'true');
+                const line = document.createElement('span');
+                line.className = 'planner-route-line';
+                const label = document.createElement('span');
+                label.textContent = '下一站';
+                connector.append(line, label);
+                locationItem.appendChild(connector);
+            }
+
+            locationList.appendChild(locationItem);
         });
+    }
+
+    dayPanel.append(overview, locationList);
+    container.replaceChildren(dayPanel);
+
+    if (typeof Sortable !== 'undefined' && !readOnly && locations.length > 1) {
+        const sortable = new Sortable(locationList, {
+            animation: 180,
+            handle: '.drag-handle',
+            ghostClass: 'planner-stop-ghost',
+            chosenClass: 'planner-stop-chosen',
+            onEnd: event => handleReorder(activeDayIndex, event.oldIndex, event.newIndex)
+        });
+        sortables.push(sortable);
     }
 }
 
