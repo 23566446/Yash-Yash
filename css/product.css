@@ -195,12 +195,28 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .transfer-row-controls input[type="text"] { flex: 1 1 160px; }
 .transfer-row-controls input[type="number"] { flex: 1 1 85px; max-width: 110px; }
 .transfer-row-controls input { min-width: 0; min-height: 44px; padding: 8px; border: 1px solid var(--border); border-radius: 9px; }
-.transfer-exclude { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; white-space: nowrap; }
-.transfer-mode { display: grid; gap: 8px; margin: 18px 0 10px; padding: 14px; border: 1px solid var(--border); border-radius: 12px; }
+.transfer-exclude { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; margin: 0; white-space: nowrap; cursor: pointer; }
+.transfer-mode { margin: 18px 0 10px; padding: 14px; border: 1px solid var(--border); border-radius: 12px; }
 .transfer-mode legend { font-weight: 700; }
-.transfer-mode label, .transfer-ack { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.transfer-mode-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.transfer-mode .transfer-mode-card { display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 58px; margin: 0; padding: 10px; border: 1px solid var(--border); border-radius: 12px; background: white; cursor: pointer; }
+.transfer-mode-card:has(input:checked) { border-color: var(--brand); background: #f3f5ec; }
+.transfer-mode-card span { display: grid; min-width: 0; gap: 2px; }
+.transfer-mode-card strong { color: var(--text-primary); }
+.transfer-mode-card small { color: var(--text-secondary); line-height: 1.35; }
+.transfer-ack { display: flex; align-items: center; gap: 10px; min-height: 44px; margin: 0; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; }
+.transfer-mode input[type="radio"], .transfer-ack input[type="checkbox"], .transfer-exclude input[type="checkbox"], .transfer-row-controls .transfer-exclude input[type="checkbox"] { appearance: auto; flex: 0 0 19px; width: 19px; height: 19px; min-width: 19px; min-height: 19px; max-width: 19px; margin: 0; padding: 0; border: 0; border-radius: 0; accent-color: var(--brand-strong); }
 .transfer-backup { margin-bottom: 10px; }
 .itinerary-preview .btn-primary { display: block; width: 100%; margin-top: 12px; }
+.location-edit-dialog { width: min(calc(100vw - 24px), 440px); max-height: min(90dvh, 720px); padding: 22px; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); color: var(--text-primary); overflow-y: auto; }
+.location-edit-dialog::backdrop { background: rgba(39,48,39,.5); }
+.location-edit-dialog h2 { margin: 0 0 14px; }
+.location-edit-dialog label { margin: 12px 0 4px; }
+.location-edit-dialog input, .location-edit-dialog textarea { max-width: 100%; margin: 0; }
+.location-edit-dialog textarea { resize: vertical; }
+#location-edit-status { min-height: 1.4em; color: var(--danger); }
+.location-edit-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.location-edit-actions button:first-child { padding: 8px 18px; border: 1px solid var(--border); border-radius: 999px; background: white; }
 #pac-input { min-width: 0; width: 100%; border: 1px solid var(--sand); border-radius: 12px; background: white; }
 #pac-input gmp-place-autocomplete { display: block; width: 100%; color-scheme: light; }
 .day-selector { display: flex; gap: 8px; overflow-x: auto; padding: 6px 20px 14px; overscroll-behavior-x: contain; scrollbar-width: thin; }
@@ -335,6 +351,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     .itinerary-transfer-dialog { width: min(calc(100vw - 16px), 760px); max-height: calc(100dvh - 24px); padding: 16px; }
     .transfer-actions button { flex: 1 1 150px; }
     .transfer-rows { max-height: 32dvh; }
+}
+
+@media (max-width: 520px) {
+    .transfer-mode-options { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 420px) {

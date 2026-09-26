@@ -522,10 +522,26 @@ const itineraryUpload = multer({
 
 function receiveItinerary(req, res, next) {
     itineraryUpload(req, res, error => {
-        if (error) return res.status(error.code === 'LIMIT_FILE_SIZE' ? 413 : 400).json({ message: 'XLSX 超過 2 MB 或上傳格式不合法' });
-        if (!req.file) return res.status(400).json({ message: '請選擇 .xlsx 檔案' });
+        if (error?.code === 'LIMIT_FILE_SIZE') return importProblem(res, 413, 'XLSX_TOO_LARGE', 'XLSX 檔案不可超過 2 MB');
+        if (error) return importProblem(res, 400, 'XLSX_INVALID_FILE', '上傳格式不合法');
+        if (!req.file) return importProblem(res, 400, 'XLSX_INVALID_FILE', '請選擇 .xlsx 檔案');
         next();
     });
+}
+
+function importProblem(res, status, code, message) {
+    return res.status(status).json({ message, code });
+}
+
+function reportImportError(res, error, stage, uploadBytes) {
+    const codes = new Set(['XLSX_INVALID_FILE', 'XLSX_TOO_LARGE', 'XLSX_PARSE_FAILED', 'XLSX_MISSING_SHEET',
+        'XLSX_HEADER_MISMATCH', 'XLSX_ROW_LIMIT', 'XLSX_ROW_INVALID', 'IMPORT_UNRESOLVED_LOCATION',
+        'IMPORT_VERSION_CONFLICT', 'IMPORT_VERSION_INVALID']);
+    const known = codes.has(error.code);
+    const code = known ? error.code : 'IMPORT_FAILED';
+    console.error('Itinerary import:', { stage, code, errorName: error?.name === 'Error' ? 'Error' : 'Other', uploadBytes });
+    return importProblem(res, known ? (error.status || 400) : 500, code,
+        known ? error.message : '匯入處理失敗，請稍後再試');
 }
 
 function sendWorkbook(res, workbook, filename) {
@@ -565,7 +581,7 @@ app.post('/api/trips/:id/itinerary/import/preview', authenticateToken, receiveIt
             warnings: rows.reduce((total, row) => total + row.warnings.length, 0),
             errors: rows.reduce((total, row) => total + row.errors.length, 0)
         }, existingCount: trip.days.reduce((total, day) => total + day.locations.length, 0), tripVersion: trip.__v });
-    } catch (error) { res.status(400).json({ message: error.message }); }
+    } catch (error) { reportImportError(res, error, 'preview', req.file?.size); }
 });
 
 app.post('/api/trips/:id/itinerary/import', authenticateToken, receiveItinerary, async (req, res) => {
@@ -574,26 +590,28 @@ app.post('/api/trips/:id/itinerary/import', authenticateToken, receiveItinerary,
         if (!trip) return;
         const previewVersion = itineraryXlsx.requirePreviewVersion(req.body.previewVersion, trip.__v);
         const rows = await itineraryXlsx.parseWorkbook(req.file.buffer, trip);
-        if (!rows.length) return res.status(400).json({ message: '檔案沒有可匯入的地點' });
-        if (rows.some(row => row.errors.length)) return res.status(400).json({ message: '檔案仍有欄位錯誤' });
-        if (rows.some(row => row.warnings.length) && req.body.acknowledgeWarnings !== 'true') return res.status(400).json({ message: '請先確認匯入警告' });
+        if (!rows.length) return importProblem(res, 400, 'XLSX_ROW_INVALID', '檔案沒有可匯入的地點');
+        if (rows.some(row => row.errors.includes('不允許公式儲存格'))) return importProblem(res, 400, 'XLSX_FORMULA_NOT_ALLOWED', '檔案含有不允許的公式儲存格');
+        if (rows.some(row => row.errors.length)) return importProblem(res, 400, 'XLSX_ROW_INVALID', '檔案仍有欄位錯誤');
+        if (rows.some(row => row.warnings.length) && req.body.acknowledgeWarnings !== 'true') return importProblem(res, 400, 'XLSX_ROW_INVALID', '請先確認匯入警告');
         let decisions;
-        try { decisions = JSON.parse(req.body.decisions || '{}'); } catch { return res.status(400).json({ message: '地點確認資料不合法' }); }
-        if (!decisions || typeof decisions !== 'object' || Array.isArray(decisions) || Object.keys(decisions).length > rows.length) return res.status(400).json({ message: '地點確認資料不合法' });
+        try { decisions = JSON.parse(req.body.decisions || '{}'); } catch { return importProblem(res, 400, 'XLSX_ROW_INVALID', '地點確認資料不合法'); }
+        if (!decisions || typeof decisions !== 'object' || Array.isArray(decisions) || Object.keys(decisions).length > rows.length) return importProblem(res, 400, 'XLSX_ROW_INVALID', '地點確認資料不合法');
+        if (rows.every(row => decisions[row.rowNumber]?.exclude === true)) return importProblem(res, 400, 'XLSX_ROW_INVALID', '請至少選擇一個要匯入的地點');
         const mode = req.body.mode;
         const days = itineraryXlsx.applyImport(
             { days: trip.days.map(day => day.toObject()) },
             rows, mode, decisions
         );
-        if (mode === 'replace' && req.body.confirmReplace !== 'true') return res.status(400).json({ message: '請確認取代現有行程' });
+        if (mode === 'replace' && req.body.confirmReplace !== 'true') return importProblem(res, 400, 'XLSX_ROW_INVALID', '請確認取代現有行程');
         const updated = await Trip.findOneAndUpdate(
             { _id: trip._id, __v: previewVersion, participants: req.user.account },
             { $set: { days }, $inc: { __v: 1 } },
             { new: true, runValidators: true }
         );
-        if (!updated) return res.status(409).json({ message: '行程已被其他人修改，請重新預覽' });
+        if (!updated) return importProblem(res, 409, 'IMPORT_VERSION_CONFLICT', '行程已被其他人修改，請重新預覽');
         res.json(updated);
-    } catch (error) { res.status(error.status || 400).json({ message: error.message }); }
+    } catch (error) { reportImportError(res, error, 'final', req.file?.size); }
 });
 
 app.post('/api/trips/:id/location', authenticateToken, async (req, res) => {
@@ -607,6 +625,27 @@ app.post('/api/trips/:id/location', authenticateToken, async (req, res) => {
         await t.save();
         res.json(t);
     } catch (e) { res.status(500).json({ message: "新增地點失敗" }); }
+});
+
+app.put('/api/trips/:id/location', authenticateToken, async (req, res) => {
+    try {
+        const trip = await getAuthorizedTrip(req, res);
+        if (!trip) return;
+        const { dayIndex, locationIndex, name, time, note } = req.body;
+        if (!Number.isInteger(dayIndex) || !Number.isInteger(locationIndex) || dayIndex < 0 || locationIndex < 0
+            || !trip.days[dayIndex]?.locations[locationIndex]
+            || typeof name !== 'string' || !name.trim() || name.length > 200
+            || typeof time !== 'string' || time.length > 50
+            || typeof note !== 'string' || note.length > 3000) {
+            return res.status(400).json({ message: '地點編輯資料不合法' });
+        }
+        const location = trip.days[dayIndex].locations[locationIndex];
+        location.name = name;
+        location.time = time;
+        location.note = note;
+        await trip.save();
+        res.json(trip);
+    } catch { res.status(500).json({ message: '更新地點失敗' }); }
 });
 
 app.post('/api/trips/:id/location/delete', authenticateToken, async (req, res) => {
