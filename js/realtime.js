@@ -30,6 +30,11 @@
 
         await loadClient();
         socket = window.io(API_URL, { auth: { token } });
+        socket.on('session:revoked', () => {
+            localStorage.removeItem('yashyash_token');
+            localStorage.removeItem('yashyash_user');
+            window.location.replace('login.html');
+        });
         listeners.forEach((handlers, event) => handlers.forEach(handler => socket.on(event, handler)));
         return socket;
     }

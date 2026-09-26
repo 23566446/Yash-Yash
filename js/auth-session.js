@@ -1,5 +1,7 @@
 (function () {
     const token = localStorage.getItem('yashyash_token');
+    const sessionPath = document.body?.dataset?.sessionEndpoint || '/api/session';
+    let bootstrapData = null;
     let resolveReady;
     const ready = new Promise(resolve => { resolveReady = resolve; });
 
@@ -36,12 +38,15 @@
         const panel = document.getElementById('auth-connection-state');
         if (panel) panel.hidden = true;
         try {
-            const response = await fetch(`${window.YashYashConfig.API_URL}/api/session`, {
+            const response = await fetch(`${window.YashYashConfig.API_URL}${sessionPath}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (response.status === 401) return clearAuthAndRedirect();
             if (!response.ok) throw new Error('SESSION_UNAVAILABLE');
-            const user = await response.json();
+            const payload = await response.json();
+            const user = payload?.user || payload;
+            if (!user || typeof user.account !== 'string') throw new Error('SESSION_INVALID');
+            bootstrapData = payload?.home || null;
             window.currentAuthenticatedUser = user;
             localStorage.setItem('yashyash_user', JSON.stringify(user));
             document.body.classList.remove('auth-pending');
@@ -52,6 +57,6 @@
         }
     }
 
-    window.YashYashSession = { ready, verify: verifySession, clear: clearAuthAndRedirect };
+    window.YashYashSession = { ready, verify: verifySession, clear: clearAuthAndRedirect, get bootstrapData() { return bootstrapData; } };
     verifySession();
 }());

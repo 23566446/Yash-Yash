@@ -5,7 +5,7 @@ const vm = require('node:vm');
 
 const sessionScript = fs.readFileSync(require.resolve('../js/auth-session'), 'utf8');
 
-function startSession(storage, fetch) {
+function startSession(storage, fetch, sessionEndpoint) {
     const redirects = [];
     const classNames = new Set(['auth-pending']);
     const window = {
@@ -20,7 +20,7 @@ function startSession(storage, fetch) {
     };
     const document = {
         getElementById: () => null,
-        body: { classList: { remove: name => classNames.delete(name) } }
+        body: { dataset: sessionEndpoint ? { sessionEndpoint } : {}, classList: { remove: name => classNames.delete(name) } }
     };
     vm.runInNewContext(sessionScript, { window, document, localStorage, fetch, CustomEvent: class {} });
     return { window, redirects, classNames };
@@ -70,4 +70,19 @@ test('another tab in the same profile validates the shared token', async () => {
     assert.equal(requests, 2);
     assert.deepEqual(first.redirects, []);
     assert.deepEqual(second.redirects, []);
+});
+
+
+test('home bootstrap endpoint verifies session and exposes prefetched data', async () => {
+    const storage = new Map([['yashyash_token', 'valid-token']]);
+    const calls = [];
+    const home = { marqueeText: 'hello', proposals: [], trips: [], notifications: [] };
+    const session = startSession(storage, async (url, options) => {
+        calls.push({ url, authorization: options.headers.Authorization });
+        return { ok: true, status: 200, json: async () => ({ user: { account: 'alice', role: 'user' }, home }) };
+    }, '/api/home-bootstrap');
+    const user = await session.window.YashYashSession.ready;
+    assert.equal(user.account, 'alice');
+    assert.equal(session.window.YashYashSession.bootstrapData.marqueeText, 'hello');
+    assert.deepEqual(calls, [{ url: 'https://example.test/api/home-bootstrap', authorization: 'Bearer valid-token' }]);
 });
