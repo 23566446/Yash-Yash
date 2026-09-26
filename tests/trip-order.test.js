@@ -1,6 +1,13 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { sortUpcomingTrips, localDateKey, daysUntilDate } = require('../js/trip-order');
+const { sortUpcomingTrips, localDateKey, daysUntilDate, tripDayLabel } = require('../js/trip-order');
+
+test('planner day labels preserve calendar dates and weekdays across boundaries', () => {
+    assert.equal(tripDayLabel('2026-09-26', 0), '9月26日 星期六');
+    assert.equal(tripDayLabel('2026-09-30', 1), '10月1日 星期四');
+    assert.equal(tripDayLabel('2026-12-31', 1, false), '1月1日');
+    assert.equal(tripDayLabel('2028-02-28', 1), '2月29日 星期二');
+});
 
 test('local date key uses calendar fields at 00:30', () => {
     assert.equal(localDateKey(new Date(2026, 8, 26, 0, 30)), '2026-09-26');

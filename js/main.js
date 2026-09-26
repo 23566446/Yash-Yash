@@ -8,7 +8,8 @@ window.onload = async function() {
     currentUser = await window.YashYashSession.ready;
     
     // 更新側邊欄使用者資訊
-    document.getElementById('side-display-name').innerText = currentUser.nickname || currentUser.account;
+    document.getElementById('side-display-name').textContent = currentUser.nickname || currentUser.account;
+    document.getElementById('side-account').textContent = currentUser.account || '';
     
     // 載入頭像
     if (currentUser.avatar) {
@@ -273,21 +274,27 @@ async function initializeNotificationRealtime() {
 // ===== 側邊選單控制 =====
 function toggleMenu() {
     const menu = document.getElementById('side-menu');
-    menu.classList.toggle('active');
+    setMenuOpen(!menu.classList.contains('active'));
 }
 
-document.getElementById('menu-logout').addEventListener('click', logout);
-
-// 點擊背景關閉選單
-document.addEventListener('click', function(e) {
+function setMenuOpen(open) {
     const menu = document.getElementById('side-menu');
-    const menuBtn = document.querySelector('.menu-btn');
-    
-    if (menu && menu.classList.contains('active')) {
-        if (!menu.contains(e.target) && !menuBtn.contains(e.target)) {
-            menu.classList.remove('active');
-        }
-    }
+    menu.classList.toggle('active', open);
+    menu.inert = !open;
+    menu.setAttribute('aria-hidden', String(!open));
+    document.getElementById('menu-open').setAttribute('aria-expanded', String(open));
+    document.getElementById('drawer-overlay').hidden = !open;
+    document.body.classList.toggle('drawer-open', open);
+    if (open) document.getElementById('menu-close').focus();
+    else document.getElementById('menu-open').focus();
+}
+
+document.getElementById('menu-open').addEventListener('click', toggleMenu);
+document.getElementById('menu-close').addEventListener('click', () => setMenuOpen(false));
+document.getElementById('drawer-overlay').addEventListener('click', () => setMenuOpen(false));
+document.getElementById('menu-logout').addEventListener('click', logout);
+document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && document.body.classList.contains('drawer-open')) setMenuOpen(false);
 });
 
 // ===== 登出功能 =====

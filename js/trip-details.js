@@ -188,122 +188,137 @@ async function renderTripParticipants(accounts) {
 
 function renderItinerary() {
     const container = document.getElementById('days-container');
+    const selector = document.getElementById('day-selector');
     if (!container || !currentTripData) return;
-
-    sortables.forEach(s => s.destroy ? s.destroy() : null);
+    sortables.forEach(s => s.destroy?.());
     sortables = [];
-
-    const readOnly = false;
-    const dayCards = currentTripData.days.map((day, index) => {
-        const isActive = activeDayIndex === index;
-        const dayCard = document.createElement('div');
-        dayCard.className = `day-card wabi-card${isActive ? ' active-day' : ''}`;
-        dayCard.style.cssText = `margin-bottom:15px; cursor:pointer; border:${isActive ? '2px solid #8a9a5b' : '1px solid #e0ddd7'};`;
-
-        const header = document.createElement('div');
-        header.className = 'day-header';
-        header.style.cssText = 'padding:15px; display:flex; justify-content:space-between; align-items:center;';
-        header.addEventListener('click', () => setActiveDay(index));
-        const heading = document.createElement('h4');
-        heading.style.margin = '0';
-        heading.textContent = `Day ${day.dayNumber} ${isActive ? '🔓' : ''}`;
-        const indicator = document.createElement('span');
-        indicator.textContent = isActive ? '▼' : '▶';
-        header.append(heading, indicator);
-
-        const content = document.createElement('div');
-        content.className = 'day-content';
-        content.style.cssText = `display:${isActive ? 'block' : 'none'}; padding:0 15px 15px 15px; background:#f9f9f7;`;
-        const locationList = document.createElement('div');
-        locationList.className = 'location-list';
-        locationList.id = `list-${index}`;
-        locationList.style.minHeight = '20px';
-
-        if (day.locations.length === 0) {
-            const emptyText = document.createElement('p');
-            emptyText.className = 'empty-text';
-            emptyText.style.cssText = 'font-size:0.8rem; color:#999;';
-            emptyText.textContent = '尚未新增地點';
-            locationList.appendChild(emptyText);
-        } else {
-            day.locations.forEach((loc, locIdx) => {
-                const lat = Number.parseFloat(loc.lat);
-                const lng = Number.parseFloat(loc.lng);
-                const hasValidCoordinates = Number.isFinite(lat) && Number.isFinite(lng);
-                const locationItem = document.createElement('div');
-                locationItem.className = 'location-item';
-                locationItem.style.cssText = 'background:#fff; border:1px solid #eee; padding:10px; margin:5px 0; display:flex; align-items:center; border-radius:5px; cursor:pointer;';
-
-                if (hasValidCoordinates) {
-                    locationItem.addEventListener('click', () => focusLocation(lat, lng));
-                }
-
-                if (!readOnly) {
-                    const dragHandle = document.createElement('span');
-                    dragHandle.className = 'drag-handle';
-                    dragHandle.style.cssText = 'margin-right:10px; cursor:grab; color:#ccc;';
-                    dragHandle.textContent = '☰';
-                    dragHandle.addEventListener('click', event => event.stopPropagation());
-                    locationItem.appendChild(dragHandle);
-                }
-
-                const locationNameWrapper = document.createElement('div');
-                locationNameWrapper.style.cssText = 'flex:1; overflow:hidden;';
-                const locationName = document.createElement('div');
-                locationName.style.cssText = 'font-size:0.9rem; font-weight:bold; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;';
-                locationName.textContent = loc.name;
-                locationNameWrapper.appendChild(locationName);
-
-                const actions = document.createElement('div');
-                actions.style.cssText = 'display:flex; gap:5px;';
-                const navigationButton = document.createElement('button');
-                navigationButton.style.cssText = 'padding:4px 8px; background:#f5f2ed; border:1px solid #d2b48c; border-radius:4px; cursor:pointer;';
-                navigationButton.textContent = '🚗';
-                navigationButton.disabled = !hasValidCoordinates;
-                if (hasValidCoordinates) {
-                    navigationButton.addEventListener('click', event => {
-                        event.stopPropagation();
-                        startNavigation(lat, lng);
-                    });
-                }
-                actions.appendChild(navigationButton);
-
-                if (!readOnly) {
-                    const deleteButton = document.createElement('button');
-                    deleteButton.style.cssText = 'padding:4px 8px; background:none; border:none; color:#ccc; cursor:pointer;';
-                    deleteButton.textContent = '×';
-                    deleteButton.addEventListener('click', event => {
-                        event.stopPropagation();
-                        deleteLocation(index, locIdx);
-                    });
-                    actions.appendChild(deleteButton);
-                }
-
-                locationItem.append(locationNameWrapper, actions);
-                locationList.appendChild(locationItem);
-            });
-        }
-
-        content.appendChild(locationList);
-        dayCard.append(header, content);
-        return dayCard;
+    const days = currentTripData.days || [];
+    activeDayIndex = Math.max(0, Math.min(activeDayIndex, days.length - 1));
+    selector.replaceChildren();
+    days.forEach((day, index) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'day-tab';
+        button.setAttribute('aria-current', index === activeDayIndex ? 'date' : 'false');
+        button.setAttribute('aria-controls', 'days-container');
+        const label = document.createElement('strong');
+        label.textContent = `Day ${index + 1}`;
+        const date = document.createElement('span');
+        date.textContent = window.YashYashTripOrder.tripDayLabel(currentTripData.startDate, index, false);
+        button.append(label, date);
+        button.addEventListener('click', () => setActiveDay(index));
+        selector.appendChild(button);
     });
-    container.replaceChildren(...dayCards);
-
-    if (typeof Sortable !== 'undefined' && !readOnly) {
-        currentTripData.days.forEach((_, index) => {
-            const el = document.getElementById(`list-${index}`);
-            if (el) {
-                const s = new Sortable(el, {
-                    animation: 150,
-                    handle: '.drag-handle',
-                    onEnd: (evt) => handleReorder(index, evt.oldIndex, evt.newIndex)
-                });
-                sortables.push(s);
+    const day = days[activeDayIndex];
+    container.replaceChildren();
+    if (!day) return;
+    const summary = document.createElement('header');
+    summary.className = 'day-summary';
+    const heading = document.createElement('h2');
+    heading.textContent = `Day ${activeDayIndex + 1}`;
+    const date = document.createElement('p');
+    date.textContent = window.YashYashTripOrder.tripDayLabel(currentTripData.startDate, activeDayIndex);
+    const count = document.createElement('span');
+    count.textContent = `${day.locations.length} 個地點`;
+    summary.append(heading, date, count);
+    const list = document.createElement('div');
+    list.className = 'location-list';
+    list.id = `list-${activeDayIndex}`;
+    if (!day.locations.length) {
+        const empty = document.createElement('div');
+        empty.className = 'planner-empty';
+        const title = document.createElement('h3');
+        title.textContent = '這天還沒有安排';
+        const hint = document.createElement('p');
+        hint.textContent = '從上方搜尋地點，或直接點地圖加入。';
+        empty.append(title, hint);
+        list.appendChild(empty);
+    }
+    day.locations.forEach((loc, locIdx) => {
+        const lat = Number.parseFloat(loc.lat);
+        const lng = Number.parseFloat(loc.lng);
+        const valid = Number.isFinite(lat) && Number.isFinite(lng);
+        const stop = document.createElement('div');
+        stop.className = 'itinerary-stop location-item';
+        const marker = document.createElement('span');
+        marker.className = 'stop-marker';
+        marker.textContent = String(locIdx + 1);
+        const content = document.createElement('div');
+        content.className = 'stop-content';
+        const name = document.createElement('button');
+        name.type = 'button';
+        name.className = 'stop-title';
+        name.textContent = loc.name;
+        name.title = '在地圖上查看';
+        name.disabled = !valid;
+        name.addEventListener('click', () => focusLocation(lat, lng));
+        content.appendChild(name);
+        for (const [field, className] of [['time', 'stop-time'], ['note', 'stop-note']]) {
+            if (loc[field]) {
+                const detail = document.createElement('p');
+                detail.className = className;
+                detail.textContent = loc[field];
+                content.appendChild(detail);
             }
+        }
+        const actions = document.createElement('div');
+        actions.className = 'stop-actions';
+        const drag = document.createElement('span');
+        drag.className = 'drag-handle';
+        drag.textContent = '⠿';
+        drag.title = '拖曳調整順序';
+        drag.setAttribute('aria-hidden', 'true');
+        const navigation = document.createElement('button');
+        navigation.type = 'button';
+        navigation.textContent = '↗';
+        navigation.title = '開啟導航';
+        navigation.setAttribute('aria-label', `導航到 ${loc.name}`);
+        navigation.disabled = !valid;
+        navigation.addEventListener('click', () => startNavigation(lat, lng));
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.textContent = '×';
+        remove.title = '移除地點';
+        remove.setAttribute('aria-label', `移除 ${loc.name}`);
+        remove.addEventListener('click', () => deleteLocation(activeDayIndex, locIdx));
+        actions.append(drag, navigation, remove);
+        stop.append(marker, content, actions);
+        list.appendChild(stop);
+    });
+    container.append(summary, list);
+    if (day.locations.length > 1) {
+        const helper = document.createElement('p');
+        helper.className = 'planner-hint';
+        helper.textContent = '拖曳右側把手調整地點順序';
+        container.appendChild(helper);
+        if (typeof Sortable !== 'undefined') {
+            sortables.push(new Sortable(list, {
+                animation: 150,
+                handle: '.drag-handle',
+                draggable: '.itinerary-stop',
+                onEnd: evt => handleReorder(activeDayIndex, evt.oldIndex, evt.newIndex)
+            }));
+        }
+    }
+}
+
+function setPlannerView(view, fitMarkers = true) {
+    const showMap = view === 'map';
+    document.body.dataset.plannerView = showMap ? 'map' : 'itinerary';
+    document.querySelectorAll('[data-planner-mode]').forEach(button => {
+        button.setAttribute('aria-pressed', String(button.dataset.plannerMode === view));
+    });
+    if (showMap && map) {
+        requestAnimationFrame(() => {
+            google.maps.event.trigger(map, 'resize');
+            if (fitMarkers) renderMarkers();
         });
     }
 }
+
+document.querySelectorAll('[data-planner-mode]').forEach(button => {
+    button.addEventListener('click', () => setPlannerView(button.dataset.plannerMode));
+});
 
 async function initMap() {
     const mapEl = document.getElementById("map");
@@ -341,7 +356,7 @@ async function initMap() {
     }
     PlaceClass = Place;
     const placeAutocomplete = new PlaceAutocompleteElement();
-    placeAutocomplete.placeholder = '🔍 搜尋地點或在地圖點擊...';
+    placeAutocomplete.placeholder = '搜尋景點、餐廳或住宿';
     input.replaceChildren(placeAutocomplete);
 
     placeAutocomplete.addEventListener('gmp-select', async ({ placePrediction }) => {
@@ -399,6 +414,7 @@ function showMapError(message = '地圖暫時無法載入，但行程清單仍�
 }
 
 function showPreview(latLng, name, address) {
+    setPlannerView('map', false);
     if (tempMarker) tempMarker.setMap(null);
 
     tempMarker = new google.maps.Marker({
@@ -520,14 +536,21 @@ function startNavigation(lat, lng) {
 }
 
 function focusLocation(lat, lng) { 
+    if (!map) return;
+    setPlannerView('map', false);
     map.panTo({ lat: parseFloat(lat), lng: parseFloat(lng) }); 
     map.setZoom(17); 
 }
 
 function setActiveDay(index) {
     activeDayIndex = index;
+    if (tempMarker) { tempMarker.setMap(null); tempMarker = null; }
+    infoWindow?.close();
     renderItinerary();
     renderMarkers();
+    const activeButton = document.querySelector('.day-tab[aria-current="date"]');
+    activeButton?.focus({ preventScroll: true });
+    activeButton?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 }
 
 async function addLocationToDB(locationObj) {
@@ -586,6 +609,7 @@ async function handleReorder(dayIdx, oldIdx, newIdx) {
             const result = await response.json();
             if (!result.trip) throw new Error('排序回應格式不正確');
             currentTripData = result.trip;
+            renderItinerary();
             renderMarkers();
         } else {
             throw new Error(`排序失敗 (${response.status})`);

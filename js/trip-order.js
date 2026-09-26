@@ -27,5 +27,12 @@
         });
     }
 
-    return { sortUpcomingTrips, localDateKey, daysUntilDate };
+    function tripDayLabel(startDate, dayIndex, includeWeekday = true) {
+        const [year, month, day] = startDate.split('-').map(Number);
+        const date = new Date(Date.UTC(year, month - 1, day + dayIndex));
+        const monthDay = `${date.getUTCMonth() + 1}月${date.getUTCDate()}日`;
+        return includeWeekday ? `${monthDay} 星期${'日一二三四五六'[date.getUTCDay()]}` : monthDay;
+    }
+
+    return { sortUpcomingTrips, localDateKey, daysUntilDate, tripDayLabel };
 }));
