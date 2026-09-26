@@ -5,7 +5,9 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
 const { Server } = require('socket.io');
+const itineraryXlsx = require('./lib/itinerary-xlsx');
 const { shouldNotifyProposalPending } = require('./lib/notification-utils');
 const { buildTripContext } = require('./lib/ai-context');
 const { validateQuestion, createRateWindow } = require('./lib/ai-utils');
@@ -24,7 +26,8 @@ const io = new Server(httpServer, {
 app.use(cors({
     origin: TRUSTED_ORIGINS,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    exposedHeaders: ['Content-Disposition']
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
@@ -139,7 +142,7 @@ const Trip = mongoose.model('Trip', new mongoose.Schema({
     creatorAccount: String,
     days: [{
         dayNumber: Number,
-        locations: [{ name: String, addr: String, lat: Number, lng: Number, note: String, time: String }]
+        locations: [{ name: String, addr: String, mapUrl: String, lat: Number, lng: Number, note: String, time: String }]
     }],
     chatMessages: Array
 }));
@@ -509,6 +512,88 @@ app.get('/api/my-trips', authenticateToken, async (req, res) => {
 app.get('/api/trips/:id', authenticateToken, async (req, res) => {
     const trip = await getAuthorizedTrip(req, res, false, false);
     if (trip) { await getTripCreatorAccount(trip); res.json(trip); }
+});
+
+const itineraryUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 2 * 1024 * 1024, files: 1, fields: 5, parts: 6 },
+    fileFilter: (req, file, done) => done(null, /\.xlsx$/i.test(file.originalname) && !/\.(xls|xlsm)$/i.test(file.originalname))
+}).single('file');
+
+function receiveItinerary(req, res, next) {
+    itineraryUpload(req, res, error => {
+        if (error) return res.status(error.code === 'LIMIT_FILE_SIZE' ? 413 : 400).json({ message: 'XLSX 超過 2 MB 或上傳格式不合法' });
+        if (!req.file) return res.status(400).json({ message: '請選擇 .xlsx 檔案' });
+        next();
+    });
+}
+
+function sendWorkbook(res, workbook, filename) {
+    return workbook.xlsx.writeBuffer().then(buffer => {
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        const asciiFilename = filename.replace(/[^\x20-\x7e]/g, '_');
+        res.setHeader('Content-Disposition', `attachment; filename="${asciiFilename}"; filename*=UTF-8''${encodeURIComponent(filename)}`);
+        res.send(Buffer.from(buffer));
+    });
+}
+
+app.get('/api/trips/:id/itinerary/template.xlsx', authenticateToken, async (req, res) => {
+    try {
+        const trip = await getAuthorizedTrip(req, res);
+        if (!trip) return;
+        await sendWorkbook(res, itineraryXlsx.buildWorkbook(trip, false), 'YashYash_Itinerary_Template.xlsx');
+    } catch { res.status(500).json({ message: '範本產生失敗' }); }
+});
+
+app.get('/api/trips/:id/itinerary/export.xlsx', authenticateToken, async (req, res) => {
+    try {
+        const trip = await getAuthorizedTrip(req, res);
+        if (!trip) return;
+        await sendWorkbook(res, itineraryXlsx.buildWorkbook(trip), itineraryXlsx.safeFilename(trip.title));
+    } catch { res.status(500).json({ message: '匯出失敗' }); }
+});
+
+app.post('/api/trips/:id/itinerary/import/preview', authenticateToken, receiveItinerary, async (req, res) => {
+    try {
+        const trip = await getAuthorizedTrip(req, res);
+        if (!trip) return;
+        const rows = await itineraryXlsx.parseWorkbook(req.file.buffer, trip);
+        res.json({ rows, summary: {
+            total: rows.length,
+            resolved: rows.filter(row => !row.errors.length && row.lat != null).length,
+            unresolved: rows.filter(row => !row.errors.length && row.lat == null).length,
+            warnings: rows.reduce((total, row) => total + row.warnings.length, 0),
+            errors: rows.reduce((total, row) => total + row.errors.length, 0)
+        }, existingCount: trip.days.reduce((total, day) => total + day.locations.length, 0), tripVersion: trip.__v });
+    } catch (error) { res.status(400).json({ message: error.message }); }
+});
+
+app.post('/api/trips/:id/itinerary/import', authenticateToken, receiveItinerary, async (req, res) => {
+    try {
+        const trip = await getAuthorizedTrip(req, res);
+        if (!trip) return;
+        const previewVersion = itineraryXlsx.requirePreviewVersion(req.body.previewVersion, trip.__v);
+        const rows = await itineraryXlsx.parseWorkbook(req.file.buffer, trip);
+        if (!rows.length) return res.status(400).json({ message: '檔案沒有可匯入的地點' });
+        if (rows.some(row => row.errors.length)) return res.status(400).json({ message: '檔案仍有欄位錯誤' });
+        if (rows.some(row => row.warnings.length) && req.body.acknowledgeWarnings !== 'true') return res.status(400).json({ message: '請先確認匯入警告' });
+        let decisions;
+        try { decisions = JSON.parse(req.body.decisions || '{}'); } catch { return res.status(400).json({ message: '地點確認資料不合法' }); }
+        if (!decisions || typeof decisions !== 'object' || Array.isArray(decisions) || Object.keys(decisions).length > rows.length) return res.status(400).json({ message: '地點確認資料不合法' });
+        const mode = req.body.mode;
+        const days = itineraryXlsx.applyImport(
+            { days: trip.days.map(day => day.toObject()) },
+            rows, mode, decisions
+        );
+        if (mode === 'replace' && req.body.confirmReplace !== 'true') return res.status(400).json({ message: '請確認取代現有行程' });
+        const updated = await Trip.findOneAndUpdate(
+            { _id: trip._id, __v: previewVersion, participants: req.user.account },
+            { $set: { days }, $inc: { __v: 1 } },
+            { new: true, runValidators: true }
+        );
+        if (!updated) return res.status(409).json({ message: '行程已被其他人修改，請重新預覽' });
+        res.json(updated);
+    } catch (error) { res.status(error.status || 400).json({ message: error.message }); }
 });
 
 app.post('/api/trips/:id/location', authenticateToken, async (req, res) => {
