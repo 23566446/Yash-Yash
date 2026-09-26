@@ -16,7 +16,7 @@
 <body class="auth-pending home-page" data-session-endpoint="/api/home-bootstrap">
     <header class="app-header">
         <div class="header-left">
-            <button class="menu-btn" onclick="toggleMenu()" aria-label="開啟選單">☰</button>
+            <button class="menu-btn" onclick="toggleMenu()" aria-label="開啟選單" aria-controls="side-menu" aria-expanded="false">☰</button>
         </div>
         <h1 class="brand brand-center">YashYash</h1>
         <div class="header-right">
@@ -30,24 +30,62 @@
     </div>
 
     <!-- 側邊選單 -->
-    <nav id="side-menu" class="side-menu">
+    <nav id="side-menu" class="side-menu" aria-label="主選單" aria-hidden="true">
         <div class="menu-header">
-            <button class="close-btn" onclick="toggleMenu()" aria-label="關閉選單">×</button>
-            <div class="user-profile-side">
+            <a class="menu-profile-card" href="user.html" aria-label="開啟個人設定">
                 <img id="side-user-avatar" src="img/default-avatar.svg" class="nav-avatar" alt="用戶頭像">
-                <div id="side-display-name">載入中...</div>
-            </div>
+                <span class="menu-profile-copy">
+                    <span class="menu-profile-kicker">YashYash Traveller</span>
+                    <strong id="side-display-name">載入中...</strong>
+                    <span id="side-account" class="menu-profile-account"></span>
+                </span>
+            </a>
+            <button class="close-btn" onclick="toggleMenu(false)" aria-label="關閉選單">×</button>
         </div>
-        
-        <ul class="menu-list">
-            <li><a href="index.html" aria-current="page"><span aria-hidden="true">🏠</span><span>首頁</span></a></li>
-            <li><a href="user.html"><span aria-hidden="true">👤</span><span>個人設定</span></a></li>
-            <li><a href="create-trip.html"><span aria-hidden="true">➕</span><span>發起提案</span></a></li>
-            <li><a href="past-trip.html"><span aria-hidden="true">📂</span><span>過去的行程</span></a></li>
-            <li class="menu-divider"></li>
-            <li class="menu-logout"><button id="menu-logout" type="button"><span aria-hidden="true">🚪</span><span>登出系統</span></button></li>
-        </ul>
+
+        <div class="menu-scroll">
+            <p class="menu-section-label">旅行</p>
+            <ul class="menu-list">
+                <li>
+                    <a href="index.html" aria-current="page">
+                        <span class="menu-icon" aria-hidden="true">⌂</span>
+                        <span class="menu-item-copy"><strong>旅行總覽</strong><small>下一趟與旅行提案</small></span>
+                    </a>
+                </li>
+                <li>
+                    <a href="create-trip.html">
+                        <span class="menu-icon" aria-hidden="true">＋</span>
+                        <span class="menu-item-copy"><strong>發起新旅行</strong><small>先提出日期，一起決定</small></span>
+                    </a>
+                </li>
+                <li>
+                    <a href="past-trip.html">
+                        <span class="menu-icon" aria-hidden="true">◷</span>
+                        <span class="menu-item-copy"><strong>旅行回憶</strong><small>查看已完成的旅程</small></span>
+                    </a>
+                </li>
+            </ul>
+
+            <p class="menu-section-label">帳號</p>
+            <ul class="menu-list">
+                <li>
+                    <a href="user.html">
+                        <span class="menu-icon" aria-hidden="true">◎</span>
+                        <span class="menu-item-copy"><strong>個人設定</strong><small>帳號、通知與登入安全</small></span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="menu-footer">
+            <button id="menu-logout" type="button" class="menu-logout-button">
+                <span class="menu-icon" aria-hidden="true">↪</span>
+                <span class="menu-item-copy"><strong>登出此裝置</strong><small>保留其他裝置登入狀態</small></span>
+            </button>
+            <small class="menu-signature">YashYash · Travel together</small>
+        </div>
     </nav>
+    <button id="side-menu-backdrop" class="side-menu-backdrop" type="button" aria-label="關閉選單"></button>
 
     <main class="main-content">
         <!-- 即將到來的旅行 -->
