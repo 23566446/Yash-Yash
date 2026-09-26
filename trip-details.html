@@ -129,12 +129,9 @@
             <div id="trip-participants" class="trip-participants" aria-label="參與夥伴"></div>
         </div>
         
-        <div class="actions">
-            <button onclick="goToAlbum()" class="btn-small" aria-label="開啟行程相簿" title="相簿">🖼️</button>
-            <button onclick="goToChat()" class="btn-small" aria-label="開啟行程聊天" title="聊天">💬</button>
-            <button onclick="goToLedger()" class="btn-small" aria-label="開啟旅費記帳" title="記帳">💰</button>
-            <button id="edit-date-btn" onclick="editTripDates()" class="btn-small hidden" aria-label="編輯旅行日期" title="編輯日期">📅</button>
-            <button id="delete-trip-btn" onclick="deleteTrip()" class="btn-small hidden" aria-label="刪除旅行" title="刪除旅行">🗑️</button>
+        <div class="actions planner-header-actions">
+            <button id="edit-date-btn" onclick="editTripDates()" class="btn-small hidden" aria-label="編輯旅行日期" title="編輯日期">日期</button>
+            <button id="delete-trip-btn" onclick="deleteTrip()" class="btn-small hidden planner-delete-trip" aria-label="刪除旅行" title="刪除旅行">刪除</button>
         </div>
     </header>
 
@@ -145,11 +142,20 @@
         </main>
 
         <!-- 行程側邊欄 -->
-        <aside class="itinerary-sidebar">
+        <aside class="itinerary-sidebar" aria-label="行程安排">
             <div class="search-box-container">
+                <div class="planner-search-head">
+                    <div>
+                        <span class="section-eyebrow">PLANNER</span>
+                        <strong>安排今天</strong>
+                    </div>
+                    <span id="active-day-summary" class="status-badge">Day 1</span>
+                </div>
                 <div id="pac-input" aria-label="搜尋地點"></div>
+                <p class="planner-search-hint">搜尋景點後，可直接加入目前選擇的日期。</p>
             </div>
-            <div id="days-container">
+            <div id="day-switcher" class="planner-day-switcher" role="tablist" aria-label="選擇行程日期"></div>
+            <div id="days-container" class="planner-days-scroll">
                 <!-- 由 JS 渲染 -->
             </div>
         </aside>
@@ -164,19 +170,5 @@
     <script src="js/image-utils.js"></script>
     <script src="js/trip-nav.js"></script>
     <script src="js/trip-details.js"></script>
-    
-    <script>
-        function goToChat() {
-            window.location.href = `trip-chat.html?id=${tripId}`;
-        }
-        
-        function goToLedger() {
-            window.location.href = `trip-ledger.html?id=${tripId}`;
-        }
-        
-        function goToAlbum() {
-            window.location.href = `trip-album.html?id=${tripId}`;
-        }
-    </script>
 </body>
 </html>
