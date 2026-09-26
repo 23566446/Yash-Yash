@@ -1,6 +1,22 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { sortUpcomingTrips } = require('../js/trip-order');
+const { sortUpcomingTrips, localDateKey, daysUntilDate } = require('../js/trip-order');
+
+test('local date key uses calendar fields at 00:30', () => {
+    assert.equal(localDateKey(new Date(2026, 8, 26, 0, 30)), '2026-09-26');
+});
+
+test('days until date handles same, next, and previous days', () => {
+    const now = new Date(2026, 8, 26, 0, 30);
+    assert.equal(daysUntilDate('2026-09-26', now), 0);
+    assert.equal(daysUntilDate('2026-09-27', now), 1);
+    assert.equal(daysUntilDate('2026-09-25', now), -1);
+});
+
+test('days until date handles month and year boundaries', () => {
+    assert.equal(daysUntilDate('2026-10-01', new Date(2026, 8, 30, 23, 30)), 1);
+    assert.equal(daysUntilDate('2027-01-01', new Date(2026, 11, 31, 23, 30)), 1);
+});
 
 test('ongoing trips precede future trips and end sooner first', () => {
     const trips = [

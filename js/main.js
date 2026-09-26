@@ -183,7 +183,7 @@ async function loadMyTrips() {
         const trips = await res.json();
         
         // 取得今天的日期（格式：YYYY-MM-DD）
-        const today = new Date().toISOString().split('T')[0];
+        const today = window.YashYashTripOrder.localDateKey();
         
         // 過濾出尚未結束的行程（結束日期 >= 今天）
         const upcomingTrips = window.YashYashTripOrder.sortUpcomingTrips(trips, today);
@@ -196,11 +196,11 @@ async function loadMyTrips() {
         tripList.replaceChildren();
         upcomingTrips.forEach((t, index) => {
             const dayCount = Math.ceil((new Date(t.endDate) - new Date(t.startDate)) / (1000 * 60 * 60 * 24)) + 1;
-            const daysLeft = Math.ceil((new Date(t.startDate) - new Date()) / (1000 * 60 * 60 * 24));
+            const daysLeft = window.YashYashTripOrder.daysUntilDate(t.startDate);
             
-            const card=document.createElement('div'); card.className=`trip-card wabi-card${index === 0 ? ' trip-hero' : ''}`; card.addEventListener('click',()=>{location.href=`trip-details.html?id=${encodeURIComponent(t._id)}`;});
+            const card=document.createElement('a'); card.className=`trip-card wabi-card${index === 0 ? ' trip-hero' : ''}`; card.href=`trip-details.html?id=${encodeURIComponent(t._id)}`;
             const title=document.createElement('strong'); title.className='trip-card-title'; title.textContent=t.title; card.appendChild(title);
-            const badge=document.createElement('span'); badge.className='status-badge trip-status'; badge.textContent=t.startDate<=today?'旅途中':daysLeft>0?`還有 ${daysLeft} 天`:'今天出發！'; card.appendChild(badge);
+            const badge=document.createElement('span'); badge.className='status-badge trip-status'; badge.textContent=t.startDate<today?'旅途中':daysLeft===0?'今天出發！':`還有 ${daysLeft} 天`; card.appendChild(badge);
             const date=document.createElement('div'); date.className='trip-card-meta'; date.textContent=`📅 ${formatDate(t.startDate)} ~ ${formatDate(t.endDate)} (${dayCount} 天)`; card.appendChild(date);
             const people=document.createElement('div'); people.className='trip-card-meta'; people.textContent=`👥 ${t.participants.length} 位夥伴`; card.appendChild(people);
             const footer=document.createElement('div'); footer.className='trip-card-footer'; footer.textContent=index===0?'查看行程 →':'點擊查看詳情 →'; card.appendChild(footer); tripList.appendChild(card); });
